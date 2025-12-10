@@ -1,5 +1,7 @@
 import Foundation
 
+private class BundleFinder {}
+
 /// Lightweight secrets loader for values stored in Secrets.plist (gitignored).
 /// Provides trimmed string access with optional defaults.
 enum Secrets {
@@ -8,17 +10,17 @@ enum Secrets {
         case openRouterModel = "OPENROUTER_MODEL"
     }
 
-    private static var cached: [String: Any]?
-
+    // Removed unsafe global cache to avoid concurrency issues and MainActor requirements.
+    // Plist loading is fast enough to do on demand for this use case.
     private static func load() -> [String: Any]? {
-        if let cached { return cached }
-        guard let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist"),
+        // Use Bundle(for:) to avoid Bundle.main which is MainActor isolated
+        let bundle = Bundle(for: BundleFinder.self)
+        guard let url = bundle.url(forResource: "Secrets", withExtension: "plist"),
               let data = try? Data(contentsOf: url),
               let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
               let dict = plist as? [String: Any] else {
             return nil
         }
-        cached = dict
         return dict
     }
 

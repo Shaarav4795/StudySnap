@@ -170,6 +170,7 @@ nav {
 
 .gradient-text {
     background: var(--gradient-primary);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -421,6 +422,7 @@ nav {
     font-size: 2.5rem;
     margin-bottom: 16px;
     background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
