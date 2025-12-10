@@ -2,8 +2,6 @@
 
 **The Ultimate AI-Powered Study Companion for iOS**
 
-🌐 **Website:** [studysnap.shaarav.xyz](https://studysnap.shaarav.xyz)
-
 StudySnap is an intelligent study aid built with **SwiftUI** and **SwiftData** for iOS 18+. It leverages advanced AI to transform your study materials into interactive learning tools.
 
 **Key Capabilities:**
