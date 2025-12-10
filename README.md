@@ -1,6 +1,20 @@
 # StudySnap
 
-An AI-powered study companion for iOS 18+ (tested on iOS 26) built with SwiftUI and SwiftData. Generate summaries, quizzes, and flashcards from your notes (paste, scan, or import a PDF), track progress with gamification, and keep learning with widgets and notifications.
+**The Ultimate AI-Powered Study Companion for iOS**
+
+🌐 **Website:** [studysnap.shaarav.xyz](https://studysnap.shaarav.xyz)
+
+StudySnap is an intelligent study aid built with **SwiftUI** and **SwiftData** for iOS 18+. It leverages advanced AI to transform your study materials into interactive learning tools.
+
+**Key Capabilities:**
+- **AI Summaries:** Instantly condense long notes and PDFs.
+- **Quiz Generator:** Create multiple-choice questions automatically.
+- **Flashcards:** Generate study decks from any text or document.
+- **Gamification:** Earn XP, track streaks, and unlock achievements.
+
+Perfect for students looking to optimize their revision with **AI study tools**, **automated flashcards**, and **smart quizzes**.
+
+Generate summaries, quizzes, and flashcards from your notes (paste, scan, or import a PDF), track progress with gamification, and keep learning with widgets and notifications.
 
 ## Features
 - Create study sets from pasted text, scanned pages (VisionKit), or uploaded PDFs
