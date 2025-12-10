@@ -1,0 +1,836 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A6480AF22EE02CF500EA4EDE /* SwiftMath in Frameworks */ = {isa = PBXBuildFile; productRef = A6480AF12EE02CF500EA4EDE /* SwiftMath */; };
+		A667E32E2EDFDE77000A6C88 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A667E3102EDFDD12000A6C88 /* WidgetKit.framework */; };
+		A667E32F2EDFDE77000A6C88 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A667E3122EDFDD13000A6C88 /* SwiftUI.framework */; };
+		A667E33C2EDFDE78000A6C88 /* StudySnapWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A667E32D2EDFDE77000A6C88 /* StudySnapWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A667E33A2EDFDE78000A6C88 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A69EE2C42EDBD0AC00C6ED06 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A667E32C2EDFDE77000A6C88;
+			remoteInfo = StudySnapWidgetsExtension;
+		};
+		A69EE2DC2EDBD0AE00C6ED06 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A69EE2C42EDBD0AC00C6ED06 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A69EE2CB2EDBD0AC00C6ED06;
+			remoteInfo = StudySnap;
+		};
+		A69EE2E62EDBD0AE00C6ED06 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A69EE2C42EDBD0AC00C6ED06 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A69EE2CB2EDBD0AC00C6ED06;
+			remoteInfo = StudySnap;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A667E3212EDFDD15000A6C88 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A667E33C2EDFDE78000A6C88 /* StudySnapWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A69EE34D2EDBEA1700C6ED06 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A667E3102EDFDD12000A6C88 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		A667E3122EDFDD13000A6C88 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		A667E32D2EDFDE77000A6C88 /* StudySnapWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StudySnapWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A667E3432EDFDFA2000A6C88 /* StudySnapWidgetsExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StudySnapWidgetsExtension.entitlements; sourceTree = "<group>"; };
+		A69EE2CC2EDBD0AC00C6ED06 /* StudySnap.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StudySnap.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A69EE2DB2EDBD0AE00C6ED06 /* StudySnapTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StudySnapTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A69EE2E52EDBD0AE00C6ED06 /* StudySnapUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StudySnapUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A667E33D2EDFDE78000A6C88 /* Exceptions for "StudySnapWidgets" folder in "StudySnapWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A667E32C2EDFDE77000A6C88 /* StudySnapWidgetsExtension */;
+		};
+		A6B466982EE3FB0800D7AEA1 /* Exceptions for "StudySnap" folder in "StudySnap" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A69EE2CB2EDBD0AC00C6ED06 /* StudySnap */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A667E3142EDFDD13000A6C88 /* StudySnapWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = StudySnapWidgets;
+			sourceTree = "<group>";
+		};
+		A667E3302EDFDE77000A6C88 /* StudySnapWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A667E33D2EDFDE78000A6C88 /* Exceptions for "StudySnapWidgets" folder in "StudySnapWidgetsExtension" target */,
+			);
+			path = StudySnapWidgets;
+			sourceTree = "<group>";
+		};
+		A69EE2CE2EDBD0AC00C6ED06 /* StudySnap */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A6B466982EE3FB0800D7AEA1 /* Exceptions for "StudySnap" folder in "StudySnap" target */,
+			);
+			path = StudySnap;
+			sourceTree = "<group>";
+		};
+		A69EE2DE2EDBD0AE00C6ED06 /* StudySnapTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = StudySnapTests;
+			sourceTree = "<group>";
+		};
+		A69EE2E82EDBD0AE00C6ED06 /* StudySnapUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = StudySnapUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A667E32A2EDFDE77000A6C88 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A667E32F2EDFDE77000A6C88 /* SwiftUI.framework in Frameworks */,
+				A667E32E2EDFDE77000A6C88 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A69EE2C92EDBD0AC00C6ED06 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6480AF22EE02CF500EA4EDE /* SwiftMath in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A69EE2D82EDBD0AE00C6ED06 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A69EE2E22EDBD0AE00C6ED06 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A69EE2C32EDBD0AC00C6ED06 = {
+			isa = PBXGroup;
+			children = (
+				A667E3432EDFDFA2000A6C88 /* StudySnapWidgetsExtension.entitlements */,
+				A69EE2CE2EDBD0AC00C6ED06 /* StudySnap */,
+				A69EE2DE2EDBD0AE00C6ED06 /* StudySnapTests */,
+				A69EE2E82EDBD0AE00C6ED06 /* StudySnapUITests */,
+				A667E3142EDFDD13000A6C88 /* StudySnapWidgets */,
+				A667E3302EDFDE77000A6C88 /* StudySnapWidgets */,
+				A69EE32E2EDBDF8500C6ED06 /* Frameworks */,
+				A69EE2CD2EDBD0AC00C6ED06 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A69EE2CD2EDBD0AC00C6ED06 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A69EE2CC2EDBD0AC00C6ED06 /* StudySnap.app */,
+				A69EE2DB2EDBD0AE00C6ED06 /* StudySnapTests.xctest */,
+				A69EE2E52EDBD0AE00C6ED06 /* StudySnapUITests.xctest */,
+				A667E32D2EDFDE77000A6C88 /* StudySnapWidgetsExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A69EE32E2EDBDF8500C6ED06 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A667E3102EDFDD12000A6C88 /* WidgetKit.framework */,
+				A667E3122EDFDD13000A6C88 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A667E32C2EDFDE77000A6C88 /* StudySnapWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A667E33E2EDFDE78000A6C88 /* Build configuration list for PBXNativeTarget "StudySnapWidgetsExtension" */;
+			buildPhases = (
+				A667E3292EDFDE77000A6C88 /* Sources */,
+				A667E32A2EDFDE77000A6C88 /* Frameworks */,
+				A667E32B2EDFDE77000A6C88 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A667E3302EDFDE77000A6C88 /* StudySnapWidgets */,
+			);
+			name = StudySnapWidgetsExtension;
+			packageProductDependencies = (
+			);
+			productName = StudySnapWidgetsExtension;
+			productReference = A667E32D2EDFDE77000A6C88 /* StudySnapWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		A69EE2CB2EDBD0AC00C6ED06 /* StudySnap */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A69EE2EF2EDBD0AE00C6ED06 /* Build configuration list for PBXNativeTarget "StudySnap" */;
+			buildPhases = (
+				A69EE2C82EDBD0AC00C6ED06 /* Sources */,
+				A69EE2C92EDBD0AC00C6ED06 /* Frameworks */,
+				A69EE2CA2EDBD0AC00C6ED06 /* Resources */,
+				A69EE34D2EDBEA1700C6ED06 /* Embed Frameworks */,
+				A667E3212EDFDD15000A6C88 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A667E33B2EDFDE78000A6C88 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A69EE2CE2EDBD0AC00C6ED06 /* StudySnap */,
+			);
+			name = StudySnap;
+			packageProductDependencies = (
+				A6480AF12EE02CF500EA4EDE /* SwiftMath */,
+			);
+			productName = StudySnap;
+			productReference = A69EE2CC2EDBD0AC00C6ED06 /* StudySnap.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A69EE2DA2EDBD0AE00C6ED06 /* StudySnapTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A69EE2F22EDBD0AE00C6ED06 /* Build configuration list for PBXNativeTarget "StudySnapTests" */;
+			buildPhases = (
+				A69EE2D72EDBD0AE00C6ED06 /* Sources */,
+				A69EE2D82EDBD0AE00C6ED06 /* Frameworks */,
+				A69EE2D92EDBD0AE00C6ED06 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A69EE2DD2EDBD0AE00C6ED06 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A69EE2DE2EDBD0AE00C6ED06 /* StudySnapTests */,
+			);
+			name = StudySnapTests;
+			packageProductDependencies = (
+			);
+			productName = StudySnapTests;
+			productReference = A69EE2DB2EDBD0AE00C6ED06 /* StudySnapTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		A69EE2E42EDBD0AE00C6ED06 /* StudySnapUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A69EE2F52EDBD0AE00C6ED06 /* Build configuration list for PBXNativeTarget "StudySnapUITests" */;
+			buildPhases = (
+				A69EE2E12EDBD0AE00C6ED06 /* Sources */,
+				A69EE2E22EDBD0AE00C6ED06 /* Frameworks */,
+				A69EE2E32EDBD0AE00C6ED06 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A69EE2E72EDBD0AE00C6ED06 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A69EE2E82EDBD0AE00C6ED06 /* StudySnapUITests */,
+			);
+			name = StudySnapUITests;
+			packageProductDependencies = (
+			);
+			productName = StudySnapUITests;
+			productReference = A69EE2E52EDBD0AE00C6ED06 /* StudySnapUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A69EE2C42EDBD0AC00C6ED06 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2610;
+				LastUpgradeCheck = 2610;
+				TargetAttributes = {
+					A667E32C2EDFDE77000A6C88 = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
+					A69EE2CB2EDBD0AC00C6ED06 = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
+					A69EE2DA2EDBD0AE00C6ED06 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = A69EE2CB2EDBD0AC00C6ED06;
+					};
+					A69EE2E42EDBD0AE00C6ED06 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = A69EE2CB2EDBD0AC00C6ED06;
+					};
+				};
+			};
+			buildConfigurationList = A69EE2C72EDBD0AC00C6ED06 /* Build configuration list for PBXProject "StudySnap" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A69EE2C32EDBD0AC00C6ED06;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A6480AF02EE02CF500EA4EDE /* XCRemoteSwiftPackageReference "SwiftMath" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A69EE2CD2EDBD0AC00C6ED06 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A69EE2CB2EDBD0AC00C6ED06 /* StudySnap */,
+				A69EE2DA2EDBD0AE00C6ED06 /* StudySnapTests */,
+				A69EE2E42EDBD0AE00C6ED06 /* StudySnapUITests */,
+				A667E32C2EDFDE77000A6C88 /* StudySnapWidgetsExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A667E32B2EDFDE77000A6C88 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A69EE2CA2EDBD0AC00C6ED06 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A69EE2D92EDBD0AE00C6ED06 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A69EE2E32EDBD0AE00C6ED06 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A667E3292EDFDE77000A6C88 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A69EE2C82EDBD0AC00C6ED06 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A69EE2D72EDBD0AE00C6ED06 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A69EE2E12EDBD0AE00C6ED06 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A667E33B2EDFDE78000A6C88 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A667E32C2EDFDE77000A6C88 /* StudySnapWidgetsExtension */;
+			targetProxy = A667E33A2EDFDE78000A6C88 /* PBXContainerItemProxy */;
+		};
+		A69EE2DD2EDBD0AE00C6ED06 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A69EE2CB2EDBD0AC00C6ED06 /* StudySnap */;
+			targetProxy = A69EE2DC2EDBD0AE00C6ED06 /* PBXContainerItemProxy */;
+		};
+		A69EE2E72EDBD0AE00C6ED06 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A69EE2CB2EDBD0AC00C6ED06 /* StudySnap */;
+			targetProxy = A69EE2E62EDBD0AE00C6ED06 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A667E33F2EDFDE78000A6C88 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = StudySnapWidgetsExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UNV824793C;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StudySnapWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = StudySnapWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shaarav.StudySnap.StudySnapWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A667E3402EDFDE78000A6C88 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = StudySnapWidgetsExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UNV824793C;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StudySnapWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = StudySnapWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shaarav.StudySnap.StudySnapWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A69EE2ED2EDBD0AE00C6ED06 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = UNV824793C;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A69EE2EE2EDBD0AE00C6ED06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = UNV824793C;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A69EE2F02EDBD0AE00C6ED06 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = StudySnap/StudySnap.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UNV824793C;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StudySnap/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to scan documents.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shaarav.StudySnap;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A69EE2F12EDBD0AE00C6ED06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = StudySnap/StudySnap.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UNV824793C;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = StudySnap/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to scan documents.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shaarav.StudySnap;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A69EE2F32EDBD0AE00C6ED06 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UNV824793C;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shaarav.StudySnapTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/StudySnap.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/StudySnap";
+			};
+			name = Debug;
+		};
+		A69EE2F42EDBD0AE00C6ED06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UNV824793C;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shaarav.StudySnapTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/StudySnap.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/StudySnap";
+			};
+			name = Release;
+		};
+		A69EE2F62EDBD0AE00C6ED06 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UNV824793C;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shaarav.StudySnapUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = StudySnap;
+			};
+			name = Debug;
+		};
+		A69EE2F72EDBD0AE00C6ED06 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UNV824793C;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shaarav.StudySnapUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = StudySnap;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A667E33E2EDFDE78000A6C88 /* Build configuration list for PBXNativeTarget "StudySnapWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A667E33F2EDFDE78000A6C88 /* Debug */,
+				A667E3402EDFDE78000A6C88 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A69EE2C72EDBD0AC00C6ED06 /* Build configuration list for PBXProject "StudySnap" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A69EE2ED2EDBD0AE00C6ED06 /* Debug */,
+				A69EE2EE2EDBD0AE00C6ED06 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A69EE2EF2EDBD0AE00C6ED06 /* Build configuration list for PBXNativeTarget "StudySnap" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A69EE2F02EDBD0AE00C6ED06 /* Debug */,
+				A69EE2F12EDBD0AE00C6ED06 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A69EE2F22EDBD0AE00C6ED06 /* Build configuration list for PBXNativeTarget "StudySnapTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A69EE2F32EDBD0AE00C6ED06 /* Debug */,
+				A69EE2F42EDBD0AE00C6ED06 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A69EE2F52EDBD0AE00C6ED06 /* Build configuration list for PBXNativeTarget "StudySnapUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A69EE2F62EDBD0AE00C6ED06 /* Debug */,
+				A69EE2F72EDBD0AE00C6ED06 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A6480AF02EE02CF500EA4EDE /* XCRemoteSwiftPackageReference "SwiftMath" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mgriebling/SwiftMath.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.7.3;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A6480AF12EE02CF500EA4EDE /* SwiftMath */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A6480AF02EE02CF500EA4EDE /* XCRemoteSwiftPackageReference "SwiftMath" */;
+			productName = SwiftMath;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A69EE2C42EDBD0AC00C6ED06 /* Project object */;
+}

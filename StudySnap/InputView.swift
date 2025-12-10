@@ -1,0 +1,543 @@
+import SwiftUI
+import UIKit
+import SwiftData
+import VisionKit
+
+struct InputView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @Query private var profiles: [UserProfile]
+    @StateObject private var gamificationManager = GamificationManager.shared
+    @EnvironmentObject private var guideManager: GuideManager
+    
+    // Mode selection
+    enum InputMode: String, CaseIterable, Identifiable {
+        case content = "From Content"
+        case topic = "Learn Topic"
+        
+        var id: String { rawValue }
+        
+        var icon: String {
+            switch self {
+            case .content: return "doc.text"
+            case .topic: return "lightbulb"
+            }
+        }
+        
+        var description: String {
+            switch self {
+            case .content: return "Generate from your notes, textbook, or documents"
+            case .topic: return "Learn something new - AI teaches you the topic"
+            }
+        }
+    }
+    
+    @State private var selectedMode: InputMode = .content
+    @State private var inputText: String = ""
+    @State private var topicDescription: String = ""
+    @State private var title: String = ""
+    @State private var selectedIconId: String = "book"
+    @State private var isIconPickerExpanded: Bool = false
+    @State private var activeSheet: ActiveSheet?
+    @State private var isGenerating = false
+    private let characterLimit = 20000
+    
+    private var profile: UserProfile {
+        if let existing = profiles.first {
+            return existing
+        }
+        return gamificationManager.getOrCreateProfile(context: modelContext)
+    }
+    
+    enum ActiveSheet: Int, Identifiable {
+        case scanner = 0
+        case filePicker = 1
+        
+        var id: Int { rawValue }
+    }
+    
+    // Configuration
+    @State private var questionCount: Double = 5
+    @State private var flashcardCount: Double = 10
+    @State private var summaryStyle: AIService.SummaryStyle = .paragraph
+    @State private var summaryWordCount: Double = 150
+    @State private var summaryDifficulty: AIService.SummaryDifficulty = .intermediate
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                // Mode Selection Section
+                Section {
+                    Picker("Mode", selection: $selectedMode) {
+                        ForEach(InputMode.allCases) { mode in
+                            Label(mode.rawValue, systemImage: mode.icon).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    
+                    Text(selectedMode.description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 4)
+                } header: {
+                    Text("Study Mode")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                }
+                
+                Section {
+                    TextField(selectedMode == .content ? "Title (e.g., Biology Chapter 1)" : "Title (e.g., Learn Calculus)", text: $title)
+                        .font(.headline)
+                    
+                    // Icon Picker
+                    DisclosureGroup(isExpanded: $isIconPickerExpanded) {
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 12) {
+                            ForEach(StudySetIcon.allIcons) { icon in
+                                Button(action: { selectedIconId = icon.id }) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(selectedIconId == icon.id ? Color.accentColor : Color(uiColor: .tertiarySystemGroupedBackground))
+                                            .frame(width: 48, height: 48)
+                                        
+                                        Image(systemName: icon.systemName)
+                                            .font(.system(size: 20))
+                                            .foregroundColor(selectedIconId == icon.id ? .white : .primary)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    } label: {
+                        HStack {
+                            Text("Icon")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            Spacer()
+                            
+                            if !isIconPickerExpanded, let selectedIcon = StudySetIcon.allIcons.first(where: { $0.id == selectedIconId }) {
+                                Image(systemName: selectedIcon.systemName)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Study Set Details")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                }
+                
+                if selectedMode == .content {
+                    // Content Mode - existing UI
+                    Section {
+                        VStack(spacing: 15) {
+                            HStack(spacing: 14) {
+                                // Scan button - card style
+                                Button(action: { activeSheet = .scanner }) {
+                                    VStack(spacing: 8) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(Color.accentColor.opacity(0.12))
+                                                .frame(width: 56, height: 56)
+                                            Image(systemName: "doc.viewfinder")
+                                                .font(.title2)
+                                                .foregroundColor(.accentColor)
+                                        }
+
+                                        Text("Scan")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+
+                                        Text("Use camera to import pages")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
+                                    }
+                                    .padding(12)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color(uiColor: .secondarySystemGroupedBackground))
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.accentColor.opacity(0.08), lineWidth: 1)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Scan documents")
+                                .accessibilityHint("Open camera scanner to capture pages")
+
+                                // Upload button - card style
+                                Button(action: { activeSheet = .filePicker }) {
+                                    VStack(spacing: 8) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(Color.accentColor.opacity(0.12))
+                                                .frame(width: 56, height: 56)
+                                            Image(systemName: "arrow.up.doc")
+                                                .font(.title2)
+                                                .foregroundColor(.accentColor)
+                                        }
+
+                                        Text("Upload")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+
+                                        Text("Import a PDF or document")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                            .multilineTextAlignment(.center)
+                                    }
+                                    .padding(12)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color(uiColor: .secondarySystemGroupedBackground))
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.accentColor.opacity(0.08), lineWidth: 1)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Upload document")
+                                .accessibilityHint("Choose a file to import its text")
+                            }
+                            
+                            let editorPadding = EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
+                            // Use a UITextView-backed representable for pixel-perfect placeholder alignment
+                            PlaceholderTextView(
+                                text: $inputText,
+                                placeholder: "Type or paste your notes here...\nOr import above",
+                                padding: editorPadding
+                            )
+                            .frame(minHeight: 150)
+                            .background(Color(uiColor: .systemBackground))
+                            .cornerRadius(8)
+                            .onChange(of: inputText) { _, newValue in
+                                if newValue.count > characterLimit {
+                                    inputText = String(newValue.prefix(characterLimit))
+                                }
+                            }
+                            
+                            HStack {
+                                Spacer()
+                                Text("\(inputText.count)/\(characterLimit)")
+                                    .font(.caption)
+                                    .foregroundColor(inputText.count >= characterLimit ? .red : .secondary)
+                            }
+                            .padding(.trailing, 4)
+                        }
+                        .padding(.vertical, 5)
+                    } header: {
+                        Text("Source Material")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.secondary)
+                    }
+                } else {
+                    // Topic Mode - new UI for learning new topics
+                    Section {
+                        VStack(spacing: 12) {
+                            HStack {
+                                Image(systemName: "sparkles")
+                                    .foregroundColor(.accentColor)
+                                Text("AI will teach you this topic")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            let editorPadding = EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
+                            PlaceholderTextView(
+                                text: $topicDescription,
+                                placeholder: "Describe what you want to learn...",
+                                padding: editorPadding
+                            )
+                            .frame(minHeight: 180)
+                            .background(Color(uiColor: .systemBackground))
+                            .cornerRadius(8)
+                        }
+                        .padding(.vertical, 5)
+                    } header: {
+                        Text("Topic to Learn")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Section {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Questions")
+                            Spacer()
+                            Text("\(Int(questionCount))")
+                                .foregroundColor(.secondary)
+                                .bold()
+                        }
+                        Slider(value: $questionCount, in: 1...20, step: 1)
+                            .tint(.accentColor)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Flashcards")
+                            Spacer()
+                            Text("\(Int(flashcardCount))")
+                                .foregroundColor(.secondary)
+                                .bold()
+                        }
+                        Slider(value: $flashcardCount, in: 1...30, step: 1)
+                            .tint(.accentColor)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(selectedMode == .content ? "Summary Style" : "Guide Style")
+                        Picker("Style", selection: $summaryStyle) {
+                            ForEach(AIService.SummaryStyle.allCases) { style in
+                                Text(style.rawValue).tag(style)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text(selectedMode == .content ? "Summary Word Count" : "Guide Word Count")
+                            Spacer()
+                            Text("\(Int(summaryWordCount))")
+                                .foregroundColor(.secondary)
+                                .bold()
+                        }
+                        Slider(value: $summaryWordCount, in: 50...500, step: 10)
+                            .tint(.accentColor)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Difficulty Level")
+                        Picker("Difficulty", selection: $summaryDifficulty) {
+                            ForEach(AIService.SummaryDifficulty.allCases) { difficulty in
+                                Text(difficulty.rawValue).tag(difficulty)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                } header: {
+                    Text("Generation Settings")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                }
+                
+                Section {
+                    Button(action: generateContent) {
+                        HStack {
+                            if isGenerating {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    .padding(.trailing, 5)
+                                Text("Generating...")
+                            } else {
+                                Image(systemName: selectedMode == .content ? "sparkles" : "brain.head.profile")
+                                Text(selectedMode == .content ? "Generate Study Set" : "Generate Learning Set")
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 5)
+                        .bold()
+                    }
+                    .disabled(!canGenerate || isGenerating)
+                    .listRowBackground(
+                        (!canGenerate || isGenerating) ? Color.gray : Color.accentColor
+                    )
+                    .foregroundColor(.white)
+                    .guideTarget(.inputGenerate)
+                }
+            }
+            .navigationTitle("New Study Set")
+            .navigationBarTitleDisplayMode(.inline)
+            .sheet(item: $activeSheet) { item in
+                switch item {
+                case .scanner:
+                    ScannerView(scannedText: $inputText)
+                case .filePicker:
+                    DocumentPicker(fileContent: $inputText)
+                }
+            }
+            .overlayPreferenceValue(GuideTargetPreferenceKey.self) { prefs in
+                GeometryReader { proxy in
+                    GuideOverlayLayer(
+                        guideManager: guideManager,
+                        accent: .accentColor,
+                        prefs: prefs,
+                        geometry: proxy,
+                        onSkip: { guideManager.skipGuide() },
+                        onAdvance: {
+                            guideManager.currentStep = .generateSet
+                            guideManager.collapse()
+                        }
+                    )
+                }
+            }
+        }
+    }
+    
+    private var canGenerate: Bool {
+        if title.isEmpty { return false }
+        switch selectedMode {
+        case .content:
+            return !inputText.isEmpty
+        case .topic:
+            return !topicDescription.isEmpty
+        }
+    }
+    
+    private func generateContent() {
+        isGenerating = true
+        
+        Task {
+            do {
+                let service = AIService.shared
+                
+                switch selectedMode {
+                case .content:
+                    // Content Mode - generate from source material (existing logic)
+                    let summary = try await service.generateSummary(
+                        from: inputText, 
+                        style: summaryStyle,
+                        wordCount: Int(summaryWordCount),
+                        difficulty: summaryDifficulty
+                    )
+                    
+                    let questionsData = try await service.generateQuestions(from: inputText, count: Int(questionCount))
+                    let flashcardsData = try await service.generateFlashcards(from: inputText, count: Int(flashcardCount))
+                    
+                    let newSet = StudySet(title: title, originalText: inputText, summary: summary, mode: .content, iconId: selectedIconId)
+                    modelContext.insert(newSet)
+                    
+                    for q in questionsData {
+                        let question = Question(prompt: q.question, answer: q.answer, options: q.options, explanation: q.explanation)
+                        question.studySet = newSet
+                    }
+                    
+                    for f in flashcardsData {
+                        let card = Flashcard(front: f.front, back: f.back)
+                        card.studySet = newSet
+                    }
+                    
+                case .topic:
+                    // Topic Mode - generate educational content about the topic
+                    let guide = try await service.generateTopicGuide(
+                        topic: topicDescription,
+                        style: summaryStyle,
+                        wordCount: Int(summaryWordCount),
+                        difficulty: summaryDifficulty
+                    )
+                    
+                    let questionsData = try await service.generateTopicQuestions(
+                        topic: topicDescription, 
+                        count: Int(questionCount),
+                        difficulty: summaryDifficulty
+                    )
+                    
+                    let flashcardsData = try await service.generateTopicFlashcards(
+                        topic: topicDescription, 
+                        count: Int(flashcardCount),
+                        difficulty: summaryDifficulty
+                    )
+                    
+                    let newSet = StudySet(title: title, originalText: topicDescription, summary: guide, mode: .topic, iconId: selectedIconId)
+                    modelContext.insert(newSet)
+                    
+                    for q in questionsData {
+                        let question = Question(prompt: q.question, answer: q.answer, options: q.options, explanation: q.explanation)
+                        question.studySet = newSet
+                    }
+                    
+                    for f in flashcardsData {
+                        let card = Flashcard(front: f.front, back: f.back)
+                        card.studySet = newSet
+                    }
+                }
+                
+                // Record study set creation for gamification
+                gamificationManager.recordStudySetCreated(profile: profile, context: modelContext)
+                
+                await MainActor.run {
+                    isGenerating = false
+                    guideManager.advanceAfterGeneratedSet()
+                    dismiss()
+                }
+                
+            } catch {
+                print("Error generating content: \(error)")
+                await MainActor.run {
+                    isGenerating = false
+                }
+            }
+        }
+    }
+}
+
+// UITextView-backed SwiftUI representable with proper placeholder alignment
+private struct PlaceholderTextView: UIViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+    var padding: EdgeInsets
+
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        tv.delegate = context.coordinator
+        tv.isScrollEnabled = true
+        tv.backgroundColor = .systemBackground
+        tv.font = UIFont.preferredFont(forTextStyle: .body)
+        tv.textContainerInset = UIEdgeInsets(top: padding.top, left: padding.leading, bottom: padding.bottom, right: padding.trailing)
+        tv.textContainer.lineFragmentPadding = 0
+
+        // placeholder label
+        let label = UILabel()
+        label.text = placeholder
+        label.numberOfLines = 0
+        label.textColor = .placeholderText
+        label.font = tv.font
+        label.translatesAutoresizingMaskIntoConstraints = false
+        tv.addSubview(label)
+
+        // constraints to align label with text container insets
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: tv.leadingAnchor, constant: padding.leading + 2),
+            label.trailingAnchor.constraint(equalTo: tv.trailingAnchor, constant: -padding.trailing - 2),
+            label.topAnchor.constraint(equalTo: tv.topAnchor, constant: padding.top),
+        ])
+
+        context.coordinator.placeholderLabel = label
+        return tv
+    }
+
+    func updateUIView(_ uiView: UITextView, context: Context) {
+        if uiView.text != text {
+            uiView.text = text
+        }
+        context.coordinator.placeholderLabel?.isHidden = !text.isEmpty
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text)
+    }
+
+    final class Coordinator: NSObject, UITextViewDelegate {
+        @Binding var text: String
+        weak var placeholderLabel: UILabel?
+
+        init(text: Binding<String>) {
+            self._text = text
+        }
+
+        func textViewDidChange(_ textView: UITextView) {
+            text = textView.text
+            placeholderLabel?.isHidden = !textView.text.isEmpty
+        }
+    }
+}
