@@ -26,37 +26,37 @@ Generate summaries, quizzes, and flashcards from your notes (paste, scan, or imp
 
 <div>
    <p><strong>Home Screen</strong></p>
-   <img src="Media/Home%20Screen.png" alt="Home Screen" style="max-width:720px;width:100%;height:auto;" />
+   <img src="Media/Home%20Screen-small.png" alt="Home Screen" style="max-width:240px;width:100%;height:auto;" />
 </div>
 
 <div>
    <p><strong>Achievements</strong></p>
-   <img src="Media/Achievements%20View.png" alt="Achievements View" style="max-width:720px;width:100%;height:auto;" />
+   <img src="Media/Achievements%20View-small.png" alt="Achievements View" style="max-width:240px;width:100%;height:auto;" />
 </div>
 
 <div>
    <p><strong>Flashcards</strong></p>
-   <img src="Media/Flashcards%20View.png" alt="Flashcards View" style="max-width:720px;width:100%;height:auto;" />
+   <img src="Media/Flashcards%20View-small.png" alt="Flashcards View" style="max-width:240px;width:100%;height:auto;" />
 </div>
 
 <div>
    <p><strong>Profile</strong></p>
-   <img src="Media/Profile%20View.png" alt="Profile View" style="max-width:720px;width:100%;height:auto;" />
+   <img src="Media/Profile%20View-small.png" alt="Profile View" style="max-width:240px;width:100%;height:auto;" />
 </div>
 
 <div>
    <p><strong>Quiz</strong></p>
-   <img src="Media/Quiz%20View.png" alt="Quiz View" style="max-width:720px;width:100%;height:auto;" />
+   <img src="Media/Quiz%20View-small.png" alt="Quiz View" style="max-width:240px;width:100%;height:auto;" />
 </div>
 
 <div>
    <p><strong>Summary</strong></p>
-   <img src="Media/Summary%20View.png" alt="Summary View" style="max-width:720px;width:100%;height:auto;" />
+   <img src="Media/Summary%20View-small.png" alt="Summary View" style="max-width:240px;width:100%;height:auto;" />
 </div>
 
 <div>
    <p><strong>Widgets &amp; App Icon</strong></p>
-   <img src="Media/Widgets%20and%20App%20Icon.png" alt="Widgets and App Icon" style="max-width:720px;width:100%;height:auto;" />
+   <img src="Media/Widgets%20and%20App%20Icon-small.png" alt="Widgets and App Icon" style="max-width:240px;width:100%;height:auto;" />
 </div>
 
 ## Requirements
