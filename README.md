@@ -22,6 +22,28 @@ Generate summaries, quizzes, and flashcards from your notes (paste, scan, or imp
 - Gamification: levels, XP, streaks, achievements, theming, and guide overlays
 - Widgets and notifications to keep study streaks alive
 
+## Screenshots
+- **Home Screen**  
+   ![Home Screen](Media/Home%20Screen.png)
+
+- **Achievements**  
+   ![Achievements View](Media/Achievements%20View.png)
+
+- **Flashcards**  
+   ![Flashcards View](Media/Flashcards%20View.png)
+
+- **Profile**  
+   ![Profile View](Media/Profile%20View.png)
+
+- **Quiz**  
+   ![Quiz View](Media/Quiz%20View.png)
+
+- **Summary**  
+   ![Summary View](Media/Summary%20View.png)
+
+- **Widgets & App Icon**  
+   ![Widgets and App Icon](Media/Widgets%20and%20App%20Icon.png)
+
 ## Requirements
 - macOS with Xcode 16 (or newer) and the latest iOS SDK
 - iOS 18.0+ simulator or device
