@@ -26,37 +26,37 @@ Generate summaries, quizzes, and flashcards from your notes (paste, scan, or imp
 
 <div style="text-align:center;margin-bottom:12px;">
    <p><strong>Home Screen</strong></p>
-   <img src="Media/Home%20Screen.png" alt="Home Screen" style="max-width:320px;width:100%;height:auto;" />
+   <img src="Media/Home%20Screen.png" alt="Home Screen" style="max-width:320px;max-height:320px;width:100%;height:auto;" />
 </div>
 
 <div style="text-align:center;margin-bottom:12px;">
    <p><strong>Achievements</strong></p>
-   <img src="Media/Achievements%20View.png" alt="Achievements View" style="max-width:320px;width:100%;height:auto;" />
+   <img src="Media/Achievements%20View.png" alt="Achievements View" style="max-width:320px;max-height:320px;width:100%;height:auto;" />
 </div>
 
 <div style="text-align:center;margin-bottom:12px;">
    <p><strong>Flashcards</strong></p>
-   <img src="Media/Flashcards%20View.png" alt="Flashcards View" style="max-width:320px;width:100%;height:auto;" />
+   <img src="Media/Flashcards%20View.png" alt="Flashcards View" style="max-width:320px;max-height:320px;width:100%;height:auto;" />
 </div>
 
 <div style="text-align:center;margin-bottom:12px;">
    <p><strong>Profile</strong></p>
-   <img src="Media/Profile%20View.png" alt="Profile View" style="max-width:320px;width:100%;height:auto;" />
+   <img src="Media/Profile%20View.png" alt="Profile View" style="max-width:320px;max-height:320px;width:100%;height:auto;" />
 </div>
 
 <div style="text-align:center;margin-bottom:12px;">
    <p><strong>Quiz</strong></p>
-   <img src="Media/Quiz%20View.png" alt="Quiz View" style="max-width:320px;width:100%;height:auto;" />
+   <img src="Media/Quiz%20View.png" alt="Quiz View" style="max-width:320px;max-height:320px;width:100%;height:auto;" />
 </div>
 
 <div style="text-align:center;margin-bottom:12px;">
    <p><strong>Summary</strong></p>
-   <img src="Media/Summary%20View.png" alt="Summary View" style="max-width:320px;width:100%;height:auto;" />
+   <img src="Media/Summary%20View.png" alt="Summary View" style="max-width:320px;max-height:320px;width:100%;height:auto;" />
 </div>
 
 <div style="text-align:center;margin-bottom:12px;">
    <p><strong>Widgets &amp; App Icon</strong></p>
-   <img src="Media/Widgets%20and%20App%20Icon.png" alt="Widgets and App Icon" style="max-width:320px;width:100%;height:auto;" />
+   <img src="Media/Widgets%20and%20App%20Icon.png" alt="Widgets and App Icon" style="max-width:320px;max-height:320px;width:100%;height:auto;" />
 </div>
 
 ## Requirements
