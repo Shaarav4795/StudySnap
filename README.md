@@ -28,35 +28,35 @@ Generate summaries, quizzes, and flashcards from your notes (paste, scan, or imp
    <tr>
       <td align="center">
          <p><strong>Home</strong></p>
-         <img src="Media/Home%20Screen.png" alt="Home Screen" width="160" />
+         <img src="Media/Home%20Screen.png" alt="Home Screen" width="180" />
       </td>
       <td align="center">
          <p><strong>Achievements</strong></p>
-         <img src="Media/Achievements%20View.png" alt="Achievements View" width="160" />
+         <img src="Media/Achievements%20View.png" alt="Achievements View" width="180" />
       </td>
       <td align="center">
          <p><strong>Flashcards</strong></p>
-         <img src="Media/Flashcards%20View.png" alt="Flashcards View" width="160" />
+         <img src="Media/Flashcards%20View.png" alt="Flashcards View" width="180" />
       </td>
    </tr>
    <tr>
       <td align="center">
          <p><strong>Profile</strong></p>
-         <img src="Media/Profile%20View.png" alt="Profile View" width="160" />
+         <img src="Media/Profile%20View.png" alt="Profile View" width="180" />
       </td>
       <td align="center">
          <p><strong>Quiz</strong></p>
-         <img src="Media/Quiz%20View.png" alt="Quiz View" width="160" />
+         <img src="Media/Quiz%20View.png" alt="Quiz View" width="180" />
       </td>
       <td align="center">
          <p><strong>Summary</strong></p>
-         <img src="Media/Summary%20View.png" alt="Summary View" width="160" />
+         <img src="Media/Summary%20View.png" alt="Summary View" width="180" />
       </td>
    </tr>
    <tr>
       <td align="center">
          <p><strong>Widgets &amp; Icon</strong></p>
-         <img src="Media/Widgets%20and%20App%20Icon.png" alt="Widgets and App Icon" width="160" />
+         <img src="Media/Widgets%20and%20App%20Icon.png" alt="Widgets and App Icon" width="180" />
       </td>
       <td></td>
       <td></td>
