@@ -9,6 +9,7 @@ StudySnap is an intelligent study aid built with **SwiftUI** and **SwiftData** f
 - **Quiz Generator:** Create multiple-choice questions automatically.
 - **Flashcards:** Generate study decks from any text or document.
 - **Gamification:** Earn XP, track streaks, and unlock achievements.
+- **Local AI** Choose the Apple Intelligence AI model for a fully local, offline experience.
 
 Perfect for students looking to optimize their revision with **AI study tools**, **automated flashcards**, and **smart quizzes**.
 
