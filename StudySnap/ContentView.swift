@@ -225,15 +225,41 @@ struct ContentView: View {
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        isShowingInputSheet = true
-                        guideManager.advanceAfterTappedCreate()
-                    }) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(themeManager.primaryColor)
+                    HStack(spacing: 14) {
+                        NavigationLink(destination: ModelSettingsView()
+                            .onDisappear {
+                                guideManager.advanceAfterConfiguredModel()
+                            }
+                        ) {
+                            ZStack {
+                                Circle()
+                                    .fill(themeManager.primaryColor)
+                                    .frame(width: 32, height: 32)
+                                
+                                Image(systemName: "gear")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .accessibilityLabel("Model Settings")
+                        .guideTarget(.homeSettings)
+
+                        Button(action: {
+                            isShowingInputSheet = true
+                            guideManager.advanceAfterTappedCreate()
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(themeManager.primaryColor)
+                                    .frame(width: 32, height: 32)
+                                
+                                Image(systemName: "plus")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .guideTarget(.homeCreate)
                     }
-                    .guideTarget(.homeCreate)
                 }
             }
             .sheet(isPresented: $isShowingInputSheet) {

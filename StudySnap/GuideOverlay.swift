@@ -3,6 +3,7 @@ import SwiftUI
 // MARK: - Guide Targeting
 
 enum GuideTarget: Hashable {
+    case homeSettings
     case homeCreate
     case homeProfile
     case inputGenerate
@@ -175,6 +176,7 @@ struct GuideOverlayLayer: View {
     
     private func icon(for step: GuideManager.Step) -> String {
         switch step {
+        case .configureModel: return "gear"
         case .createFirstSet: return "plus"
         case .tuneOptions, .generateSet: return "slider.horizontal.3"
         case .openSet: return "folder"
@@ -187,17 +189,19 @@ struct GuideOverlayLayer: View {
 
     private func stepLabel(for step: GuideManager.Step) -> String {
         switch step {
-        case .createFirstSet: return "Step 1 of 6"
-        case .tuneOptions, .generateSet: return "Step 2 of 6"
-        case .openSet: return "Step 3 of 6"
-        case .exploreQuiz: return "Step 4 of 6"
-        case .exploreFlashcards: return "Step 5 of 6"
-        case .openProfile, .exploreGamification: return "Step 6 of 6"
+        case .configureModel: return "Step 1 of 7"
+        case .createFirstSet: return "Step 2 of 7"
+        case .tuneOptions, .generateSet: return "Step 3 of 7"
+        case .openSet: return "Step 4 of 7"
+        case .exploreQuiz: return "Step 5 of 7"
+        case .exploreFlashcards: return "Step 6 of 7"
+        case .openProfile, .exploreGamification: return "Step 7 of 7"
         }
     }
 
     private func targetFor(step: GuideManager.Step) -> GuideTarget? {
         switch step {
+        case .configureModel: return .homeSettings
         case .createFirstSet: return .homeCreate
         case .tuneOptions, .generateSet: return .inputGenerate
         case .openProfile: return .homeProfile
@@ -210,6 +214,7 @@ struct GuideOverlayLayer: View {
 
     private func calloutTitle(for step: GuideManager.Step) -> String {
         switch step {
+        case .configureModel: return "Configure AI Model"
         case .createFirstSet: return "Create your first set"
         case .tuneOptions, .generateSet: return "Tune options & generate"
         case .openSet: return "Open your new set"
@@ -222,6 +227,7 @@ struct GuideOverlayLayer: View {
 
     private func calloutMessage(for step: GuideManager.Step) -> String {
         switch step {
+        case .configureModel: return "Set up your preferred AI model or add your API key."
         case .createFirstSet: return "Tap the + button to begin."
         case .tuneOptions, .generateSet: return "Adjust counts/difficulty, then Generate."
         case .openSet: return "Tap the study set you just created to enter."

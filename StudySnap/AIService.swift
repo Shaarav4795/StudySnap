@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationModels)
+import FoundationModels
+#endif
 
 enum AIError: Error {
     case generationFailed
@@ -9,6 +12,18 @@ enum AIError: Error {
 
 actor AIService {
     static let shared = AIService()
+
+    private enum Provider {
+        case appleIntelligence
+        case openRouter
+    }
+
+    private struct ProviderSelection {
+        let provider: Provider
+        let fallbackNotice: String?
+    }
+
+    private var fallbackNotice: String?
     
     // Helper structs for JSON parsing
     private struct QuestionResponse: Codable, Sendable {
@@ -46,9 +61,6 @@ actor AIService {
         }
     }
     
-    // Resolved at init time from Secrets.plist (not checked in)
-    private let apiKey = Secrets.value(for: .openRouterApiKey) ?? ""
-    private let model = Secrets.value(for: .openRouterModel) ?? "openai/gpt-oss-20b:free"
     private let endpoint = URL(string: "https://openrouter.ai/api/v1/chat/completions")!
     
     private init() {}
@@ -64,17 +76,33 @@ actor AIService {
     }
     
     private func performRequest(systemPrompt: String, userPrompt: String) async throws -> String {
-        // Fail fast if the API key is missing to avoid confusing network errors
-        guard apiKey.isEmpty == false else {
-            throw AIError.apiError("Missing OpenRouter API key. Add OPENROUTER_API_KEY to Secrets.plist.")
+        let selection = await selectProvider()
+
+        switch selection.provider {
+        case .appleIntelligence:
+            do {
+                return try await runAppleIntelligence(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            } catch {
+                let reason = "Apple Intelligence unavailable (\(error.localizedDescription)). Falling back to OpenRouter (BYOK)."
+                setFallbackNoticeIfNeeded(selection.fallbackNotice ?? reason)
+                return try await runOpenRouter(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            }
+        case .openRouter:
+            setFallbackNoticeIfNeeded(selection.fallbackNotice)
+            return try await runOpenRouter(systemPrompt: systemPrompt, userPrompt: userPrompt)
         }
+    }
+
+    private func runOpenRouter(systemPrompt: String, userPrompt: String) async throws -> String {
+        let apiKey = try await openRouterApiKey()
+        let model = await ModelSettings.openRouterModel()
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("StudySnap", forHTTPHeaderField: "X-Title")
-        
+
         let payload = OpenRouterRequest(
             model: model,
             messages: [
@@ -82,31 +110,95 @@ actor AIService {
                 .init(role: "user", content: userPrompt)
             ]
         )
-        
+
         request.httpBody = try JSONEncoder().encode(payload)
-        
-        // Add a small randomised delay before the request to mitigate rate-limiting
+
         await applyRateLimitDelay()
 
         let (data, response) = try await URLSession.shared.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw AIError.generationFailed
         }
-        
+
         guard (200...299).contains(httpResponse.statusCode) else {
             if let errorText = String(data: data, encoding: .utf8) {
                 print("OpenRouter API Error: \(errorText)")
             }
             throw AIError.apiError("Status code: \(httpResponse.statusCode)")
         }
-        
+
         let decodedResponse = try JSONDecoder().decode(OpenRouterResponse.self, from: data)
         guard let content = decodedResponse.choices.first?.message.content else {
             throw AIError.invalidResponse
         }
-        
+
+        print("AI (OpenRouter) response:\n\(content)\n--- end response ---")
+
         return content
+    }
+
+    private func runAppleIntelligence(systemPrompt: String, userPrompt: String) async throws -> String {
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            let session = LanguageModelSession(instructions: systemPrompt)
+            let response = try await session.respond(to: userPrompt)
+            print("AI (Apple Intelligence) response:\n\(response.content)\n--- end response ---")
+            return response.content
+        } else {
+            throw AIError.apiError("Apple Intelligence requires iOS 26 or later.")
+        }
+        #else
+        throw AIError.apiError("FoundationModels framework is unavailable in this SDK.")
+        #endif
+    }
+
+    private func selectProvider() async -> ProviderSelection {
+        let preference = await ModelSettings.preference()
+
+        switch preference {
+        case .openRouterOnly:
+            return ProviderSelection(provider: .openRouter, fallbackNotice: nil)
+        case .automatic:
+            if Self.appleIntelligenceAvailable {
+                return ProviderSelection(provider: .appleIntelligence, fallbackNotice: nil)
+            }
+            let notice = "Apple Intelligence requires iOS 26+ and supported hardware. Falling back to OpenRouter (BYOK)."
+            return ProviderSelection(provider: .openRouter, fallbackNotice: notice)
+        }
+    }
+
+    private func openRouterApiKey() async throws -> String {
+        let key = await ModelSettings.openRouterApiKey()
+        guard key.isEmpty == false else {
+            throw AIError.apiError("Missing OpenRouter API key. Add it in Model Settings.")
+        }
+        return key
+    }
+
+    private func setFallbackNoticeIfNeeded(_ notice: String?) {
+        guard fallbackNotice == nil else { return }
+        guard let notice = notice else { return }
+        fallbackNotice = notice
+    }
+
+    func popFallbackNotice() -> String? {
+        let note = fallbackNotice
+        fallbackNotice = nil
+        return note
+    }
+
+    func clearFallbackNotice() {
+        fallbackNotice = nil
+    }
+
+    func previewFallbackNoticeForCurrentPreference() async -> String? {
+        let selection = await selectProvider()
+        return selection.fallbackNotice
+    }
+
+    nonisolated static var appleIntelligenceAvailable: Bool {
+        ModelSettings.appleIntelligenceAvailable
     }
     
     enum SummaryStyle: String, CaseIterable, Identifiable {
@@ -129,6 +221,49 @@ actor AIService {
         return jsonString
     }
 
+    private func normalizeWhitespace(_ text: String) -> String {
+        let collapsed = text.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        return collapsed.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func normalizeTags(_ text: String) -> String {
+        let tags = ["[QUESTION]", "[ANSWER]", "[OPTION]", "[EXPLANATION]", "[FRONT]", "[BACK]", "[TITLE]", "[DESCRIPTION]", "[CATEGORY]", "[DIFFICULTY]", "[TIME]", "[ICON]", "[END]"]
+        let closing = ["[/QUESTION]", "[/ANSWER]", "[/OPTION]", "[/EXPLANATION]", "[/FRONT]", "[/BACK]", "[/TITLE]", "[/DESCRIPTION]", "[/CATEGORY]", "[/DIFFICULTY]", "[/TIME]", "[/ICON]", "[/END]"]
+
+        var result = text
+        for tag in tags {
+            result = result.replacingOccurrences(of: tag, with: "\n\(tag)\n")
+        }
+        for close in closing {
+            result = result.replacingOccurrences(of: close, with: "\n")
+        }
+        return result
+    }
+
+    private func cleanMath(_ text: String) -> String {
+        var result = text
+        // Replace \[ ... \] with $$ ... $$
+        result = result.replacingOccurrences(of: "\\[", with: "$$")
+        result = result.replacingOccurrences(of: "\\]", with: "$$")
+        // Replace \( ... \) with $ ... $
+        result = result.replacingOccurrences(of: "\\(", with: "$")
+        result = result.replacingOccurrences(of: "\\)", with: "$")
+        return result
+    }
+
+    private func removeAngleBracketPlaceholders(_ text: String) -> String {
+        // Remove angle bracket placeholders like <Question text>, <Correct answer text>, etc.
+        // Pattern: < followed by any text ending in >
+        var result = text
+        result = result.replacingOccurrences(of: "<[^>]*>", with: "", options: .regularExpression)
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func optionsContainAnswer(_ options: [String], answer: String) -> Bool {
+        let normAnswer = normalizeWhitespace(answer)
+        return options.contains { normalizeWhitespace($0) == normAnswer }
+    }
+
     // Produces a clear annotation used in fallback/mock responses so the UI can
     // show that the content is not live AI output, include an error code, and
     // instruct the user to retry.
@@ -146,12 +281,12 @@ actor AIService {
     
     func generateSummary(from text: String, style: SummaryStyle = .paragraph, wordCount: Int = 150, difficulty: SummaryDifficulty = .intermediate) async throws -> String {
         do {
-            let systemPrompt = "You are a helpful study assistant. Summarise the text provided by the user."
+            let systemPrompt = "You are a concise study assistant. Produce clean, well-formatted output that follows instructions exactly. Do not add headings, labels, bullets, or extra commentary."
             let styleInstruction: String
             if style == .bulletPoints {
-                styleInstruction = "Use bullet points ONLY. Output each bullet as a separate line that starts with a hyphen and a single space ('- '). Do NOT output paragraphs or place hyphens at the start of lines unless they are intended as bullets. Do NOT break a single bullet across multiple lines. Example:\n- First concise point\n- Second concise point"
+                styleInstruction = "FORMAT AS BULLETS ONLY. Each bullet must be its own line and start with '- ' exactly. No numbering. No paragraph text. Do NOT break bullets across multiple lines. Example exactly:\n- Key idea one\n- Key idea two\n- Key idea three"
             } else {
-                styleInstruction = "Do NOT use bullet points or leading hyphens. Write a single concise paragraph with no line breaks and avoid using '-' at the start of any line."
+                styleInstruction = "FORMAT AS ONE SINGLE PARAGRAPH (4-7 sentences). ABSOLUTELY NO BULLET POINTS. NO LISTS. NO HEADINGS. NO EXTRA SECTIONS. Just one continuous block of text."
             }
             let difficultyInstruction: String
             switch difficulty {
@@ -164,8 +299,9 @@ actor AIService {
             }
             
             let userPrompt = """
-            Summarise the following text. \(styleInstruction)
-            Target word count: approximately \(wordCount) words.
+            Summarise the following text. Follow formatting instructions EXACTLY. Do NOT add headings or labels. Keep it tight and avoid filler.
+            \(styleInstruction)
+            Target length: aim for \(max(80, wordCount - 30))-\(wordCount + 30) words (soft target, stay concise).
             Difficulty level: \(difficulty.rawValue) (\(difficultyInstruction)).
             
             MATH FORMATTING RULES (follow exactly):
@@ -201,48 +337,46 @@ actor AIService {
     
     func generateQuestions(from text: String, count: Int) async throws -> [(question: String, answer: String, options: [String], explanation: String?)] {
         do {
-            let systemPrompt = "You are a helpful study assistant. You generate multiple choice questions."
+            let systemPrompt = "You are a precise quiz generator. Output ONLY the requested format. No conversational text."
             let userPrompt = """
-            Generate \(count) multiple choice study questions based on the following text.
+            Generate \(count) multiple choice study questions based on the text below.
             
-            Use the following EXACT format for each question:
+            STRICT OUTPUT FORMAT (Tag-based):
             
             [QUESTION]
-            The question text here
+            Question text
             [ANSWER]
-            The correct answer text
+            Correct answer text
             [OPTION]
-            Option 1 text
+            Correct answer text
             [OPTION]
-            Option 2 text
+            Distractor 1
             [OPTION]
-            Option 3 text
+            Distractor 2
             [OPTION]
-            Option 4 text
+            Distractor 3
             [EXPLANATION]
-            The explanation text
+            Explanation
             [END]
             
-            IMPORTANT:
-            1. Do NOT use JSON. Use the custom format above.
-            2. Ensure each question is INDEPENDENT.
-            
-            MATH FORMATTING RULES (follow exactly):
-            - Wrap ALL math expressions in single dollar signs: $...$
-            - Use \\frac{a}{b} for fractions, NOT a/b for complex fractions
-            - Use \\sqrt{x} or \\sqrt[n]{x} for roots
-            - Use \\sum_{i=1}^{n}, \\int_{a}^{b}, \\prod for summation, integrals, products
-            - Use ^{} for superscripts and _{} for subscripts (e.g., $x^{2}$, $a_{n}$)
-            - Use \\left( and \\right) for auto-sizing parentheses
-            - Use \\cdot for multiplication, \\times for cross product
-            - Greek letters: \\alpha, \\beta, \\pi, \\theta, \\Delta, etc.
-            - Examples: $\\frac{-b \\pm \\sqrt{b^{2} - 4ac}}{2a}$, $\\int_{0}^{\\infty} e^{-x^{2}} dx$
+            RULES:
+            1. Use [QUESTION], [ANSWER], [OPTION], [EXPLANATION], [END] tags exactly as shown.
+            2. Put content on the lines following the tags. Do NOT wrap content in < > brackets.
+            3. Provide exactly 4 [OPTION] tags. One MUST match [ANSWER] exactly.
+            4. MATH: Use LaTeX with single dollar signs ($...$) for ALL math.
+               - CORRECT: $x^2 + 2x$
+               - WRONG: \\[ x^2 + 2x \\]
+               - WRONG: [ x^2 + 2x ]
+               - WRONG: \\( x^2 + 2x \\)
+            5. Do not use markdown code blocks (```).
+            6. Ensure there are exactly 4 options for every question.
             
             Text:
             \(text)
             """
             
-            let content = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let rawContent = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let content = normalizeTags(rawContent)
             
             var questions: [(String, String, [String], String?)] = []
             let blocks = content.components(separatedBy: "[END]")
@@ -269,10 +403,10 @@ actor AIService {
                             let value = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
                             if !value.isEmpty {
                                 switch currentTag {
-                                case "[QUESTION]": question = value
-                                case "[ANSWER]": answer = value
-                                case "[OPTION]": options.append(value)
-                                case "[EXPLANATION]": explanation = value
+                                case "[QUESTION]": question = removeAngleBracketPlaceholders(cleanMath(value))
+                                case "[ANSWER]": answer = removeAngleBracketPlaceholders(cleanMath(value))
+                                case "[OPTION]": options.append(removeAngleBracketPlaceholders(cleanMath(value)))
+                                case "[EXPLANATION]": explanation = removeAngleBracketPlaceholders(cleanMath(value))
                                 default: break
                                 }
                             }
@@ -290,17 +424,31 @@ actor AIService {
                     let value = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !value.isEmpty {
                         switch currentTag {
-                        case "[QUESTION]": question = value
-                        case "[ANSWER]": answer = value
-                        case "[OPTION]": options.append(value)
-                        case "[EXPLANATION]": explanation = value
+                        case "[QUESTION]": question = removeAngleBracketPlaceholders(cleanMath(value))
+                        case "[ANSWER]": answer = removeAngleBracketPlaceholders(cleanMath(value))
+                        case "[OPTION]": options.append(removeAngleBracketPlaceholders(cleanMath(value)))
+                        case "[EXPLANATION]": explanation = removeAngleBracketPlaceholders(cleanMath(value))
                         default: break
                         }
                     }
                 }
                 
-                if !question.isEmpty && !answer.isEmpty && !options.isEmpty {
-                    questions.append((question, answer, options, explanation))
+                if !question.isEmpty && !answer.isEmpty {
+                    // Fix options if needed
+                    if !optionsContainAnswer(options, answer: answer) {
+                        // Insert answer at the beginning instead of overwriting
+                        options.insert(answer, at: 0)
+                    }
+                    
+                    // Ensure 4 options
+                    while options.count < 4 {
+                        options.append("Option \(options.count + 1)")
+                    }
+                    if options.count > 4 {
+                        options = Array(options.prefix(4))
+                    }
+                    
+                    questions.append((question, answer, options.shuffled(), explanation))
                 }
             }
             
@@ -330,21 +478,32 @@ actor AIService {
     
     func generateFlashcards(from text: String, count: Int) async throws -> [(front: String, back: String)] {
         do {
-            let systemPrompt = "You are a helpful study assistant. You generate flashcards."
+            let systemPrompt = "You are a precise flashcard generator. Follow the exact tag format. No markdown, no numbering, no extra prose. Front and back must be plain text (no TeX/LaTeX)."
             let userPrompt = """
             Generate \(count) flashcards (like in Quizlet) based on the following text.
-            
-            Use the following EXACT format for each flashcard:
-            
+
+            Use the following EXACT format for each flashcard (no extra blank lines between tags):
+
             [FRONT]
             Term text
             [BACK]
             Definition text
             [END]
-            
-            IMPORTANT:
-            1. Do NOT use JSON. Use the custom format above.
-            2. Keep the 'front' (term) very short (3-9 words) and the 'back' (definition) concise (under 20 words).
+
+            IMPORTANT - FOLLOW ALL:
+            1) Do NOT use JSON or markdown.
+            2) Do NOT use headings (#, ##) or bold/italics. No numbering of cards.
+            3) Do NOT include TeX/LaTeX math in FRONT or BACK. Use plain text only.
+            4) Keep the 'front' very short (3-9 words) and the 'back' concise (under 20 words).
+            5) Keep EXACT tags as shown. No extra tags or bullets.
+            6) Produce exactly \(count) flashcards.
+
+            GOOD EXAMPLE (copy structure, change content):
+            [FRONT]
+            Factorising purpose
+            [BACK]
+            Reveal common factors to simplify.
+            [END]
             
             MATH FORMATTING RULES (follow exactly):
             - Wrap ALL math expressions in single dollar signs: $...$
@@ -361,7 +520,8 @@ actor AIService {
             \(text)
             """
             
-            let content = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let rawContent = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let content = normalizeTags(rawContent)
             
             var cards: [(String, String)] = []
             let blocks = content.components(separatedBy: "[END]")
@@ -440,31 +600,31 @@ actor AIService {
     /// Generates a learning guide/tutorial for a topic the user wants to learn
     func generateTopicGuide(topic: String, style: SummaryStyle = .paragraph, wordCount: Int = 300, difficulty: SummaryDifficulty = .intermediate) async throws -> String {
         do {
-            let systemPrompt = "You are an expert educator and tutor. You create comprehensive, easy-to-follow learning guides on any topic."
+            let systemPrompt = "You are a concise study assistant. Produce clean, well-formatted output that follows instructions exactly. Do not add headings, labels, bullets, or extra commentary."
             let styleInstruction: String
             if style == .bulletPoints {
-                styleInstruction = "Use bullet points ONLY for lists. Output each bullet as a separate line that starts with a hyphen and a single space ('- '). Do NOT place hyphens at the start of lines unless that line is a bullet. Numbered steps are OK but prefer hyphen bullets. Keep each bullet concise and do not split a bullet over multiple lines. Example:\n- Key concept one\n- Key concept two"
+                styleInstruction = "FORMAT AS BULLETS ONLY. Each bullet must be its own line and start with '- ' exactly. No numbering. No paragraph text. Do NOT break bullets across multiple lines. Example exactly:\n- Key idea one\n- Key idea two\n- Key idea three"
             } else {
-                styleInstruction = "Do NOT use bullet points or leading hyphens. Write clear, flowing paragraphs with normal sentence breaks (but avoid forced newlines). Prefer full paragraphs rather than line-by-line lists."
+                styleInstruction = "FORMAT AS PROSE (PARAGRAPHS). Use standard paragraphs to structure the content. ABSOLUTELY NO BULLET POINTS. NO LISTS. Write in full sentences."
             }
             let difficultyInstruction: String
             switch difficulty {
             case .beginner:
-                difficultyInstruction = "Explain as if teaching someone completely new to this topic. Start with the basics and avoid jargon."
+                difficultyInstruction = "Use simple language suitable for a beginner. Avoid jargon where possible."
             case .intermediate:
-                difficultyInstruction = "Assume some foundational knowledge. Include practical examples and common techniques."
+                difficultyInstruction = "Use standard language suitable for an intermediate learner."
             case .advanced:
-                difficultyInstruction = "Provide in-depth coverage with advanced concepts, edge cases, and expert-level insights."
+                difficultyInstruction = "Use advanced, academic language suitable for an expert."
             }
             
             let userPrompt = """
             Create a comprehensive learning guide about: \(topic)
-            
+            Follow formatting instructions EXACTLY. Do NOT add headings or labels. Keep it tight and avoid filler.
             \(styleInstruction)
-            Target word count: approximately \(wordCount) words.
-            Difficulty level: \(difficulty.rawValue) (\(difficultyInstruction))
+            Target length: aim for \(max(80, wordCount - 30))-\(wordCount + 30) words (soft target, stay concise).
+            Difficulty level: \(difficulty.rawValue) (\(difficultyInstruction)).
             
-            Structure your guide to include:
+            Structure your guide to include these sections in order (use plain text paragraphs; do not use bullet points):
             1. A brief introduction to the topic
             2. Key concepts and fundamentals
             3. Step-by-step instructions or explanations (if applicable)
@@ -503,7 +663,7 @@ actor AIService {
     /// Generates quiz questions about a topic for learning purposes
     func generateTopicQuestions(topic: String, count: Int, difficulty: SummaryDifficulty = .intermediate) async throws -> [(question: String, answer: String, options: [String], explanation: String?)] {
         do {
-            let systemPrompt = "You are an expert educator. You create educational quiz questions to test understanding of topics."
+            let systemPrompt = "You are a precise quiz generator. Output ONLY the requested format. No conversational text."
             let difficultyInstruction: String
             switch difficulty {
             case .beginner:
@@ -515,47 +675,43 @@ actor AIService {
             }
             
             let userPrompt = """
-            Generate \(count) multiple choice quiz questions to help someone learn about: \(topic)
+            Generate \(count) multiple choice study questions about: \(topic)
             
             Difficulty: \(difficulty.rawValue) - \(difficultyInstruction)
             
-            Use the following EXACT format for each question:
+            STRICT OUTPUT FORMAT (Tag-based):
             
             [QUESTION]
-            The question text here
+            Question text
             [ANSWER]
-            The correct answer text
+            Correct answer text
             [OPTION]
-            Option 1 text
+            Correct answer text
             [OPTION]
-            Option 2 text
+            Distractor 1
             [OPTION]
-            Option 3 text
+            Distractor 2
             [OPTION]
-            Option 4 text
+            Distractor 3
             [EXPLANATION]
-            The explanation text (explain why this answer is correct and teach the concept)
+            Explanation
             [END]
             
-            IMPORTANT:
-            1. Do NOT use JSON. Use the custom format above.
-            2. Make questions educational - they should teach as well as test.
-            3. Include clear explanations that help the learner understand the concept.
-            4. Ensure each question is INDEPENDENT of each other.
-            
-            MATH FORMATTING RULES (follow exactly):
-            - Wrap ALL math expressions in single dollar signs: $...$
-            - Use \\frac{a}{b} for fractions, NOT a/b for complex fractions
-            - Use \\sqrt{x} or \\sqrt[n]{x} for roots
-            - Use \\sum_{i=1}^{n}, \\int_{a}^{b}, \\prod for summation, integrals, products
-            - Use ^{} for superscripts and _{} for subscripts (e.g., $x^{2}$, $a_{n}$)
-            - Use \\left( and \\right) for auto-sizing parentheses
-            - Use \\cdot for multiplication, \\times for cross product
-            - Greek letters: \\alpha, \\beta, \\pi, \\theta, \\Delta, etc.
-            - Examples: $\\frac{-b \\pm \\sqrt{b^{2} - 4ac}}{2a}$, $\\int_{0}^{\\infty} e^{-x^{2}} dx$
+            RULES:
+            1. Use [QUESTION], [ANSWER], [OPTION], [EXPLANATION], [END] tags exactly as shown.
+            2. Put content on the lines following the tags. Do NOT wrap content in < > brackets.
+            3. Provide exactly 4 [OPTION] tags. One MUST match [ANSWER] exactly.
+            4. MATH: Use LaTeX with single dollar signs ($...$) for ALL math.
+               - CORRECT: $x^2 + 2x$
+               - WRONG: \\[ x^2 + 2x \\]
+               - WRONG: [ x^2 + 2x ]
+               - WRONG: \\( x^2 + 2x \\)
+            5. Do not use markdown code blocks (```).
+            6. Ensure there are exactly 4 options for every question.
             """
             
-            let content = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let rawContent = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let content = normalizeTags(rawContent)
             
             var questions: [(String, String, [String], String?)] = []
             let blocks = content.components(separatedBy: "[END]")
@@ -580,10 +736,10 @@ actor AIService {
                             let value = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
                             if !value.isEmpty {
                                 switch currentTag {
-                                case "[QUESTION]": question = value
-                                case "[ANSWER]": answer = value
-                                case "[OPTION]": options.append(value)
-                                case "[EXPLANATION]": explanation = value
+                                case "[QUESTION]": question = removeAngleBracketPlaceholders(cleanMath(value))
+                                case "[ANSWER]": answer = removeAngleBracketPlaceholders(cleanMath(value))
+                                case "[OPTION]": options.append(removeAngleBracketPlaceholders(cleanMath(value)))
+                                case "[EXPLANATION]": explanation = removeAngleBracketPlaceholders(cleanMath(value))
                                 default: break
                                 }
                             }
@@ -599,17 +755,31 @@ actor AIService {
                     let value = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
                     if !value.isEmpty {
                         switch currentTag {
-                        case "[QUESTION]": question = value
-                        case "[ANSWER]": answer = value
-                        case "[OPTION]": options.append(value)
-                        case "[EXPLANATION]": explanation = value
+                        case "[QUESTION]": question = removeAngleBracketPlaceholders(cleanMath(value))
+                        case "[ANSWER]": answer = removeAngleBracketPlaceholders(cleanMath(value))
+                        case "[OPTION]": options.append(removeAngleBracketPlaceholders(cleanMath(value)))
+                        case "[EXPLANATION]": explanation = removeAngleBracketPlaceholders(cleanMath(value))
                         default: break
                         }
                     }
                 }
                 
-                if !question.isEmpty && !answer.isEmpty && !options.isEmpty {
-                    questions.append((question, answer, options, explanation))
+                if !question.isEmpty && !answer.isEmpty {
+                    // Fix options if needed
+                    if !optionsContainAnswer(options, answer: answer) {
+                        // Insert answer at the beginning instead of overwriting
+                        options.insert(answer, at: 0)
+                    }
+                    
+                    // Ensure 4 options
+                    while options.count < 4 {
+                        options.append("Option \(options.count + 1)")
+                    }
+                    if options.count > 4 {
+                        options = Array(options.prefix(4))
+                    }
+                    
+                    questions.append((question, answer, options.shuffled(), explanation))
                 }
             }
             
@@ -637,7 +807,7 @@ actor AIService {
     /// Generates flashcards to help learn a new topic
     func generateTopicFlashcards(topic: String, count: Int, difficulty: SummaryDifficulty = .intermediate) async throws -> [(front: String, back: String)] {
         do {
-            let systemPrompt = "You are an expert educator. You create educational flashcards to help people learn new topics (like in Quizlet)."
+            let systemPrompt = "You are a precise flashcard generator. Follow the exact tag format. No markdown, no numbering, no extra prose. Front and back must be plain text (no TeX/LaTeX)."
             let difficultyInstruction: String
             switch difficulty {
             case .beginner:
@@ -649,24 +819,32 @@ actor AIService {
             }
             
             let userPrompt = """
-            Generate \(count) educational flashcards to help someone learn about: \(topic)
+            Generate \(count) flashcards (like in Quizlet) about: \(topic)
             
             Difficulty: \(difficulty.rawValue) - \(difficultyInstruction)
-            
-            Use the following EXACT format for each flashcard:
-            
+
+            Use the following EXACT format for each flashcard (no extra blank lines between tags):
+
             [FRONT]
-            Term, concept, or question
+            Term text
             [BACK]
-            Definition, explanation, or answer
+            Definition text
             [END]
-            
-            IMPORTANT:
-            1. Do NOT use JSON. Use the custom format above.
-            2. Keep the 'front' concise (a term, concept, or short question).
-            3. Make the 'back' educational and clear (definition or explanation).
-            4. Cover key concepts someone needs to know about this topic.
-            5. The "front" of a flashcard should be 3-9 words, and the "back" should be under 20 words.
+
+            IMPORTANT - FOLLOW ALL:
+            1) Do NOT use JSON or markdown.
+            2) Do NOT use headings (#, ##) or bold/italics. No numbering of cards.
+            3) Do NOT include TeX/LaTeX math in FRONT or BACK. Use plain text only.
+            4) Keep the 'front' very short (3-9 words) and the 'back' concise (under 20 words).
+            5) Keep EXACT tags as shown. No extra tags or bullets.
+            6) Produce exactly \(count) flashcards.
+
+            GOOD EXAMPLE (copy structure, change content):
+            [FRONT]
+            Factorising purpose
+            [BACK]
+            Reveal common factors to simplify.
+            [END]
             
             MATH FORMATTING RULES (follow exactly):
             - Wrap ALL math expressions in single dollar signs: $...$
@@ -680,7 +858,8 @@ actor AIService {
             - Examples: $\\frac{-b \\pm \\sqrt{b^{2} - 4ac}}{2a}$, $\\int_{0}^{\\infty} e^{-x^{2}} dx$
             """
             
-            let content = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let rawContent = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let content = normalizeTags(rawContent)
             
             var cards: [(String, String)] = []
             let blocks = content.components(separatedBy: "[END]")
@@ -753,7 +932,7 @@ actor AIService {
     /// Generates AI-powered topic suggestions based on user's study history
     func generateTopicSuggestions(existingTopics: [String]) async throws -> [TopicSuggestion] {
         do {
-            let systemPrompt = "You are an expert educational advisor. You suggest interesting and educational topics for students to learn."
+            let systemPrompt = "You are an expert educational advisor. You suggest topics with STRICT tag formatting. Do not add any text outside the required tags. No markdown headings or bullets outside tags."
             
             let topicsContext = existingTopics.isEmpty ? 
                 "The user is new and has no study history." :
@@ -761,11 +940,11 @@ actor AIService {
             
             let userPrompt = """
             \(topicsContext)
-            
+
             Suggest 5 interesting and diverse topics for the user to learn next. Make sure topics are different from what they've already studied.
-            
-            Use the following EXACT format for each suggestion:
-            
+
+            Use the following EXACT format for each suggestion (no extra blank lines between tags):
+
             [TITLE]
             Topic title (3-7 words)
             [DESCRIPTION]
@@ -779,15 +958,16 @@ actor AIService {
             [ICON]
             SF Symbol name (e.g., brain, atom, building.columns, chart.line.uptrend.xyaxis, book, globe, heart, function, lightbulb)
             [END]
-            
-            IMPORTANT:
-            1. Do NOT use JSON. Use the custom format above.
-            2. Make topics diverse and interesting.
-            3. Consider educational value and relevance.
-            4. Only use valid SF Symbol names for icons.
+
+            IMPORTANT - FOLLOW ALL:
+            1) Do NOT use JSON or markdown.
+            2) Keep EXACT tags as shown. No extra tags or bullets.
+            3) Make topics diverse and interesting.
+            4) Only use valid SF Symbol names for icons.
             """
             
-            let content = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let rawContent = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let content = normalizeTags(rawContent)
             
             var suggestions: [TopicSuggestion] = []
             let blocks = content.components(separatedBy: "[END]")

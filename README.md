@@ -21,6 +21,7 @@ Generate summaries, quizzes, and flashcards from your notes (paste, scan, or imp
 - Quiz and flashcard practice flows, plus math rendering (SwiftMath)
 - Gamification: levels, XP, streaks, achievements, theming, and guide overlays
 - Widgets and notifications to keep study streaks alive
+- Choose your model - Apple Intelligence or OpenRouter
 
 ## Screenshots
 
@@ -58,7 +59,11 @@ Generate summaries, quizzes, and flashcards from your notes (paste, scan, or imp
          <p><strong>Widgets &amp; Icon</strong></p>
          <img src="Media/Widgets%20and%20App%20Icon.png" alt="Widgets and App Icon" width="180" />
       </td>
-      <td></td>
+      <td align="center">
+         <p><strong>Widgets &amp; Icon</strong></p>
+         <img src="Media/Model%20Selection.png" alt="Model Selection"
+         width="180" />
+      </td>
       <td></td>
    </tr>
 </table>
@@ -74,10 +79,7 @@ Generate summaries, quizzes, and flashcards from your notes (paste, scan, or imp
 git clone https://github.com/Shaarav4795/StudySnap.git
 cd StudySnap
 
-# 2) Create your secrets file (stays local)
-cp StudySnap/Secrets.plist.example StudySnap/Secrets.plist
-
-# 3) Open in Xcode
+# 2) Open in Xcode
 xed .
 ```
 
@@ -85,19 +87,11 @@ In Xcode, select the `StudySnap` scheme and press **Cmd+R** to run on a simulato
 
 ## Configure OpenRouter (required for live AI, completely free)
 1. Get a key: sign up at https://openrouter.ai, create an API key, and copy it.
-2. Copy the sample secrets (one-time):
-   ```bash
-   cp StudySnap/Secrets.plist.example StudySnap/Secrets.plist
-   ```
-3. Edit `StudySnap/Secrets.plist` and set:
-   - `OPENROUTER_API_KEY`: your key
-   - `OPENROUTER_MODEL`: model id (defaults to `openai/gpt-oss-20b:free` if unset)
-4. Add the file to the app target so it ships in the bundle: drag `StudySnap/Secrets.plist` into Xcode and ensure the **StudySnap** target is checked.
-
-If the key is missing, the app fails fast with a clear error instead of making network calls.
+2. Input your key in the app's settings menu.
 
 ## Using the app
 1. Launch and allow notifications if you want streak reminders.
+2. Choose your preferred AI model in the app's settings menu
 2. Tap **+** on Home to create a study set.
    - **From Content:** paste notes, scan with the camera, or upload a PDF; set counts for questions/flashcards and generate.
    - **Learn Topic:** describe the topic; the AI generates a guided summary, quiz, and flashcards.
@@ -106,7 +100,7 @@ If the key is missing, the app fails fast with a clear error instead of making n
    - **Questions:** multiple-choice with explanations (and Quiz practice flow).
    - **Flashcards:** swipe through concise Q/A cards.
 4. Track progress with levels, XP, streaks, achievements, and theme switching from the profile.
-5. Add the StudySnap widget from the Home/Lock Screen to keep studying top of mind.
+5. Add the StudySnap widget from the Home Screen to keep studying top of mind.
 
 ## Development and testing
 - Dependencies: SwiftPM only (SwiftMath).
@@ -114,7 +108,6 @@ If the key is missing, the app fails fast with a clear error instead of making n
 - Reset badge counts and notifications are handled in-app; no extra setup needed.
 
 ## Repository hygiene
-- Secrets are gitignored (`StudySnap/Secrets.plist`). Keep your API keys local.
 - Standard Xcode/macOS build outputs are ignored via `.gitignore`.
 - Licensed under MIT (see `LICENSE`).
 

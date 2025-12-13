@@ -146,7 +146,12 @@ struct QuizView: View {
                                 .padding()
                                 
                                 // Options
-                                if let options = questions[currentQuestionIndex].options, !options.isEmpty {
+                                if let allOptions = questions[currentQuestionIndex].options, !allOptions.isEmpty {
+                                    // Filter out placeholder options like "Option 4"
+                                    let options = allOptions.filter { option in
+                                        !((option.hasPrefix("Option ") || option.hasPrefix("option ")) && option.count < 10 && option.last?.isNumber == true)
+                                    }
+                                    
                                     VStack(spacing: 16) {
                                         ForEach(Array(options.enumerated()), id: \.element) { index, option in
                                             Button(action: { checkAnswer(option) }) {

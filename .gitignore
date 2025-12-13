@@ -1,10 +1,6 @@
 # macOS cruft
 .DS_Store
 
-# Local secrets (not checked in)
-StudySnap/Secrets.plist
-Secrets.plist
-
 # Xcode build artifacts
 DerivedData/
 build/

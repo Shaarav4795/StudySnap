@@ -8,6 +8,7 @@ final class GuideManager: ObservableObject {
     static let shared = GuideManager()
 
     enum Step: Int, CaseIterable, Codable {
+        case configureModel
         case createFirstSet
         case tuneOptions
         case generateSet
@@ -30,13 +31,19 @@ final class GuideManager: ObservableObject {
         // For testing, always restart guide after tutorial finishes
         hasCompletedGuide = false
         isCollapsed = false
-        currentStep = .createFirstSet
+        currentStep = .configureModel
     }
 
     func skipGuide() {
         hasCompletedGuide = true
         currentStep = nil
         isCollapsed = false
+    }
+
+    func advanceAfterConfiguredModel() {
+        guard currentStep == .configureModel else { return }
+        isCollapsed = false
+        currentStep = .createFirstSet
     }
 
     func advanceAfterTappedCreate() {

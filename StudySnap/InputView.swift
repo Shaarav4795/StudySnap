@@ -9,6 +9,8 @@ struct InputView: View {
     @Query private var profiles: [UserProfile]
     @StateObject private var gamificationManager = GamificationManager.shared
     @EnvironmentObject private var guideManager: GuideManager
+    @AppStorage(ModelSettings.Keys.preference) private var modelPreferenceRaw: String = AIModelPreference.automatic.rawValue
+    @AppStorage(ModelSettings.Keys.openRouterApiKey) private var storedOpenRouterKey: String = ""
     
     // Mode selection
     enum InputMode: String, CaseIterable, Identifiable {
@@ -62,6 +64,8 @@ struct InputView: View {
     @State private var summaryStyle: AIService.SummaryStyle = .paragraph
     @State private var summaryWordCount: Double = 150
     @State private var summaryDifficulty: AIService.SummaryDifficulty = .intermediate
+    @State private var fallbackNotice: String? = nil
+    @State private var generationError: String? = nil
     
     var body: some View {
         NavigationStack {
@@ -354,6 +358,17 @@ struct InputView: View {
                     )
                     .foregroundColor(.white)
                     .guideTarget(.inputGenerate)
+
+                    if let fallbackNotice {
+                        Label {
+                            Text(fallbackNotice)
+                                .font(.footnote)
+                        } icon: {
+                            Image(systemName: "info.circle")
+                        }
+                        .foregroundColor(.secondary)
+                        .padding(.top, 6)
+                    }
                 }
             }
             .navigationTitle("New Study Set")
@@ -381,6 +396,16 @@ struct InputView: View {
                     )
                 }
             }
+            .alert("Generation Failed", isPresented: Binding(
+                get: { generationError != nil },
+                set: { if !$0 { generationError = nil } }
+            )) {
+                Button("OK", role: .cancel) { generationError = nil }
+            } message: {
+                if let generationError {
+                    Text(generationError)
+                }
+            }
         }
     }
     
@@ -393,88 +418,114 @@ struct InputView: View {
             return !topicDescription.isEmpty
         }
     }
+
+    private var preference: AIModelPreference {
+        AIModelPreference(rawValue: modelPreferenceRaw) ?? .automatic
+    }
+    
+    private var mustUseOpenRouter: Bool {
+        switch preference {
+        case .openRouterOnly:
+            return true
+        case .automatic:
+            return !ModelSettings.appleIntelligenceAvailable
+        }
+    }
     
     private func generateContent() {
+        let trimmedKey = storedOpenRouterKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if mustUseOpenRouter && trimmedKey.isEmpty {
+            generationError = "Add your OpenRouter API key in Model Settings."
+            return
+        }
+
+        fallbackNotice = nil
+        generationError = nil
         isGenerating = true
-        
+
         Task {
+            let service = AIService.shared
+            let previewNotice = await service.previewFallbackNoticeForCurrentPreference()
+            await MainActor.run { fallbackNotice = previewNotice }
+            await service.clearFallbackNotice()
+
             do {
-                let service = AIService.shared
-                
                 switch selectedMode {
                 case .content:
-                    // Content Mode - generate from source material (existing logic)
                     let summary = try await service.generateSummary(
-                        from: inputText, 
+                        from: inputText,
                         style: summaryStyle,
                         wordCount: Int(summaryWordCount),
                         difficulty: summaryDifficulty
                     )
-                    
+
                     let questionsData = try await service.generateQuestions(from: inputText, count: Int(questionCount))
                     let flashcardsData = try await service.generateFlashcards(from: inputText, count: Int(flashcardCount))
-                    
+
                     let newSet = StudySet(title: title, originalText: inputText, summary: summary, mode: .content, iconId: selectedIconId)
                     modelContext.insert(newSet)
-                    
+
                     for q in questionsData {
                         let question = Question(prompt: q.question, answer: q.answer, options: q.options, explanation: q.explanation)
                         question.studySet = newSet
                     }
-                    
+
                     for f in flashcardsData {
                         let card = Flashcard(front: f.front, back: f.back)
                         card.studySet = newSet
                     }
-                    
+
                 case .topic:
-                    // Topic Mode - generate educational content about the topic
                     let guide = try await service.generateTopicGuide(
                         topic: topicDescription,
                         style: summaryStyle,
                         wordCount: Int(summaryWordCount),
                         difficulty: summaryDifficulty
                     )
-                    
+
                     let questionsData = try await service.generateTopicQuestions(
-                        topic: topicDescription, 
+                        topic: topicDescription,
                         count: Int(questionCount),
                         difficulty: summaryDifficulty
                     )
-                    
+
                     let flashcardsData = try await service.generateTopicFlashcards(
-                        topic: topicDescription, 
+                        topic: topicDescription,
                         count: Int(flashcardCount),
                         difficulty: summaryDifficulty
                     )
-                    
+
                     let newSet = StudySet(title: title, originalText: topicDescription, summary: guide, mode: .topic, iconId: selectedIconId)
                     modelContext.insert(newSet)
-                    
+
                     for q in questionsData {
                         let question = Question(prompt: q.question, answer: q.answer, options: q.options, explanation: q.explanation)
                         question.studySet = newSet
                     }
-                    
+
                     for f in flashcardsData {
                         let card = Flashcard(front: f.front, back: f.back)
                         card.studySet = newSet
                     }
                 }
-                
+
+                let runtimeNotice = await service.popFallbackNotice()
+
                 // Record study set creation for gamification
                 gamificationManager.recordStudySetCreated(profile: profile, context: modelContext)
-                
+
                 await MainActor.run {
+                    fallbackNotice = runtimeNotice ?? fallbackNotice
                     isGenerating = false
                     guideManager.advanceAfterGeneratedSet()
                     dismiss()
                 }
-                
+
             } catch {
                 print("Error generating content: \(error)")
                 await MainActor.run {
                     isGenerating = false
+                    generationError = error.localizedDescription
                 }
             }
         }
