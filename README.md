@@ -60,7 +60,7 @@ Generate summaries, quizzes, and flashcards from your notes (paste, scan, or imp
          <img src="Media/Widgets%20and%20App%20Icon.png" alt="Widgets and App Icon" width="180" />
       </td>
       <td align="center">
-         <p><strong>Widgets &amp; Icon</strong></p>
+         <p><strong>Model Settings</strong></p>
          <img src="Media/Model%20Selection.png" alt="Model Selection"
          width="180" />
       </td>
