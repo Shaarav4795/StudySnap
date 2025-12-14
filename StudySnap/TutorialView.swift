@@ -48,6 +48,7 @@ struct TutorialView: View {
                 HStack {
                     Spacer()
                     Button(action: {
+                        HapticsManager.shared.playTap()
                         hasSeenTutorial = true
                         guideManager.startIfNeededAfterTutorial()
                         dismiss()
@@ -372,6 +373,7 @@ struct TutorialFlashcardPage: View {
                 .padding(.horizontal, 40)
                 .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
                 .onTapGesture {
+                    HapticsManager.shared.playTap()
                     withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                         isFlipped.toggle()
                         showHand = false
@@ -391,6 +393,7 @@ struct TutorialFlashcardPage: View {
             
             if isFlipped && !isMastered {
                 Button(action: {
+                    HapticsManager.shared.playTap()
                     withAnimation {
                         isMastered = true
                         isFlipped = false // Flip back to show front with mastered state
@@ -455,6 +458,7 @@ struct TutorialQuizPage: View {
                     VStack(spacing: 12) {
                         ForEach(Array(answers.enumerated()), id: \.element) { index, answer in
                             Button(action: {
+                                HapticsManager.shared.playTap()
                                 withAnimation {
                                     selectedAnswer = answer
                                     isCorrect = (answer == correct)
@@ -813,7 +817,10 @@ struct SummaryPage: View {
                 .font(.title3)
                 .foregroundColor(.secondary)
             
-            Button(action: onFinish) {
+            Button(action: {
+                HapticsManager.shared.playTap()
+                onFinish()
+            }) {
                 Text("Get Started")
                     .font(.headline)
                     .foregroundColor(.white)

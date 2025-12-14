@@ -52,6 +52,7 @@ struct ShopView: View {
                 Color.black.opacity(0.4)
                     .ignoresSafeArea()
                     .onTapGesture {
+                        HapticsManager.shared.playTap()
                         withAnimation {
                             showPurchaseAlert = false
                         }
@@ -127,6 +128,9 @@ struct ShopView: View {
         }
         .pickerStyle(.segmented)
         .padding()
+        .onChange(of: selectedTab) { _, _ in
+            HapticsManager.shared.playTap()
+        }
     }
     
     // MARK: - Avatars Grid
@@ -261,6 +265,7 @@ struct AvatarShopCard: View {
                         .cornerRadius(8)
                 } else {
                     Button("Select") {
+                        HapticsManager.shared.playTap()
                         onSelect()
                     }
                     .font(.caption2.bold())
@@ -279,7 +284,10 @@ struct AvatarShopCard: View {
                     .background(Color.gray.opacity(0.2))
                     .cornerRadius(8)
             } else {
-                Button(action: onPurchase) {
+                Button(action: {
+                    HapticsManager.shared.playTap()
+                    onPurchase()
+                }) {
                     HStack(spacing: 4) {
                         Image(systemName: "dollarsign.circle.fill")
                             .font(.caption2)
@@ -417,6 +425,7 @@ struct ThemeShopCard: View {
                 .cornerRadius(8)
         } else {
             Button("Apply") {
+                HapticsManager.shared.playTap()
                 onSelect()
             }
             .font(.caption.bold())
@@ -439,7 +448,10 @@ struct ThemeShopCard: View {
     }
     
     private var purchaseButton: some View {
-        Button(action: onPurchase) {
+        Button(action: {
+            HapticsManager.shared.playTap()
+            onPurchase()
+        }) {
             HStack(spacing: 4) {
                 Image(systemName: "dollarsign.circle.fill")
                     .font(.caption)
@@ -538,7 +550,10 @@ struct PurchaseConfirmationView: View {
             }
             
             HStack(spacing: 12) {
-                Button(action: onCancel) {
+                Button(action: {
+                    HapticsManager.shared.playTap()
+                    onCancel()
+                }) {
                     Text("Cancel")
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
@@ -548,7 +563,10 @@ struct PurchaseConfirmationView: View {
                         .cornerRadius(12)
                 }
                 
-                Button(action: onConfirm) {
+                Button(action: {
+                    HapticsManager.shared.playTap()
+                    onConfirm()
+                }) {
                     Text("Buy Now")
                         .fontWeight(.bold)
                         .foregroundColor(.white)

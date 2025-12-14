@@ -95,6 +95,7 @@ struct FlashcardsView: View {
                     
                     if cardsStudied > 0 {
                         Button(action: {
+                            HapticsManager.shared.playTap()
                             finishSession()
                         }) {
                             HStack(spacing: 6) {
@@ -243,6 +244,7 @@ struct FlashcardView: View {
             .frame(height: 260)
             .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
             .onTapGesture {
+                HapticsManager.shared.playTap()
                 withAnimation(.spring()) {
                     isFlipped.toggle()
                     if isFlipped && !isStudied {
@@ -254,6 +256,7 @@ struct FlashcardView: View {
             // Mark as mastered button (only after flipping, if not already mastered)
             if isFlipped && !isMastered {
                 Button(action: {
+                    HapticsManager.shared.playTap()
                     onMastered?()
                 }) {
                     Label("I Know This!", systemImage: "checkmark.circle.fill")

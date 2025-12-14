@@ -58,7 +58,7 @@ struct GuideOverlayLayer: View {
                     callout
                         .background(
                             RoundedRectangle(cornerRadius: 20)
-                                .fill(.regularMaterial)
+                                .fill(Color(.systemBackground))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 20)
                                         .stroke(accent.opacity(0.3), lineWidth: 1)
@@ -67,6 +67,7 @@ struct GuideOverlayLayer: View {
                         .shadow(color: .black.opacity(0.15), radius: 16, x: 0, y: 8)
                         .overlay(alignment: .topTrailing) {
                             Button(action: {
+                                HapticsManager.shared.playTap()
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                     guideManager.collapse()
                                 }
@@ -89,7 +90,7 @@ struct GuideOverlayLayer: View {
                     callout
                         .background(
                             RoundedRectangle(cornerRadius: 20)
-                                .fill(.regularMaterial)
+                                .fill(Color(.systemBackground))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 20)
                                         .stroke(accent.opacity(0.3), lineWidth: 1)
@@ -152,7 +153,10 @@ struct GuideOverlayLayer: View {
             
             HStack(spacing: 12) {
                 if let onAdvance {
-                    Button(action: onAdvance) {
+                    Button(action: {
+                        HapticsManager.shared.playTap()
+                        onAdvance()
+                    }) {
                         Text("Next")
                             .font(.subheadline.bold())
                             .frame(maxWidth: .infinity)
@@ -163,7 +167,10 @@ struct GuideOverlayLayer: View {
                     .clipShape(Capsule())
                 }
                 
-                Button(action: onSkip) {
+                Button(action: {
+                    HapticsManager.shared.playTap()
+                    onSkip()
+                }) {
                     Text("Skip tutorial")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -239,17 +246,34 @@ struct GuideOverlayLayer: View {
     }
 
     private func calloutPosition(around rect: CGRect, in container: CGSize, step: GuideManager.Step) -> CGPoint {
-        // Prefer above; if no space, place below.
-        let padding: CGFloat = 12
+        // Prefer below target; ensure adequate spacing from top safe area
+        let padding: CGFloat = 16
         let calloutWidth: CGFloat = 300
-        let calloutHeight: CGFloat = 120
+        let calloutHeight: CGFloat = 160  // Increased to accommodate full content
+        let minTopY: CGFloat = 120  // Minimum distance from top to avoid navigation bar
+        
         if step == .exploreQuiz {
             return CGPoint(x: container.width / 2, y: container.height * 0.45)
         }
+        
+        // Calculate positions
         let topY = rect.minY - calloutHeight/2 - padding
         let bottomY = rect.maxY + calloutHeight/2 + padding
-        let useTop = topY > 80
-        let y = useTop ? topY : min(bottomY, container.height - calloutHeight/2 - padding)
+        
+        // Prefer placing below the target unless it would go off screen
+        let useBottom = bottomY + calloutHeight/2 < container.height - padding
+        let y: CGFloat
+        
+        if useBottom {
+            y = bottomY
+        } else if topY > minTopY {
+            y = topY
+        } else {
+            // If both positions are problematic, center vertically with safe margins
+            y = max(minTopY + calloutHeight/2, container.height / 2)
+        }
+        
+        // Ensure horizontal positioning stays within bounds
         let x = min(max(rect.midX, calloutWidth/2 + padding), container.width - calloutWidth/2 - padding)
         return CGPoint(x: x, y: y)
     }

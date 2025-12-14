@@ -78,6 +78,9 @@ struct InputView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .onChange(of: selectedMode) { _, _ in
+                        HapticsManager.shared.playTap()
+                    }
                     
                     Text(selectedMode.description)
                         .font(.caption)
@@ -99,7 +102,10 @@ struct InputView: View {
                     DisclosureGroup(isExpanded: $isIconPickerExpanded) {
                         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 12) {
                             ForEach(StudySetIcon.allIcons) { icon in
-                                Button(action: { selectedIconId = icon.id }) {
+                                Button(action: {
+                                    HapticsManager.shared.playTap()
+                                    selectedIconId = icon.id
+                                }) {
                                     ZStack {
                                         Circle()
                                             .fill(selectedIconId == icon.id ? Color.accentColor : Color(uiColor: .tertiarySystemGroupedBackground))
@@ -141,7 +147,10 @@ struct InputView: View {
                         VStack(spacing: 15) {
                             HStack(spacing: 14) {
                                 // Scan button - card style
-                                Button(action: { activeSheet = .scanner }) {
+                                Button(action: {
+                                    HapticsManager.shared.playTap()
+                                    activeSheet = .scanner
+                                }) {
                                     VStack(spacing: 8) {
                                         ZStack {
                                             Circle()
@@ -175,7 +184,10 @@ struct InputView: View {
                                 .accessibilityHint("Open camera scanner to capture pages")
 
                                 // Upload button - card style
-                                Button(action: { activeSheet = .filePicker }) {
+                                Button(action: {
+                                    HapticsManager.shared.playTap()
+                                    activeSheet = .filePicker
+                                }) {
                                     VStack(spacing: 8) {
                                         ZStack {
                                             Circle()
@@ -283,6 +295,9 @@ struct InputView: View {
                         }
                         Slider(value: $questionCount, in: 1...20, step: 1)
                             .tint(.accentColor)
+                            .onChange(of: questionCount) { _, _ in
+                                HapticsManager.shared.playTap()
+                            }
                     }
                     
                     VStack(alignment: .leading, spacing: 10) {
@@ -295,6 +310,9 @@ struct InputView: View {
                         }
                         Slider(value: $flashcardCount, in: 1...30, step: 1)
                             .tint(.accentColor)
+                            .onChange(of: flashcardCount) { _, _ in
+                                HapticsManager.shared.playTap()
+                            }
                     }
                     
                     VStack(alignment: .leading, spacing: 10) {
@@ -305,6 +323,9 @@ struct InputView: View {
                             }
                         }
                         .pickerStyle(.segmented)
+                        .onChange(of: summaryStyle) { _, _ in
+                            HapticsManager.shared.playTap()
+                        }
                     }
                     
                     VStack(alignment: .leading, spacing: 10) {
@@ -317,6 +338,9 @@ struct InputView: View {
                         }
                         Slider(value: $summaryWordCount, in: 50...500, step: 10)
                             .tint(.accentColor)
+                            .onChange(of: summaryWordCount) { _, _ in
+                                HapticsManager.shared.playTap()
+                            }
                     }
                     
                     VStack(alignment: .leading, spacing: 10) {
@@ -327,6 +351,9 @@ struct InputView: View {
                             }
                         }
                         .pickerStyle(.segmented)
+                        .onChange(of: summaryDifficulty) { _, _ in
+                            HapticsManager.shared.playTap()
+                        }
                     }
                 } header: {
                     Text("Generation Settings")
@@ -371,6 +398,9 @@ struct InputView: View {
                     }
                 }
             }
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
             .navigationTitle("New Study Set")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $activeSheet) { item in
@@ -400,7 +430,10 @@ struct InputView: View {
                 get: { generationError != nil },
                 set: { if !$0 { generationError = nil } }
             )) {
-                Button("OK", role: .cancel) { generationError = nil }
+                Button("OK", role: .cancel) {
+                    HapticsManager.shared.playTap()
+                    generationError = nil
+                }
             } message: {
                 if let generationError {
                     Text(generationError)
@@ -433,6 +466,8 @@ struct InputView: View {
     }
     
     private func generateContent() {
+        HapticsManager.shared.playTap()
+
         let trimmedKey = storedOpenRouterKey.trimmingCharacters(in: .whitespacesAndNewlines)
         if mustUseOpenRouter && trimmedKey.isEmpty {
             generationError = "Add your OpenRouter API key in Model Settings."

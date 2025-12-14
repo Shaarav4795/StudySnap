@@ -56,7 +56,10 @@ struct ProfileView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showTutorial = true }) {
+                Button(action: {
+                    HapticsManager.shared.playTap()
+                    showTutorial = true
+                }) {
                     Image(systemName: "questionmark.circle")
                 }
             }
@@ -113,6 +116,7 @@ struct ProfileView: View {
                     .font(.title2.bold())
                 
                 Button(action: {
+                    HapticsManager.shared.playTap()
                     newUsername = profile.username
                     showEditUsername = true
                 }) {
@@ -301,6 +305,7 @@ struct ProfileView: View {
                     subtitle: "\(profile.achievements.count) earned"
                 )
             }
+            .simultaneousGesture(TapGesture().onEnded { HapticsManager.shared.playTap() })
             
             NavigationLink(destination: ShopView()) {
                 QuickLinkRow(
@@ -310,6 +315,7 @@ struct ProfileView: View {
                     subtitle: "Avatars & Themes"
                 )
             }
+            .simultaneousGesture(TapGesture().onEnded { HapticsManager.shared.playTap() })
         }
     }
     
@@ -327,11 +333,13 @@ struct ProfileView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
+                        HapticsManager.shared.playTap()
                         showEditUsername = false
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
+                        HapticsManager.shared.playTap()
                         profile.username = newUsername
                         try? modelContext.save()
                         showEditUsername = false

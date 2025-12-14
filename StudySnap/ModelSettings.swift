@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationModels)
+import FoundationModels
+#endif
 
 /// User-configurable model preference and BYOK storage.
 enum AIModelPreference: String, CaseIterable, Identifiable {
@@ -73,8 +76,17 @@ enum ModelSettings {
 
     nonisolated(unsafe) static var appleIntelligenceAvailable: Bool {
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *) {
-            return true
+        if #available(iOS 26.0, macOS 26.0, *) {
+            // Apple’s recommended check: query the system language model before using it.
+            let model = SystemLanguageModel.default
+            switch model.availability {
+            case .available:
+                return true
+            case .unavailable:
+                return false
+            @unknown default:
+                return false
+            }
         }
         return false
         #else

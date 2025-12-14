@@ -135,7 +135,7 @@ struct ContentView: View {
                                         Image(systemName: set.icon.systemName)
                                             .foregroundColor(.white)
                                             .padding(8)
-                                            .background(Circle().fill(Color.accentColor))
+                                            .background(Circle().fill(themeManager.primaryColor))
                                         
                                         Text(set.title)
                                             .font(.headline)
@@ -185,6 +185,7 @@ struct ContentView: View {
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                 Button {
+                                    HapticsManager.shared.playTap()
                                     // Prepare rename sheet
                                     setToRename = set
                                     renameTitle = set.title
@@ -197,6 +198,7 @@ struct ContentView: View {
                             }
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
+                                    HapticsManager.shared.playTap()
                                     withAnimation {
                                         modelContext.delete(set)
                                     }
@@ -245,6 +247,7 @@ struct ContentView: View {
                         .guideTarget(.homeSettings)
 
                         Button(action: {
+                            HapticsManager.shared.playTap()
                             isShowingInputSheet = true
                             guideManager.advanceAfterTappedCreate()
                         }) {
@@ -314,7 +317,10 @@ struct ContentView: View {
                                     
                                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 12) {
                                         ForEach(StudySetIcon.allIcons) { icon in
-                                            Button(action: { renameIconId = icon.id }) {
+                                            Button(action: {
+                                                HapticsManager.shared.playTap()
+                                                renameIconId = icon.id
+                                            }) {
                                                 ZStack {
                                                     Circle()
                                                         .fill(renameIconId == icon.id ? themeManager.primaryColor : Color(uiColor: .tertiarySystemGroupedBackground))
@@ -341,12 +347,14 @@ struct ContentView: View {
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
                                 Button("Cancel") {
+                                    HapticsManager.shared.playTap()
                                     setToRename = nil
                                 }
                                 .foregroundColor(.secondary)
                             }
                             ToolbarItem(placement: .confirmationAction) {
                                 Button("Save") {
+                                    HapticsManager.shared.playTap()
                                     withAnimation {
                                         set.title = renameTitle
                                         set.iconId = renameIconId
@@ -372,7 +380,9 @@ struct ContentView: View {
                         onSkip: { guideManager.skipGuide() },
                         onAdvance: nil
                     )
+                    .zIndex(200)  // Ensure guide overlay appears above all other content
                 }
+                .allowsHitTesting(!guideManager.isCollapsed)  // Allow interaction only when expanded
             }
         }
     }

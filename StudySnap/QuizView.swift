@@ -104,6 +104,7 @@ struct QuizView: View {
                         }
                         
                         Button("Done") {
+                            HapticsManager.shared.playTap()
                             dismiss()
                         }
                         .buttonStyle(.borderedProminent)
@@ -154,7 +155,10 @@ struct QuizView: View {
                                     
                                     VStack(spacing: 16) {
                                         ForEach(Array(options.enumerated()), id: \.element) { index, option in
-                                            Button(action: { checkAnswer(option) }) {
+                                            Button(action: {
+                                                HapticsManager.shared.playTap()
+                                                checkAnswer(option)
+                                            }) {
                                                 HStack(spacing: 15) {
                                                     // Option Letter Circle
                                                     ZStack {
@@ -249,6 +253,7 @@ struct QuizView: View {
                             if let options = questions[currentQuestionIndex].options, !options.isEmpty {
                                 if isAnswerVisible {
                                     Button("Next Question") {
+                                        HapticsManager.shared.playTap()
                                         nextQuestion()
                                     }
                                     .buttonStyle(.borderedProminent)
@@ -282,6 +287,7 @@ struct QuizView: View {
                                     .padding(.horizontal)
                                 } else {
                                     Button("Show Answer") {
+                                        HapticsManager.shared.playTap()
                                         withAnimation {
                                             isAnswerVisible = true
                                         }
@@ -313,6 +319,7 @@ struct QuizView: View {
     @State private var selectedAnswer: String?
     
     private func checkAnswer(_ option: String) {
+        HapticsManager.shared.playTap()
         selectedAnswer = option
         isAnswerVisible = true
         if option == questions[currentQuestionIndex].answer {
@@ -354,6 +361,7 @@ struct QuizView: View {
     }
     
     private func submitAnswer(correct: Bool) {
+        HapticsManager.shared.playTap()
         if correct {
             score += 1
         }

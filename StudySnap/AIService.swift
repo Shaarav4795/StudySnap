@@ -140,7 +140,7 @@ actor AIService {
 
     private func runAppleIntelligence(systemPrompt: String, userPrompt: String) async throws -> String {
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, macOS 26.0, *) {
             let session = LanguageModelSession(instructions: systemPrompt)
             let response = try await session.respond(to: userPrompt)
             print("AI (Apple Intelligence) response:\n\(response.content)\n--- end response ---")
@@ -163,7 +163,7 @@ actor AIService {
             if Self.appleIntelligenceAvailable {
                 return ProviderSelection(provider: .appleIntelligence, fallbackNotice: nil)
             }
-            let notice = "Apple Intelligence requires iOS 26+ and supported hardware. Falling back to OpenRouter (BYOK)."
+            let notice = "Apple Intelligence requires iOS 26+ with supported hardware and enabled in Settings. Falling back to OpenRouter (BYOK)."
             return ProviderSelection(provider: .openRouter, fallbackNotice: notice)
         }
     }
@@ -550,6 +550,14 @@ actor AIService {
                                 case "[BACK]": back = value
                                 default: break
                                 }
+                                // If we've gathered both front and back within the same block,
+                                // append the card immediately so multiple pairs in one block
+                                // (when AI omitted [END] separators) are preserved.
+                                if !front.isEmpty && !back.isEmpty {
+                                    cards.append((front, back))
+                                    front = ""
+                                    back = ""
+                                }
                             }
                         }
                         
@@ -886,6 +894,12 @@ actor AIService {
                                 case "[BACK]": back = value
                                 default: break
                                 }
+                                // Handle multiple front/back pairs inside a single block
+                                if !front.isEmpty && !back.isEmpty {
+                                    cards.append((front, back))
+                                    front = ""
+                                    back = ""
+                                }
                             }
                         }
                         currentTag = trimmedLine
@@ -927,125 +941,5 @@ actor AIService {
         }
     }
     
-    // MARK: - Topic Suggestions (Gamification Feature)
-    
-    /// Generates AI-powered topic suggestions based on user's study history
-    func generateTopicSuggestions(existingTopics: [String]) async throws -> [TopicSuggestion] {
-        do {
-            let systemPrompt = "You are an expert educational advisor. You suggest topics with STRICT tag formatting. Do not add any text outside the required tags. No markdown headings or bullets outside tags."
-            
-            let topicsContext = existingTopics.isEmpty ? 
-                "The user is new and has no study history." :
-                "The user has studied: \(existingTopics.joined(separator: ", "))"
-            
-            let userPrompt = """
-            \(topicsContext)
-
-            Suggest 5 interesting and diverse topics for the user to learn next. Make sure topics are different from what they've already studied.
-
-            Use the following EXACT format for each suggestion (no extra blank lines between tags):
-
-            [TITLE]
-            Topic title (3-7 words)
-            [DESCRIPTION]
-            Brief description of what they'll learn (1-2 sentences)
-            [CATEGORY]
-            One of: Technology, Science, History, Arts, Business, Language, Health, Mathematics, Philosophy, or Other
-            [DIFFICULTY]
-            One of: Beginner, Intermediate, or Advanced
-            [TIME]
-            Estimated study time (e.g., "1-2 hours", "2-3 hours")
-            [ICON]
-            SF Symbol name (e.g., brain, atom, building.columns, chart.line.uptrend.xyaxis, book, globe, heart, function, lightbulb)
-            [END]
-
-            IMPORTANT - FOLLOW ALL:
-            1) Do NOT use JSON or markdown.
-            2) Keep EXACT tags as shown. No extra tags or bullets.
-            3) Make topics diverse and interesting.
-            4) Only use valid SF Symbol names for icons.
-            """
-            
-            let rawContent = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
-            let content = normalizeTags(rawContent)
-            
-            var suggestions: [TopicSuggestion] = []
-            let blocks = content.components(separatedBy: "[END]")
-            
-            for block in blocks {
-                let trimmedBlock = block.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmedBlock.isEmpty else { continue }
-                
-                var title = ""
-                var description = ""
-                var category = ""
-                var difficulty = ""
-                var time = ""
-                var icon = ""
-                
-                let lines = trimmedBlock.components(separatedBy: .newlines)
-                var currentTag = ""
-                var currentText = ""
-                
-                for line in lines {
-                    let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if ["[TITLE]", "[DESCRIPTION]", "[CATEGORY]", "[DIFFICULTY]", "[TIME]", "[ICON]"].contains(trimmedLine) {
-                        if !currentTag.isEmpty {
-                            let value = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
-                            if !value.isEmpty {
-                                switch currentTag {
-                                case "[TITLE]": title = value
-                                case "[DESCRIPTION]": description = value
-                                case "[CATEGORY]": category = value
-                                case "[DIFFICULTY]": difficulty = value
-                                case "[TIME]": time = value
-                                case "[ICON]": icon = value
-                                default: break
-                                }
-                            }
-                        }
-                        currentTag = trimmedLine
-                        currentText = ""
-                    } else {
-                        currentText += line + "\n"
-                    }
-                }
-                
-                // Save last tag content
-                if !currentTag.isEmpty {
-                    let value = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !value.isEmpty {
-                        switch currentTag {
-                        case "[TITLE]": title = value
-                        case "[DESCRIPTION]": description = value
-                        case "[CATEGORY]": category = value
-                        case "[DIFFICULTY]": difficulty = value
-                        case "[TIME]": time = value
-                        case "[ICON]": icon = value
-                        default: break
-                        }
-                    }
-                }
-                
-                if !title.isEmpty && !description.isEmpty {
-                    suggestions.append(TopicSuggestion(
-                        title: title,
-                        description: description,
-                        category: category.isEmpty ? "Other" : category,
-                        difficulty: difficulty.isEmpty ? "Intermediate" : difficulty,
-                        estimatedTime: time.isEmpty ? "1-2 hours" : time,
-                        icon: icon.isEmpty ? "lightbulb" : icon
-                    ))
-                }
-            }
-            
-            if suggestions.isEmpty { throw AIError.parsingFailed }
-            return suggestions
-            
-        } catch {
-            print("AI Generation failed: \(error). Falling back to fallback suggestions.")
-            return TopicSuggestion.fallbackSuggestions
-        }
-    }
 }
 

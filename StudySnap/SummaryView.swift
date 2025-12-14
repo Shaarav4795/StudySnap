@@ -4,6 +4,12 @@ struct SummaryView: View {
     let summary: String
     var isGuide: Bool = false
     
+    enum SummaryItem: Hashable {
+        case bullet(String)
+        case text(String)
+        case header(String, Int)
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -19,16 +25,27 @@ struct SummaryView: View {
                 // Removed AI-generated caption per user request
                 
                 if isBulletPoints(summary) {
-                    let bullets = parseBulletPoints(summary)
+                    let items = parseBulletPoints(summary)
                     VStack(alignment: .leading, spacing: 8) {
-                        ForEach(bullets, id: \.self) { point in
-                            HStack(alignment: .top, spacing: 8) {
-                                Circle()
-                                    .fill(Color.primary)
-                                    .frame(width: 6, height: 6)
-                                    .padding(.top, 8)
+                        ForEach(items, id: \.self) { item in
+                            switch item {
+                            case .bullet(let text):
+                                HStack(alignment: .top, spacing: 8) {
+                                    Circle()
+                                        .fill(Color.primary)
+                                        .frame(width: 6, height: 6)
+                                        .padding(.top, 8)
 
-                                MathTextView(point, fontSize: 17)
+                                    MathTextView(text, fontSize: 17)
+                                }
+                            case .text(let text):
+                                MathTextView(text, fontSize: 17)
+                                    .padding(.vertical, 2)
+                            case .header(let text, let level):
+                                let size: CGFloat = level == 1 ? 22 : (level == 2 ? 20 : 18)
+                                MathTextView(text, fontSize: size, forceBold: true)
+                                    .padding(.top, 12)
+                                    .padding(.bottom, 4)
                             }
                         }
                     }
@@ -64,17 +81,28 @@ struct SummaryView: View {
         return markerCount >= 1
     }
     
-    private func parseBulletPoints(_ text: String) -> [String] {
+    private func parseBulletPoints(_ text: String) -> [SummaryItem] {
         let lines = text.components(separatedBy: .newlines)
-        var results: [String] = []
+        var results: [SummaryItem] = []
 
-        var currentItem: String? = nil
+        var currentType: ItemType? = nil
+        var currentContent: String? = nil
+        
+        enum ItemType {
+            case bullet
+            case text
+        }
 
         func finishCurrent() {
-            if let item = currentItem?.trimmingCharacters(in: .whitespacesAndNewlines), !item.isEmpty {
-                results.append(item)
+            if let content = currentContent?.trimmingCharacters(in: .whitespacesAndNewlines), !content.isEmpty {
+                if currentType == .bullet {
+                    results.append(.bullet(content))
+                } else {
+                    results.append(.text(content))
+                }
             }
-            currentItem = nil
+            currentContent = nil
+            currentType = nil
         }
 
         for rawLine in lines {
@@ -83,24 +111,39 @@ struct SummaryView: View {
 
             if trimmed.hasPrefix("- ") {
                 finishCurrent()
-                currentItem = String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespacesAndNewlines)
+                currentType = .bullet
+                currentContent = String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespacesAndNewlines)
             } else if trimmed.hasPrefix("* ") {
                 finishCurrent()
-                currentItem = String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespacesAndNewlines)
+                currentType = .bullet
+                currentContent = String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespacesAndNewlines)
             } else if trimmed.hasPrefix("• ") {
                 finishCurrent()
-                currentItem = String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespacesAndNewlines)
+                currentType = .bullet
+                currentContent = String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespacesAndNewlines)
             } else if let match = trimmed.range(of: "^\\d+\\. ", options: .regularExpression) {
                 finishCurrent()
+                currentType = .bullet
                 let after = trimmed[match.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
-                currentItem = String(after)
+                currentContent = String(after)
+            } else if trimmed.hasPrefix("#") {
+                finishCurrent()
+                let hashCount = trimmed.prefix(while: { $0 == "#" }).count
+                let content = String(trimmed.dropFirst(hashCount)).trimmingCharacters(in: .whitespaces)
+                results.append(.header(content, hashCount))
             } else {
-                // Continuation line: usually a wrapped bullet. Append to current if it exists.
-                if currentItem != nil {
-                    currentItem = (currentItem! + " " + trimmed)
+                // Continuation or plain text
+                if let type = currentType {
+                    if type == .bullet {
+                        currentContent = (currentContent! + " " + trimmed)
+                    } else {
+                        // type is .text
+                        currentContent = (currentContent! + " " + trimmed)
+                    }
                 } else {
-                    // No current bullet — start a new one from this line
-                    currentItem = trimmed
+                    // No current item. Start as text.
+                    currentType = .text
+                    currentContent = trimmed
                 }
             }
         }

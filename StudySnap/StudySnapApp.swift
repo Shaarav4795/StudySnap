@@ -69,6 +69,9 @@ struct StudySnapApp: App {
                 .environmentObject(themeManager)
                 .environmentObject(guideManager)
                 .tint(themeManager.primaryColor)
+                .onAppear {
+                    HapticsManager.shared.prepareEngine()
+                }
                 .fullScreenCover(isPresented: Binding(
                     get: { !hasSeenTutorial },
                     set: { _ in }

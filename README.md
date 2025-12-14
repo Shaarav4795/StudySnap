@@ -2,7 +2,7 @@
 
 **The Ultimate AI-Powered Study Companion for iOS**
 
-StudySnap is an intelligent study aid built with **SwiftUI** and **SwiftData** for iOS 18+. It leverages advanced AI to transform your study materials into interactive learning tools.
+StudySnap is an intelligent study aid built with **SwiftUI** and **SwiftData** for iOS 26+. It leverages advanced AI to transform your study materials into interactive learning tools.
 
 **Key Capabilities:**
 - **AI Summaries:** Instantly condense long notes and PDFs.
@@ -71,7 +71,7 @@ Generate summaries, quizzes, and flashcards from your notes (paste, scan, or imp
 
 ## Requirements
 - macOS with Xcode 16 (or newer) and the latest iOS SDK
-- iOS 18.0+ simulator or device
+- iOS 26.0+ simulator or device
 - OpenRouter API key (free/paid), and network access for AI features
 
 ## Quick start

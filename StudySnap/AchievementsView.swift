@@ -186,7 +186,10 @@ struct CategoryPill: View {
     let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            HapticsManager.shared.playTap()
+            action()
+        }) {
             Text(title)
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(isSelected ? .white : .primary)

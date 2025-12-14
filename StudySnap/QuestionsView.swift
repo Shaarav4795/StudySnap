@@ -9,7 +9,10 @@ struct QuestionsView: View {
     var body: some View {
         List {
             Section {
-                Button(action: { isShowingQuiz = true }) {
+                Button(action: {
+                    HapticsManager.shared.playTap()
+                    isShowingQuiz = true
+                }) {
                     Label("Start Quiz", systemImage: "play.fill")
                         .font(.headline)
                         .frame(maxWidth: .infinity, alignment: .center)

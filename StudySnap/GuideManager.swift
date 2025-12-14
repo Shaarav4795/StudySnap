@@ -156,7 +156,10 @@ struct GuideCallout: View {
 struct GuideBadge: View {
     let tap: () -> Void
     var body: some View {
-        Button(action: tap) {
+        Button(action: {
+            HapticsManager.shared.playTap()
+            tap()
+        }) {
             HStack(spacing: 8) {
                 Image(systemName: "info.circle.fill")
                     .font(.system(size: 16))
