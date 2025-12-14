@@ -51,6 +51,15 @@ struct ModelSettingsView: View {
                         Image(systemName: "checkmark.seal.fill")
                             .foregroundColor(.green)
                     }
+
+                    Label {
+                        Text("Inputs over 10,000 characters exceed Apple Intelligence’s limit and may cause fall backs to OpenRouter.")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.orange)
+                    }
                 } else {
                     Label {
                         VStack(alignment: .leading, spacing: 2) {
