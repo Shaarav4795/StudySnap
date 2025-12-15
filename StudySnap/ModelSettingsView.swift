@@ -91,7 +91,7 @@ struct ModelSettingsView: View {
                 if openRouterApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text("Your OpenRouter API key is required to use OpenRouter models.").font(.footnote).foregroundColor(.secondary)
                 } else {
-                    Text("Your OpenRouter API key is required to use OpenRouter models.").font(.footnote).foregroundColor(.secondary)
+                    Text("API Key saved. You can now use OpenRouter models.").font(.footnote).foregroundColor(.green)
                 }
             }
         }
@@ -125,7 +125,7 @@ struct OpenRouterHelpView: View {
                         }
                         .padding(.bottom, 4)
                         
-                        Text("To use advanced AI models when Apple Intelligence isn't available, you need a free OpenRouter API key.")
+                        Text("To use advanced AI models or when Apple Intelligence isn't available, you need a free OpenRouter API key.")
                             .font(.callout)
                     }
                     .padding(.vertical, 8)
