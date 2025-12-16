@@ -206,6 +206,11 @@ struct ContentView: View {
                                     Label("Delete", systemImage: "trash")
                                 }
                             }
+                            // Make custom row tappable and readable by VoiceOver
+                            .accessibilityElement(children: .combine)
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityLabel("Study set: \(set.title). Created on \(set.dateCreated, style: .date). Mode: \(set.studySetMode == .topic ? "Learning Topic" : "From Content")")
+                            .accessibilityHint("Opens study set details")
                         }
                     }
                     .listStyle(.plain)

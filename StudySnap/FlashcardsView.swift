@@ -252,6 +252,20 @@ struct FlashcardView: View {
                     }
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(isFlipped ? "Flashcard answer" : "Flashcard question")
+            .accessibilityValue(isFlipped ? card.back : card.front)
+            .accessibilityHint(isFlipped ? "Swipe or double-tap to go back to the question" : "Double-tap to flip and hear the answer")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction {
+                HapticsManager.shared.playTap()
+                withAnimation(.spring()) {
+                    isFlipped.toggle()
+                    if isFlipped && !isStudied {
+                        onStudied?()
+                    }
+                }
+            }
             
             // Mark as mastered button (only after flipping, if not already mastered)
             if isFlipped && !isMastered {

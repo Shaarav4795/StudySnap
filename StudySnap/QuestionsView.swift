@@ -30,6 +30,8 @@ struct QuestionsView: View {
                     },
                     label: {
                         MathTextView(question.prompt, fontSize: 17)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("Question: \(question.prompt)")
                     }
                 )
             }

@@ -298,6 +298,7 @@ struct InputView: View {
                             .onChange(of: questionCount) { _, _ in
                                 HapticsManager.shared.playTap()
                             }
+                            .accessibilityValue("\(Int(questionCount)) questions")
                     }
                     
                     VStack(alignment: .leading, spacing: 10) {
@@ -313,6 +314,7 @@ struct InputView: View {
                             .onChange(of: flashcardCount) { _, _ in
                                 HapticsManager.shared.playTap()
                             }
+                            .accessibilityValue("\(Int(flashcardCount)) flashcards")
                     }
                     
                     VStack(alignment: .leading, spacing: 10) {
@@ -341,6 +343,7 @@ struct InputView: View {
                             .onChange(of: summaryWordCount) { _, _ in
                                 HapticsManager.shared.playTap()
                             }
+                            .accessibilityValue("\(Int(summaryWordCount)) words")
                     }
                     
                     VStack(alignment: .leading, spacing: 10) {

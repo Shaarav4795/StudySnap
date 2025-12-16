@@ -62,6 +62,8 @@ struct MathTextView: View {
                 }
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text)
     }
     
     private struct Segment: Identifiable {

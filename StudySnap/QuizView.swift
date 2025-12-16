@@ -139,6 +139,8 @@ struct QuizView: View {
                                         .padding()
                                         .frame(maxWidth: .infinity)
                                 }
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel("Question: \(questions[currentQuestionIndex].prompt)")
                                 .background(
                                     RoundedRectangle(cornerRadius: 20)
                                         .fill(Color(uiColor: .secondarySystemGroupedBackground))
@@ -202,6 +204,10 @@ struct QuizView: View {
                                                         .stroke(borderColor(for: option), lineWidth: isAnswerVisible && (option == questions[currentQuestionIndex].answer || option == selectedAnswer) ? 2 : 0)
                                                 )
                                             }
+                                            .accessibilityElement(children: .ignore)
+                                            .accessibilityLabel("Option \(index + 1): \(option)")
+                                            .accessibilityValue(isAnswerVisible ? (option == questions[currentQuestionIndex].answer ? "Correct answer" : (option == selectedAnswer ? "Your selection" : "Not selected")) : "")
+                                            .accessibilityHint(isAnswerVisible ? "Double-tap Next Question to continue" : "Double-tap to select this option")
                                             .disabled(isAnswerVisible)
                                             .scaleEffect(selectedAnswer == option ? 0.98 : 1.0)
                                             .animation(.spring(response: 0.3, dampingFraction: 0.6), value: selectedAnswer)
