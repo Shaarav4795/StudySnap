@@ -138,14 +138,14 @@ final class NotificationManager {
         
         switch anchor {
         case .morning:
-            content.title = "Plan a 10-minute study block"
+            content.title = "Plan a 10 minute study block"
             content.body = "Set up one quick session before the day gets busy. \(streakNote)"
         case .evening:
             content.title = "Wrap up with a quick review"
             content.body = "A short set now locks in today’s streak. \(streakNote)"
         case .catchUp:
             content.title = "Still time to study today"
-            content.body = "One focused run of cards keeps you on track. \(streakNote)"
+            content.body = "One focused session will keep you on track. \(streakNote)"
         }
         content.sound = .default
         return content
