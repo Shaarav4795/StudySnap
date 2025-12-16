@@ -7,8 +7,23 @@
 
 import WidgetKit
 import SwiftUI
+import AppIntents
 
 // MARK: - Shared Data Model for Widgets
+
+struct WidgetFlashcard: Codable, Identifiable {
+    var id: UUID
+    var front: String
+    var back: String
+    var isMastered: Bool
+}
+
+struct WidgetStudySet: Codable, Identifiable {
+    var id: UUID
+    var title: String
+    var icon: String
+    var flashcards: [WidgetFlashcard]
+}
 
 struct WidgetData: Codable {
     var level: Int
@@ -17,6 +32,8 @@ struct WidgetData: Codable {
     var xpToNextLevel: Int
     var currentStreak: Int
     var coins: Int
+    var cardsToReview: Int = 0
+    var studySets: [WidgetStudySet] = []
     
     static let placeholder = WidgetData(
         level: 1,
@@ -24,7 +41,9 @@ struct WidgetData: Codable {
         xpProgress: 0.0,
         xpToNextLevel: 100,
         currentStreak: 0,
-        coins: 100
+        coins: 100,
+        cardsToReview: 5,
+        studySets: []
     )
     
     static func load() -> WidgetData {
@@ -42,6 +61,7 @@ struct WidgetData: Codable {
 struct StudySnapEntry: TimelineEntry {
     let date: Date
     let widgetData: WidgetData
+    var statsType: StatsType = .streak
 }
 
 // MARK: - Progress Widget Provider (Medium)
@@ -67,26 +87,24 @@ struct ProgressWidgetProvider: TimelineProvider {
     }
 }
 
-// MARK: - Streak Widget Provider (Small)
+// MARK: - Stats Widget Provider (Small)
 
-struct StreakWidgetProvider: TimelineProvider {
+struct StatsWidgetProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> StudySnapEntry {
-        StudySnapEntry(date: Date(), widgetData: .placeholder)
+        StudySnapEntry(date: Date(), widgetData: .placeholder, statsType: .streak)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (StudySnapEntry) -> ()) {
-        let entry = StudySnapEntry(date: Date(), widgetData: WidgetData.load())
-        completion(entry)
+    func snapshot(for configuration: StatsConfigurationIntent, in context: Context) async -> StudySnapEntry {
+        StudySnapEntry(date: Date(), widgetData: WidgetData.load(), statsType: configuration.statsType)
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<StudySnapEntry>) -> ()) {
+    func timeline(for configuration: StatsConfigurationIntent, in context: Context) async -> Timeline<StudySnapEntry> {
         let currentDate = Date()
-        let entry = StudySnapEntry(date: currentDate, widgetData: WidgetData.load())
+        let entry = StudySnapEntry(date: currentDate, widgetData: WidgetData.load(), statsType: configuration.statsType)
         
         // Refresh every 15 minutes
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
-        let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
-        completion(timeline)
+        return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
 }
 
@@ -180,27 +198,43 @@ struct ProgressWidgetEntryView: View {
     }
 }
 
-// MARK: - Streak Widget View (Small)
+// MARK: - Stats Widget View (Small)
 
-struct StreakWidgetEntryView: View {
-    var entry: StreakWidgetProvider.Entry
+struct StatsWidgetEntryView: View {
+    var entry: StudySnapEntry
 
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: "flame.fill")
-                .font(.system(size: 40))
-                .foregroundColor(entry.widgetData.currentStreak > 0 ? .orange : .gray)
-                .shadow(color: entry.widgetData.currentStreak > 0 ? .orange.opacity(0.5) : .clear, radius: 8, x: 0, y: 4)
-            
-            Text("\(entry.widgetData.currentStreak)")
-                .font(.system(size: 36, weight: .bold, design: .rounded))
-                .foregroundColor(.primary)
-            
-            Text(entry.widgetData.currentStreak == 1 ? "Day Streak" : "Day Streak")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            if entry.statsType == .streak {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(entry.widgetData.currentStreak > 0 ? .orange : .gray)
+                    .shadow(color: entry.widgetData.currentStreak > 0 ? .orange.opacity(0.5) : .clear, radius: 8, x: 0, y: 4)
+                
+                Text("\(entry.widgetData.currentStreak)")
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                
+                Text("Day Streak")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                Image(systemName: "rectangle.stack.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(.blue)
+                    .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                
+                Text("\(entry.widgetData.cardsToReview)")
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                
+                Text("To Review")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .widgetURL(URL(string: "studysnap://stats?type=\(entry.statsType.rawValue)"))
     }
 }
 
@@ -226,24 +260,24 @@ struct StudySnapProgressWidget: Widget {
     }
 }
 
-// MARK: - Streak Widget (Small)
+// MARK: - Stats Widget (Small)
 
-struct StudySnapStreakWidget: Widget {
-    let kind: String = "StudySnapStreakWidget"
+struct StudySnapStatsWidget: Widget {
+    let kind: String = "StudySnapStatsWidget"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: StreakWidgetProvider()) { entry in
+        AppIntentConfiguration(kind: kind, intent: StatsConfigurationIntent.self, provider: StatsWidgetProvider()) { entry in
             if #available(iOS 17.0, *) {
-                StreakWidgetEntryView(entry: entry)
+                StatsWidgetEntryView(entry: entry)
                     .containerBackground(.fill.tertiary, for: .widget)
             } else {
-                StreakWidgetEntryView(entry: entry)
+                StatsWidgetEntryView(entry: entry)
                     .padding()
                     .background(Color(uiColor: .systemBackground))
             }
         }
-        .configurationDisplayName("Study Streak")
-        .description("Keep track of your daily study streak.")
+        .configurationDisplayName("Study Stats")
+        .description("Track your streak or cards to review.")
         .supportedFamilies([.systemSmall])
     }
 }
@@ -257,8 +291,8 @@ struct StudySnapStreakWidget: Widget {
     StudySnapEntry(date: .now, widgetData: WidgetData(level: 10, totalXP: 1200, xpProgress: 0.3, xpToNextLevel: 150, currentStreak: 14, coins: 500))
 }
 
-#Preview("Streak Widget", as: .systemSmall) {
-    StudySnapStreakWidget()
+#Preview("Stats Widget", as: .systemSmall) {
+    StudySnapStatsWidget()
 } timeline: {
     StudySnapEntry(date: .now, widgetData: WidgetData(level: 5, totalXP: 450, xpProgress: 0.6, xpToNextLevel: 80, currentStreak: 7, coins: 250))
     StudySnapEntry(date: .now, widgetData: WidgetData(level: 1, totalXP: 0, xpProgress: 0.0, xpToNextLevel: 100, currentStreak: 0, coins: 100))

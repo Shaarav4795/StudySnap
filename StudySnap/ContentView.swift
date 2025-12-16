@@ -23,6 +23,12 @@ struct ContentView: View {
     @State private var renameTitle: String = ""
     @State private var renameIconId: String = "book"
     @State private var hasRequestedNotifications = false
+    @State private var navigationPath = NavigationPath()
+    
+    enum AppDestination: Hashable {
+        case profile
+        case settings
+    }
     
     private var profile: UserProfile {
         if let existing = profiles.first {
@@ -48,6 +54,12 @@ struct ContentView: View {
             }
             .onChange(of: profile.selectedThemeId) { _, newValue in
                 themeManager.updateTheme(for: newValue)
+            }
+            .onChange(of: studySets) { _, newSets in
+                gamificationManager.syncStudySets(newSets)
+            }
+            .onAppear {
+                gamificationManager.syncStudySets(studySets)
             }
             .overlay(alignment: .top) {
                 // Achievement notification overlay
@@ -76,9 +88,24 @@ struct ContentView: View {
             }
     }
     
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "studysnap" else { return }
+        
+        if url.host == "flashcards", let components = URLComponents(url: url, resolvingAgainstBaseURL: true) {
+            if let setIDString = components.queryItems?.first(where: { $0.name == "setID" })?.value,
+               let setID = UUID(uuidString: setIDString),
+               let set = studySets.first(where: { $0.id == setID }) {
+                navigationPath.append(set)
+            }
+        } else if url.host == "stats" {
+            // Navigate to profile for stats
+            navigationPath.append(AppDestination.profile)
+        }
+    }
+    
     // MARK: - Home View
     private var homeView: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 Color(uiColor: .systemGroupedBackground)
                     .ignoresSafeArea()
@@ -224,20 +251,27 @@ struct ContentView: View {
             .navigationDestination(for: StudySet.self) { set in
                 StudySetDetailView(studySet: set)
             }
+            .navigationDestination(for: AppDestination.self) { destination in
+                switch destination {
+                case .profile:
+                    ProfileView()
+                        .environmentObject(guideManager)
+                case .settings:
+                    ModelSettingsView()
+                        .onDisappear {
+                            guideManager.advanceAfterConfiguredModel()
+                        }
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    NavigationLink(destination: ProfileView()
-                        .environmentObject(guideManager)) {
+                    NavigationLink(value: AppDestination.profile) {
                         profileButton
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 14) {
-                        NavigationLink(destination: ModelSettingsView()
-                            .onDisappear {
-                                guideManager.advanceAfterConfiguredModel()
-                            }
-                        ) {
+                        NavigationLink(value: AppDestination.settings) {
                             ZStack {
                                 Circle()
                                     .fill(themeManager.primaryColor)
@@ -269,6 +303,9 @@ struct ContentView: View {
                         .guideTarget(.homeCreate)
                     }
                 }
+            }
+            .onOpenURL { url in
+                handleDeepLink(url)
             }
             .sheet(isPresented: $isShowingInputSheet) {
                 InputView()

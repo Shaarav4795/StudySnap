@@ -7,6 +7,20 @@ import UserNotifications
 
 // MARK: - Widget Data Structure (Shared)
 
+struct WidgetFlashcard: Codable, Identifiable {
+    var id: UUID
+    var front: String
+    var back: String
+    var isMastered: Bool
+}
+
+struct WidgetStudySet: Codable, Identifiable {
+    var id: UUID
+    var title: String
+    var icon: String
+    var flashcards: [WidgetFlashcard]
+}
+
 struct WidgetData: Codable {
     var level: Int
     var totalXP: Int
@@ -14,6 +28,19 @@ struct WidgetData: Codable {
     var xpToNextLevel: Int
     var currentStreak: Int
     var coins: Int
+    var cardsToReview: Int = 0
+    var studySets: [WidgetStudySet] = []
+    
+    static let placeholder = WidgetData(
+        level: 1,
+        totalXP: 0,
+        xpProgress: 0.0,
+        xpToNextLevel: 100,
+        currentStreak: 0,
+        coins: 100,
+        cardsToReview: 0,
+        studySets: []
+    )
 }
 
 // MARK: - Gamification Manager
@@ -34,14 +61,85 @@ final class GamificationManager: ObservableObject {
     
     // MARK: - Widget Data Sync
     
-    func updateWidgetData(from profile: UserProfile) {
+    func syncStudySets(_ sets: [StudySet]) {
+        let widgetSets = sets.map { set in
+            WidgetStudySet(
+                id: set.id,
+                title: set.title,
+                icon: set.iconId,
+                flashcards: set.flashcards.map { card in
+                    WidgetFlashcard(id: card.id, front: card.front, back: card.back, isMastered: card.isMastered)
+                }
+            )
+        }
+        
+        // Load existing data to preserve other fields
+        var widgetData: WidgetData
+        if let userDefaults = UserDefaults(suiteName: "group.com.shaarav.StudySnap"),
+           let data = userDefaults.data(forKey: "widgetData"),
+           let existing = try? JSONDecoder().decode(WidgetData.self, from: data) {
+            widgetData = existing
+            widgetData.studySets = widgetSets
+            
+            // Update cards to review count
+            let cardsToReview = widgetSets.reduce(0) { count, set in
+                count + set.flashcards.filter { !$0.isMastered }.count
+            }
+            widgetData.cardsToReview = cardsToReview
+            
+        } else {
+            // Fallback if no data exists (shouldn't happen if profile exists)
+            widgetData = WidgetData.placeholder
+            widgetData.studySets = widgetSets
+        }
+        
+        if let userDefaults = UserDefaults(suiteName: "group.com.shaarav.StudySnap"),
+           let data = try? JSONEncoder().encode(widgetData) {
+            userDefaults.set(data, forKey: "widgetData")
+            userDefaults.synchronize()
+        }
+        
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+    
+    func updateWidgetData(from profile: UserProfile, studySets: [StudySet]? = nil) {
+        // Load existing to preserve sets if not provided
+        var currentSets: [WidgetStudySet] = []
+        if let userDefaults = UserDefaults(suiteName: "group.com.shaarav.StudySnap"),
+           let data = userDefaults.data(forKey: "widgetData"),
+           let existing = try? JSONDecoder().decode(WidgetData.self, from: data) {
+            currentSets = existing.studySets
+        }
+        
+        let setsToSave: [WidgetStudySet]
+        if let studySets = studySets {
+            setsToSave = studySets.map { set in
+                WidgetStudySet(
+                    id: set.id,
+                    title: set.title,
+                    icon: set.iconId,
+                    flashcards: set.flashcards.map { card in
+                        WidgetFlashcard(id: card.id, front: card.front, back: card.back, isMastered: card.isMastered)
+                    }
+                )
+            }
+        } else {
+            setsToSave = currentSets
+        }
+        
+        let cardsToReview = setsToSave.reduce(0) { count, set in
+            count + set.flashcards.filter { !$0.isMastered }.count
+        }
+        
         let widgetData = WidgetData(
             level: profile.level,
             totalXP: profile.totalXP,
             xpProgress: profile.xpProgress,
             xpToNextLevel: profile.xpToNextLevel,
             currentStreak: profile.currentStreak,
-            coins: profile.coins
+            coins: profile.coins,
+            cardsToReview: cardsToReview,
+            studySets: setsToSave
         )
         
         if let userDefaults = UserDefaults(suiteName: "group.com.shaarav.StudySnap"),

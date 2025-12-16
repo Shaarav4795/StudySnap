@@ -12,7 +12,8 @@ import SwiftUI
 struct StudySnapWidgetsBundle: WidgetBundle {
     var body: some Widget {
         StudySnapProgressWidget()
-        StudySnapStreakWidget()
+        StudySnapStatsWidget()
+        FlashcardWidget()
         StudySnapWidgetsControl()
     }
 }

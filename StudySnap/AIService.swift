@@ -618,7 +618,7 @@ actor AIService {
             let difficultyInstruction: String
             switch difficulty {
             case .beginner:
-                difficultyInstruction = "Use simple language suitable for a beginner. Avoid jargon where possible."
+                difficultyInstruction = "Use simple language suitable for a beginner. Avoid jargon where possible. Explain like the user is 5."
             case .intermediate:
                 difficultyInstruction = "Use standard language suitable for an intermediate learner."
             case .advanced:
