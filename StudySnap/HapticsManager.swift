@@ -49,6 +49,18 @@ final class HapticsManager {
         }
     }
 
+    func playSuccess() {
+        DispatchQueue.main.async {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+    }
+
+    func playError() {
+        DispatchQueue.main.async {
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
+    }
+
     // MARK: - Private
 
     private func ensureEngine() throws {

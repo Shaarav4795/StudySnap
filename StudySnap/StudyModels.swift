@@ -44,6 +44,23 @@ struct StudySetIcon: Identifiable, Hashable {
 }
 
 @Model
+final class StudyFolder {
+    var id: UUID
+    var name: String
+    var dateCreated: Date
+    var iconId: String = "folder"
+    
+    @Relationship(deleteRule: .nullify, inverse: \StudySet.folder) var studySets: [StudySet] = []
+    
+    init(name: String, dateCreated: Date = Date(), iconId: String = "folder") {
+        self.id = UUID()
+        self.name = name
+        self.dateCreated = dateCreated
+        self.iconId = iconId
+    }
+}
+
+@Model
 final class StudySet {
     var id: UUID
     var title: String
@@ -55,6 +72,7 @@ final class StudySet {
     
     @Relationship(deleteRule: .cascade) var flashcards: [Flashcard] = []
     @Relationship(deleteRule: .cascade) var questions: [Question] = []
+    var folder: StudyFolder?
     
     init(title: String, originalText: String, summary: String? = nil, dateCreated: Date = Date(), mode: StudySetMode = .content, iconId: String = "book") {
         self.id = UUID()

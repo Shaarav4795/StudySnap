@@ -7,7 +7,9 @@ struct InputView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Query private var profiles: [UserProfile]
+    @Query(sort: \StudyFolder.dateCreated, order: .reverse) private var studyFolders: [StudyFolder]
     @StateObject private var gamificationManager = GamificationManager.shared
+    @StateObject private var themeManager = ThemeManager.shared
     @EnvironmentObject private var guideManager: GuideManager
     @AppStorage(ModelSettings.Keys.preference) private var modelPreferenceRaw: String = AIModelPreference.automatic.rawValue
     @AppStorage(ModelSettings.Keys.openRouterApiKey) private var storedOpenRouterKey: String = ""
@@ -28,7 +30,7 @@ struct InputView: View {
         
         var description: String {
             switch self {
-            case .content: return "Generate from your notes, textbook, or documents"
+            case .content: return "Generate content from your notes, textbook, or documents"
             case .topic: return "Learn something new - AI teaches you the topic"
             }
         }
@@ -40,6 +42,8 @@ struct InputView: View {
     @State private var title: String = ""
     @State private var selectedIconId: String = "book"
     @State private var isIconPickerExpanded: Bool = false
+    @State private var selectedFolder: StudyFolder? = nil
+    @State private var isFolderPickerExpanded: Bool = false
     @State private var activeSheet: ActiveSheet?
     @State private var isGenerating = false
     private let characterLimit = 20000
@@ -70,340 +74,19 @@ struct InputView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Mode Selection Section
-                Section {
-                    Picker("Mode", selection: $selectedMode) {
-                        ForEach(InputMode.allCases) { mode in
-                            Label(mode.rawValue, systemImage: mode.icon).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .onChange(of: selectedMode) { _, _ in
-                        HapticsManager.shared.playTap()
-                    }
-                    
-                    Text(selectedMode.description)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 4)
-                } header: {
-                    Text("Study Mode")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.secondary)
-                }
-                
-                Section {
-                    TextField(selectedMode == .content ? "Title (e.g., Biology Chapter 1)" : "Title (e.g., Learn Calculus)", text: $title)
-                        .font(.headline)
-                    
-                    // Icon Picker
-                    DisclosureGroup(isExpanded: $isIconPickerExpanded) {
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 12) {
-                            ForEach(StudySetIcon.allIcons) { icon in
-                                Button(action: {
-                                    HapticsManager.shared.playTap()
-                                    selectedIconId = icon.id
-                                }) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(selectedIconId == icon.id ? Color.accentColor : Color(uiColor: .tertiarySystemGroupedBackground))
-                                            .frame(width: 48, height: 48)
-                                        
-                                        Image(systemName: icon.systemName)
-                                            .font(.system(size: 20))
-                                            .foregroundColor(selectedIconId == icon.id ? .white : .primary)
-                                    }
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    } label: {
-                        HStack {
-                            Text("Icon")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            if !isIconPickerExpanded, let selectedIcon = StudySetIcon.allIcons.first(where: { $0.id == selectedIconId }) {
-                                Image(systemName: selectedIcon.systemName)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                } header: {
-                    Text("Study Set Details")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.secondary)
-                }
+                modeSelectionSection
+                detailsSection
                 
                 if selectedMode == .content {
-                    // Content Mode - existing UI
-                    Section {
-                        VStack(spacing: 15) {
-                            HStack(spacing: 14) {
-                                // Scan button - card style
-                                Button(action: {
-                                    HapticsManager.shared.playTap()
-                                    activeSheet = .scanner
-                                }) {
-                                    VStack(spacing: 8) {
-                                        ZStack {
-                                            Circle()
-                                                .fill(Color.accentColor.opacity(0.12))
-                                                .frame(width: 56, height: 56)
-                                            Image(systemName: "doc.viewfinder")
-                                                .font(.title2)
-                                                .foregroundColor(.accentColor)
-                                        }
-
-                                        Text("Scan")
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-
-                                        Text("Use camera to import pages")
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                            .multilineTextAlignment(.center)
-                                    }
-                                    .padding(12)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color(uiColor: .secondarySystemGroupedBackground))
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.accentColor.opacity(0.08), lineWidth: 1)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("Scan documents")
-                                .accessibilityHint("Open camera scanner to capture pages")
-
-                                // Upload button - card style
-                                Button(action: {
-                                    HapticsManager.shared.playTap()
-                                    activeSheet = .filePicker
-                                }) {
-                                    VStack(spacing: 8) {
-                                        ZStack {
-                                            Circle()
-                                                .fill(Color.accentColor.opacity(0.12))
-                                                .frame(width: 56, height: 56)
-                                            Image(systemName: "arrow.up.doc")
-                                                .font(.title2)
-                                                .foregroundColor(.accentColor)
-                                        }
-
-                                        Text("Upload")
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-
-                                        Text("Import a PDF or document")
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                            .multilineTextAlignment(.center)
-                                    }
-                                    .padding(12)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color(uiColor: .secondarySystemGroupedBackground))
-                                    .cornerRadius(12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.accentColor.opacity(0.08), lineWidth: 1)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("Upload document")
-                                .accessibilityHint("Choose a file to import its text")
-                            }
-                            
-                            let editorPadding = EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
-                            // Use a UITextView-backed representable for pixel-perfect placeholder alignment
-                            PlaceholderTextView(
-                                text: $inputText,
-                                placeholder: "Type or paste your notes here...\nOr import above",
-                                padding: editorPadding
-                            )
-                            .frame(minHeight: 150)
-                            .background(Color(uiColor: .systemBackground))
-                            .cornerRadius(8)
-                            .onChange(of: inputText) { _, newValue in
-                                if newValue.count > characterLimit {
-                                    inputText = String(newValue.prefix(characterLimit))
-                                }
-                            }
-                            
-                            HStack {
-                                Spacer()
-                                Text("\(inputText.count)/\(characterLimit)")
-                                    .font(.caption)
-                                    .foregroundColor(inputText.count >= characterLimit ? .red : .secondary)
-                            }
-                            .padding(.trailing, 4)
-                        }
-                        .padding(.vertical, 5)
-                    } header: {
-                        Text("Source Material")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.secondary)
-                    }
+                    sourceMaterialSection
                 } else {
-                    // Topic Mode - new UI for learning new topics
-                    Section {
-                        VStack(spacing: 12) {
-                            HStack {
-                                Image(systemName: "sparkles")
-                                    .foregroundColor(.accentColor)
-                                Text("AI will teach you this topic")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            let editorPadding = EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
-                            PlaceholderTextView(
-                                text: $topicDescription,
-                                placeholder: "Describe what you want to learn...",
-                                padding: editorPadding
-                            )
-                            .frame(minHeight: 180)
-                            .background(Color(uiColor: .systemBackground))
-                            .cornerRadius(8)
-                        }
-                        .padding(.vertical, 5)
-                    } header: {
-                        Text("Topic to Learn")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.secondary)
-                    }
+                    topicSection
                 }
                 
-                Section {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text("Questions")
-                            Spacer()
-                            Text("\(Int(questionCount))")
-                                .foregroundColor(.secondary)
-                                .bold()
-                        }
-                        Slider(value: $questionCount, in: 1...20, step: 1)
-                            .tint(.accentColor)
-                            .onChange(of: questionCount) { _, _ in
-                                HapticsManager.shared.playTap()
-                            }
-                            .accessibilityValue("\(Int(questionCount)) questions")
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text("Flashcards")
-                            Spacer()
-                            Text("\(Int(flashcardCount))")
-                                .foregroundColor(.secondary)
-                                .bold()
-                        }
-                        Slider(value: $flashcardCount, in: 1...30, step: 1)
-                            .tint(.accentColor)
-                            .onChange(of: flashcardCount) { _, _ in
-                                HapticsManager.shared.playTap()
-                            }
-                            .accessibilityValue("\(Int(flashcardCount)) flashcards")
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(selectedMode == .content ? "Summary Style" : "Guide Style")
-                        Picker("Style", selection: $summaryStyle) {
-                            ForEach(AIService.SummaryStyle.allCases) { style in
-                                Text(style.rawValue).tag(style)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .onChange(of: summaryStyle) { _, _ in
-                            HapticsManager.shared.playTap()
-                        }
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text(selectedMode == .content ? "Summary Word Count" : "Guide Word Count")
-                            Spacer()
-                            Text("\(Int(summaryWordCount))")
-                                .foregroundColor(.secondary)
-                                .bold()
-                        }
-                        Slider(value: $summaryWordCount, in: 50...500, step: 10)
-                            .tint(.accentColor)
-                            .onChange(of: summaryWordCount) { _, _ in
-                                HapticsManager.shared.playTap()
-                            }
-                            .accessibilityValue("\(Int(summaryWordCount)) words")
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Difficulty Level")
-                        Picker("Difficulty", selection: $summaryDifficulty) {
-                            ForEach(AIService.SummaryDifficulty.allCases) { difficulty in
-                                Text(difficulty.rawValue).tag(difficulty)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .onChange(of: summaryDifficulty) { _, _ in
-                            HapticsManager.shared.playTap()
-                        }
-                    }
-                } header: {
-                    Text("Generation Settings")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.secondary)
-                }
-                
-                Section {
-                    Button(action: generateContent) {
-                        HStack {
-                            if isGenerating {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                    .padding(.trailing, 5)
-                                Text("Generating...")
-                            } else {
-                                Image(systemName: selectedMode == .content ? "sparkles" : "brain.head.profile")
-                                Text(selectedMode == .content ? "Generate Study Set" : "Generate Learning Set")
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 5)
-                        .bold()
-                    }
-                    .disabled(!canGenerate || isGenerating)
-                    .listRowBackground(
-                        (!canGenerate || isGenerating) ? Color.gray : Color.accentColor
-                    )
-                    .foregroundColor(.white)
-                    .guideTarget(.inputGenerate)
-
-                    if let fallbackNotice {
-                        Label {
-                            Text(fallbackNotice)
-                                .font(.footnote)
-                        } icon: {
-                            Image(systemName: "info.circle")
-                        }
-                        .foregroundColor(.secondary)
-                        .padding(.top, 6)
-                    }
-                }
+                configurationSection
+                actionSection
             }
-            .onTapGesture {
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-            }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("New Study Set")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $activeSheet) { item in
@@ -501,6 +184,7 @@ struct InputView: View {
                     let flashcardsData = try await service.generateFlashcards(from: inputText, count: Int(flashcardCount))
 
                     let newSet = StudySet(title: title, originalText: inputText, summary: summary, mode: .content, iconId: selectedIconId)
+                    newSet.folder = selectedFolder
                     modelContext.insert(newSet)
 
                     for q in questionsData {
@@ -534,6 +218,7 @@ struct InputView: View {
                     )
 
                     let newSet = StudySet(title: title, originalText: topicDescription, summary: guide, mode: .topic, iconId: selectedIconId)
+                    newSet.folder = selectedFolder
                     modelContext.insert(newSet)
 
                     for q in questionsData {
@@ -565,6 +250,423 @@ struct InputView: View {
                     isGenerating = false
                     generationError = error.localizedDescription
                 }
+            }
+        }
+    }
+    
+    // MARK: - Sections
+    
+    private var modeSelectionSection: some View {
+        Section {
+            Picker("Mode", selection: $selectedMode) {
+                ForEach(InputMode.allCases) { mode in
+                    Label(mode.rawValue, systemImage: mode.icon).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: selectedMode) { _, _ in
+                HapticsManager.shared.playTap()
+            }
+            
+            Text(selectedMode.description)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 4)
+        } header: {
+            Text("Study Mode")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var detailsSection: some View {
+        Section {
+            TextField(selectedMode == .content ? "Title (e.g., Biology Chapter 1)" : "Title (e.g., Learn Calculus)", text: $title)
+                .font(.headline)
+            
+            // Icon Picker
+            DisclosureGroup(isExpanded: $isIconPickerExpanded) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 12) {
+                    ForEach(StudySetIcon.allIcons) { icon in
+                        Button(action: {
+                            HapticsManager.shared.playTap()
+                            selectedIconId = icon.id
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(selectedIconId == icon.id ? Color.accentColor : Color(uiColor: .tertiarySystemGroupedBackground))
+                                    .frame(width: 48, height: 48)
+                                
+                                Image(systemName: icon.systemName)
+                                    .font(.system(size: 20))
+                                    .foregroundColor(selectedIconId == icon.id ? .white : .primary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 8)
+            } label: {
+                HStack {
+                    Text("Icon")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    if !isIconPickerExpanded, let selectedIcon = StudySetIcon.allIcons.first(where: { $0.id == selectedIconId }) {
+                        Image(systemName: selectedIcon.systemName)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            
+            // Folder Picker
+            if !studyFolders.isEmpty {
+                DisclosureGroup(isExpanded: $isFolderPickerExpanded) {
+                    VStack(spacing: 8) {
+                        // None option
+                        Button(action: {
+                            HapticsManager.shared.playTap()
+                            selectedFolder = nil
+                            withAnimation {
+                                isFolderPickerExpanded = false
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "folder.badge.minus")
+                                    .foregroundColor(.secondary)
+                                Text("None")
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                if selectedFolder == nil {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.accentColor)
+                                }
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 4)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Divider()
+                        
+                        ForEach(studyFolders) { folder in
+                            Button(action: {
+                                HapticsManager.shared.playTap()
+                                selectedFolder = folder
+                                withAnimation {
+                                    isFolderPickerExpanded = false
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: StudySetIcon.icon(for: folder.iconId)?.systemName ?? "folder.fill")
+                                        .foregroundColor(themeManager.primaryColor)
+                                    Text(folder.name)
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                    if selectedFolder == folder {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.accentColor)
+                                    }
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 4)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            
+                            if folder != studyFolders.last {
+                                Divider()
+                            }
+                        }
+                    }
+                    .padding(.vertical, 8)
+                } label: {
+                    HStack {
+                        Text("Folder")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Text(selectedFolder?.name ?? "None")
+                            .font(.subheadline)
+                            .foregroundColor(selectedFolder == nil ? .secondary : .primary)
+                    }
+                }
+            }
+        } header: {
+            Text("Study Set Details")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var sourceMaterialSection: some View {
+        Section {
+            VStack(spacing: 15) {
+                HStack(spacing: 14) {
+                    // Scan button - card style
+                    Button(action: {
+                        HapticsManager.shared.playTap()
+                        activeSheet = .scanner
+                    }) {
+                        VStack(spacing: 8) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.accentColor.opacity(0.12))
+                                    .frame(width: 56, height: 56)
+                                Image(systemName: "doc.viewfinder")
+                                    .font(.title2)
+                                    .foregroundColor(.accentColor)
+                            }
+
+                            Text("Scan")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+
+                            Text("Use camera to import pages")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity)
+                        .background(Color(uiColor: .secondarySystemGroupedBackground))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.accentColor.opacity(0.08), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Scan documents")
+                    .accessibilityHint("Open camera scanner to capture pages")
+
+                    // Upload button - card style
+                    Button(action: {
+                        HapticsManager.shared.playTap()
+                        activeSheet = .filePicker
+                    }) {
+                        VStack(spacing: 8) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.accentColor.opacity(0.12))
+                                    .frame(width: 56, height: 56)
+                                Image(systemName: "arrow.up.doc")
+                                    .font(.title2)
+                                    .foregroundColor(.accentColor)
+                            }
+
+                            Text("Upload")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+
+                            Text("Import a PDF or document")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity)
+                        .background(Color(uiColor: .secondarySystemGroupedBackground))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.accentColor.opacity(0.08), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Upload document")
+                    .accessibilityHint("Choose a file to import its text")
+                }
+                
+                let editorPadding = EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
+                // Use a UITextView-backed representable for pixel-perfect placeholder alignment
+                PlaceholderTextView(
+                    text: $inputText,
+                    placeholder: "Type or paste your notes here...\nOr import above",
+                    padding: editorPadding
+                )
+                .frame(minHeight: 150)
+                .background(Color(uiColor: .systemBackground))
+                .cornerRadius(8)
+                .onChange(of: inputText) { _, newValue in
+                    if newValue.count > characterLimit {
+                        inputText = String(newValue.prefix(characterLimit))
+                    }
+                }
+                
+                HStack {
+                    Spacer()
+                    Text("\(inputText.count)/\(characterLimit)")
+                    .font(.caption)
+                    .foregroundColor(inputText.count >= characterLimit ? .red : .secondary)
+                }
+                .padding(.trailing, 4)
+            }
+            .padding(.vertical, 5)
+        } header: {
+            Text("Source Material")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var topicSection: some View {
+        Section {
+            VStack(spacing: 12) {
+                HStack {
+                    Image(systemName: "sparkles")
+                        .foregroundColor(.accentColor)
+                    Text("AI will teach you this topic")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                let editorPadding = EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
+                PlaceholderTextView(
+                    text: $topicDescription,
+                    placeholder: "Describe what you want to learn...",
+                    padding: editorPadding
+                )
+                .frame(minHeight: 180)
+                .background(Color(uiColor: .systemBackground))
+                .cornerRadius(8)
+            }
+            .padding(.vertical, 5)
+        } header: {
+            Text("Topic to Learn")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var configurationSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Questions")
+                    Spacer()
+                    Text("\(Int(questionCount))")
+                        .foregroundColor(.secondary)
+                        .bold()
+                }
+                Slider(value: $questionCount, in: 1...20, step: 1)
+                    .tint(.accentColor)
+                    .onChange(of: questionCount) { _, _ in
+                        HapticsManager.shared.playTap()
+                    }
+                    .accessibilityValue("\(Int(questionCount)) questions")
+            }
+            
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Flashcards")
+                    Spacer()
+                    Text("\(Int(flashcardCount))")
+                        .foregroundColor(.secondary)
+                        .bold()
+                }
+                Slider(value: $flashcardCount, in: 1...30, step: 1)
+                    .tint(.accentColor)
+                    .onChange(of: flashcardCount) { _, _ in
+                        HapticsManager.shared.playTap()
+                    }
+                    .accessibilityValue("\(Int(flashcardCount)) flashcards")
+            }
+            
+            VStack(alignment: .leading, spacing: 10) {
+                Text(selectedMode == .content ? "Summary Style" : "Guide Style")
+                Picker("Style", selection: $summaryStyle) {
+                    ForEach(AIService.SummaryStyle.allCases) { style in
+                        Text(style.rawValue).tag(style)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: summaryStyle) { _, _ in
+                    HapticsManager.shared.playTap()
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(selectedMode == .content ? "Summary Word Count" : "Guide Word Count")
+                    Spacer()
+                    Text("\(Int(summaryWordCount))")
+                        .foregroundColor(.secondary)
+                        .bold()
+                }
+                Slider(value: $summaryWordCount, in: 50...500, step: 10)
+                    .tint(.accentColor)
+                    .onChange(of: summaryWordCount) { _, _ in
+                        HapticsManager.shared.playTap()
+                    }
+                    .accessibilityValue("\(Int(summaryWordCount)) words")
+            }
+            
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Difficulty Level")
+                Picker("Difficulty", selection: $summaryDifficulty) {
+                    ForEach(AIService.SummaryDifficulty.allCases) { difficulty in
+                        Text(difficulty.rawValue).tag(difficulty)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: summaryDifficulty) { _, _ in
+                    HapticsManager.shared.playTap()
+                }
+            }
+        } header: {
+            Text("Generation Settings")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var actionSection: some View {
+        Section {
+            Button(action: generateContent) {
+                HStack {
+                    if isGenerating {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .padding(.trailing, 5)
+                            Text("Generating...")
+                    } else {
+                        Image(systemName: selectedMode == .content ? "sparkles" : "brain.head.profile")
+                        Text(selectedMode == .content ? "Generate Study Set" : "Generate Learning Set")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+                .bold()
+            }
+            .disabled(!canGenerate || isGenerating)
+            .listRowBackground(
+                (!canGenerate || isGenerating) ? Color.gray : Color.accentColor
+            )
+            .foregroundColor(.white)
+            .guideTarget(.inputGenerate)
+
+            if let fallbackNotice {
+                Label {
+                    Text(fallbackNotice)
+                        .font(.footnote)
+                } icon: {
+                    Image(systemName: "info.circle")
+                }
+                .foregroundColor(.secondary)
+                .padding(.top, 6)
             }
         }
     }

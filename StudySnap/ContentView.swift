@@ -11,17 +11,22 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \StudySet.dateCreated, order: .reverse) private var studySets: [StudySet]
+    @Query(sort: \StudyFolder.dateCreated, order: .reverse) private var studyFolders: [StudyFolder]
     @Query private var profiles: [UserProfile]
     @StateObject private var gamificationManager = GamificationManager.shared
     @StateObject private var themeManager = ThemeManager.shared
     @EnvironmentObject private var guideManager: GuideManager
     @State private var isShowingInputSheet = false
+    @State private var isShowingCreateFolderSheet = false
+    @State private var folderToEdit: StudyFolder? = nil
     @State private var searchText: String = ""
     @State private var isSearching: Bool = false
     @State private var setToRename: StudySet? = nil
     @State private var isShowingRenameSheet: Bool = false
     @State private var renameTitle: String = ""
     @State private var renameIconId: String = "book"
+    @State private var setMovingToFolder: StudySet? = nil
+    @State private var isShowingMoveToFolderSheet: Bool = false
     @State private var hasRequestedNotifications = false
     @State private var navigationPath = NavigationPath()
     
@@ -39,11 +44,23 @@ struct ContentView: View {
 
     private var filteredStudySets: [StudySet] {
         let text = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return studySets }
+        if text.isEmpty {
+            return studySets.filter { $0.folder == nil }
+        }
         return studySets.filter { set in
             set.title.range(of: text, options: .caseInsensitive) != nil
             || (set.summary?.range(of: text, options: .caseInsensitive) != nil)
             || (set.originalText.range(of: text, options: .caseInsensitive) != nil)
+        }
+    }
+    
+    private var filteredFolders: [StudyFolder] {
+        let text = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.isEmpty {
+            return studyFolders
+        }
+        return studyFolders.filter { folder in
+            folder.name.range(of: text, options: .caseInsensitive) != nil
         }
     }
 
@@ -110,7 +127,7 @@ struct ContentView: View {
                 Color(uiColor: .systemGroupedBackground)
                     .ignoresSafeArea()
                 
-                if studySets.isEmpty && searchText.isEmpty {
+                if studySets.isEmpty && studyFolders.isEmpty && searchText.isEmpty {
                     VStack(spacing: 16) {
                         // Gamification Header Card (scrolls with content)
                         gamificationHeader
@@ -125,7 +142,7 @@ struct ContentView: View {
 
                         Spacer()
                     }
-                } else if filteredStudySets.isEmpty {
+                } else if filteredStudySets.isEmpty && filteredFolders.isEmpty {
                     VStack(spacing: 16) {
                         // Keep the gamification header visible when searching
                         gamificationHeader
@@ -149,98 +166,247 @@ struct ContentView: View {
                                 .listRowBackground(Color.clear)
                         }
                         .listRowSeparator(.hidden)
-
-                        ForEach(filteredStudySets) { set in
-                            ZStack {
-                                NavigationLink(value: set) {
-                                    EmptyView()
-                                }
-                                .opacity(0)
-                                
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        Image(systemName: set.icon.systemName)
-                                            .foregroundColor(.white)
-                                            .padding(8)
-                                            .background(Circle().fill(themeManager.primaryColor))
-                                        
-                                        Text(set.title)
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
-                                        
-                                        Spacer()
-                                        
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    
-                                    HStack(alignment: .center, spacing: 8) {
-                                        // Custom date display to reduce spacing between icon and text
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "calendar")
-                                                .font(.caption2)
-                                                .foregroundColor(.secondary)
-                                            Text("\(set.dateCreated, style: .date)")
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
+                        
+                        // Folders Section
+                        if !filteredFolders.isEmpty {
+                            Section(header: Text("Folders")) {
+                                ForEach(filteredFolders) { folder in
+                                    ZStack {
+                                        NavigationLink(value: folder) {
+                                            EmptyView()
                                         }
+                                        .opacity(0)
+                                        
+                                        VStack(alignment: .leading, spacing: 12) {
+                                            HStack {
+                                                Image(systemName: StudySetIcon.icon(for: folder.iconId)?.systemName ?? "folder.fill")
+                                                    .foregroundColor(.white)
+                                                    .padding(8)
+                                                    .background(Circle().fill(themeManager.primaryColor))
+                                                
+                                                Text(folder.name)
+                                                    .font(.headline)
+                                                    .foregroundColor(.primary)
+                                                
+                                                Spacer()
+                                                
+                                                Image(systemName: "chevron.right")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            
+                                            HStack(alignment: .center, spacing: 8) {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "calendar")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.secondary)
+                                                    Text("\(folder.dateCreated, style: .date)")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
 
-                                        Spacer()
+                                                Spacer()
 
-                                        // Compact mode badge on home list: tighter icon-text spacing, more outer padding
-                                        HStack(spacing: 4) {
-                                            Image(systemName: set.studySetMode == .topic ? "lightbulb.fill" : "doc.text.fill")
-                                                .font(.caption2)
-                                            Text(set.studySetMode == .topic ? "Learning Topic" : "From Content")
-                                                .font(.caption2)
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "doc.on.doc.fill")
+                                                        .font(.caption2)
+                                                    Text("\(folder.studySets.count) Sets")
+                                                        .font(.caption2)
+                                                }
+                                                .foregroundColor(.purple)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 6)
+                                                .background(Color.purple.opacity(0.14))
+                                                .cornerRadius(8)
+                                            }
                                         }
-                                        .foregroundColor(set.studySetMode == .topic ? .orange : .blue)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background((set.studySetMode == .topic ? Color.orange : Color.blue).opacity(0.14))
-                                        .cornerRadius(8)
+                                        .padding()
+                                        .background(Color(uiColor: .secondarySystemGroupedBackground))
+                                        .cornerRadius(16)
+                                        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+                                    }
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                    .contextMenu {
+                                        Button {
+                                            folderToEdit = folder
+                                            isShowingCreateFolderSheet = true
+                                        } label: {
+                                            Label("Rename", systemImage: "pencil")
+                                        }
+                                        
+                                        Button(role: .destructive) {
+                                            withAnimation {
+                                                modelContext.delete(folder)
+                                            }
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
+                                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                        Button {
+                                            HapticsManager.shared.playTap()
+                                            folderToEdit = folder
+                                            isShowingCreateFolderSheet = true
+                                        } label: {
+                                            Label("Rename", systemImage: "pencil")
+                                        }
+                                        .tint(.blue)
+                                    }
+                                    .swipeActions(edge: .trailing) {
+                                        Button(role: .destructive) {
+                                            HapticsManager.shared.playTap()
+                                            withAnimation {
+                                                modelContext.delete(folder)
+                                            }
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
                                     }
                                 }
-                                .padding()
-                                .background(Color(uiColor: .secondarySystemGroupedBackground))
-                                .cornerRadius(16)
-                                .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
                             }
-                            .listRowSeparator(.hidden)
-                            .listRowBackground(Color.clear)
-                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                            .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                Button {
-                                    HapticsManager.shared.playTap()
-                                    // Prepare rename sheet
-                                    setToRename = set
-                                    renameTitle = set.title
-                                    renameIconId = set.iconId
-                                    isShowingRenameSheet = true
-                                } label: {
-                                    Label("Rename", systemImage: "pencil")
-                                }
-                                .tint(.blue)
-                            }
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    HapticsManager.shared.playTap()
-                                    withAnimation {
-                                        modelContext.delete(set)
+                        }
+
+                        if !filteredStudySets.isEmpty {
+                            Section(header: !filteredFolders.isEmpty ? Text("Study Sets") : nil) {
+                                ForEach(filteredStudySets) { set in
+                                    ZStack {
+                                        NavigationLink(value: set) {
+                                            EmptyView()
+                                        }
+                                        .opacity(0)
+                                        
+                                        VStack(alignment: .leading, spacing: 12) {
+                                            HStack {
+                                                Image(systemName: set.icon.systemName)
+                                                    .foregroundColor(.white)
+                                                    .padding(8)
+                                                    .background(Circle().fill(themeManager.primaryColor))
+                                                
+                                                Text(set.title)
+                                                    .font(.headline)
+                                                    .foregroundColor(.primary)
+                                                
+                                                Spacer()
+                                                
+                                                Image(systemName: "chevron.right")
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            
+                                            HStack(alignment: .center, spacing: 8) {
+                                                // Custom date display to reduce spacing between icon and text
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "calendar")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.secondary)
+                                                    Text("\(set.dateCreated, style: .date)")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
+
+                                                Spacer()
+
+                                                // Compact mode badge on home list: tighter icon-text spacing, more outer padding
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: set.studySetMode == .topic ? "lightbulb.fill" : "doc.text.fill")
+                                                        .font(.caption2)
+                                                    Text(set.studySetMode == .topic ? "Learning Topic" : "From Content")
+                                                        .font(.caption2)
+                                                }
+                                                .foregroundColor(set.studySetMode == .topic ? .orange : .blue)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 6)
+                                                .background((set.studySetMode == .topic ? Color.orange : Color.blue).opacity(0.14))
+                                                .cornerRadius(8)
+                                            }
+                                        }
+                                        .padding()
+                                        .background(Color(uiColor: .secondarySystemGroupedBackground))
+                                        .cornerRadius(16)
+                                        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
                                     }
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                    .contextMenu {
+                                        if !studyFolders.isEmpty {
+                                            Menu("Move to Folder", systemImage: "folder") {
+                                                ForEach(studyFolders) { folder in
+                                                    Button {
+                                                        withAnimation {
+                                                            set.folder = folder
+                                                        }
+                                                    } label: {
+                                                        Label(folder.name, systemImage: "folder")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        Button {
+                                            setToRename = set
+                                            renameTitle = set.title
+                                            renameIconId = set.iconId
+                                            isShowingRenameSheet = true
+                                        } label: {
+                                            Label("Rename", systemImage: "pencil")
+                                        }
+                                        
+                                        Button(role: .destructive) {
+                                            withAnimation {
+                                                modelContext.delete(set)
+                                            }
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
+                                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                        Button {
+                                            HapticsManager.shared.playTap()
+                                            // Prepare rename sheet
+                                            setToRename = set
+                                            renameTitle = set.title
+                                            renameIconId = set.iconId
+                                            isShowingRenameSheet = true
+                                        } label: {
+                                            Label("Rename", systemImage: "pencil")
+                                        }
+                                        .tint(.blue)
+                                        
+                                        if !studyFolders.isEmpty {
+                                            Button {
+                                                HapticsManager.shared.playTap()
+                                                setMovingToFolder = set
+                                                isShowingMoveToFolderSheet = true
+                                            } label: {
+                                                Label("Folder", systemImage: "folder")
+                                            }
+                                            .tint(.orange)
+                                        }
+                                    }
+                                    .swipeActions(edge: .trailing) {
+                                        Button(role: .destructive) {
+                                            HapticsManager.shared.playTap()
+                                            withAnimation {
+                                                modelContext.delete(set)
+                                            }
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
+                                    // Make custom row tappable and readable by VoiceOver
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityAddTraits(.isButton)
+                                    .accessibilityLabel("Study set: \(set.title). Created on \(set.dateCreated, style: .date). Mode: \(set.studySetMode == .topic ? "Learning Topic" : "From Content")")
+                                    .accessibilityHint("Opens study set details")
                                 }
                             }
-                            // Make custom row tappable and readable by VoiceOver
-                            .accessibilityElement(children: .combine)
-                            .accessibilityAddTraits(.isButton)
-                            .accessibilityLabel("Study set: \(set.title). Created on \(set.dateCreated, style: .date). Mode: \(set.studySetMode == .topic ? "Learning Topic" : "From Content")")
-                            .accessibilityHint("Opens study set details")
                         }
                     }
                     .listStyle(.plain)
+                    .listSectionSpacing(0)
                     .transaction { t in t.animation = nil }
                     .animation(nil, value: searchText)
                 }
@@ -250,6 +416,9 @@ struct ContentView: View {
             .navigationTitle("StudySnap")
             .navigationDestination(for: StudySet.self) { set in
                 StudySetDetailView(studySet: set)
+            }
+            .navigationDestination(for: StudyFolder.self) { folder in
+                FolderDetailView(folder: folder)
             }
             .navigationDestination(for: AppDestination.self) { destination in
                 switch destination {
@@ -261,6 +430,14 @@ struct ContentView: View {
                         .onDisappear {
                             guideManager.advanceAfterConfiguredModel()
                         }
+                }
+            }
+            .sheet(isPresented: $isShowingCreateFolderSheet) {
+                CreateFolderView(folderToEdit: folderToEdit)
+            }
+            .sheet(isPresented: $isShowingMoveToFolderSheet) {
+                if let set = setMovingToFolder {
+                    MoveToFolderView(studySet: set)
                 }
             }
             .toolbar {
@@ -285,11 +462,23 @@ struct ContentView: View {
                         .accessibilityLabel("Model Settings")
                         .guideTarget(.homeSettings)
 
-                        Button(action: {
-                            HapticsManager.shared.playTap()
-                            isShowingInputSheet = true
-                            guideManager.advanceAfterTappedCreate()
-                        }) {
+                        Menu {
+                            Button {
+                                HapticsManager.shared.playTap()
+                                isShowingInputSheet = true
+                                guideManager.advanceAfterTappedCreate()
+                            } label: {
+                                Label("New Study Set", systemImage: "doc.badge.plus")
+                            }
+                            
+                            Button {
+                                HapticsManager.shared.playTap()
+                                folderToEdit = nil
+                                isShowingCreateFolderSheet = true
+                            } label: {
+                                Label("New Folder", systemImage: "folder.badge.plus")
+                            }
+                        } label: {
                             ZStack {
                                 Circle()
                                     .fill(themeManager.primaryColor)

@@ -12,7 +12,7 @@ import WidgetKit
 struct StudySnapWidgetsControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(
-            kind: "com.shaarav.StudySnap.StudySnapWidgets",
+            kind: "com.shaarav4795.StudySnap.StudySnapWidgets",
             provider: Provider()
         ) { value in
             ControlWidgetToggle(

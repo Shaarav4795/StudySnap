@@ -14,6 +14,7 @@ import UIKit
 struct StudySnapApp: App {
     static var sharedModelContainer: ModelContainer = {
         let schema = Schema([
+            StudyFolder.self,
             StudySet.self,
             Flashcard.self,
             Question.self,

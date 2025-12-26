@@ -47,7 +47,7 @@ struct WidgetData: Codable {
     )
     
     static func load() -> WidgetData {
-        guard let userDefaults = UserDefaults(suiteName: "group.com.shaarav.StudySnap"),
+        guard let userDefaults = UserDefaults(suiteName: "group.com.shaarav4795.StudySnap"),
               let data = userDefaults.data(forKey: "widgetData"),
               let widgetData = try? JSONDecoder().decode(WidgetData.self, from: data) else {
             return .placeholder

@@ -75,7 +75,7 @@ final class GamificationManager: ObservableObject {
         
         // Load existing data to preserve other fields
         var widgetData: WidgetData
-        if let userDefaults = UserDefaults(suiteName: "group.com.shaarav.StudySnap"),
+        if let userDefaults = UserDefaults(suiteName: "group.com.shaarav4795.StudySnap"),
            let data = userDefaults.data(forKey: "widgetData"),
            let existing = try? JSONDecoder().decode(WidgetData.self, from: data) {
             widgetData = existing
@@ -93,7 +93,7 @@ final class GamificationManager: ObservableObject {
             widgetData.studySets = widgetSets
         }
         
-        if let userDefaults = UserDefaults(suiteName: "group.com.shaarav.StudySnap"),
+        if let userDefaults = UserDefaults(suiteName: "group.com.shaarav4795.StudySnap"),
            let data = try? JSONEncoder().encode(widgetData) {
             userDefaults.set(data, forKey: "widgetData")
             userDefaults.synchronize()
@@ -105,7 +105,7 @@ final class GamificationManager: ObservableObject {
     func updateWidgetData(from profile: UserProfile, studySets: [StudySet]? = nil) {
         // Load existing to preserve sets if not provided
         var currentSets: [WidgetStudySet] = []
-        if let userDefaults = UserDefaults(suiteName: "group.com.shaarav.StudySnap"),
+        if let userDefaults = UserDefaults(suiteName: "group.com.shaarav4795.StudySnap"),
            let data = userDefaults.data(forKey: "widgetData"),
            let existing = try? JSONDecoder().decode(WidgetData.self, from: data) {
             currentSets = existing.studySets
@@ -142,7 +142,7 @@ final class GamificationManager: ObservableObject {
             studySets: setsToSave
         )
         
-        if let userDefaults = UserDefaults(suiteName: "group.com.shaarav.StudySnap"),
+        if let userDefaults = UserDefaults(suiteName: "group.com.shaarav4795.StudySnap"),
            let data = try? JSONEncoder().encode(widgetData) {
             userDefaults.set(data, forKey: "widgetData")
             userDefaults.synchronize()
