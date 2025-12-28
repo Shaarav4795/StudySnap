@@ -12,13 +12,13 @@ StudySnap is an intelligent study aid built with **SwiftUI** and **SwiftData** f
 - **Gamification:** Earn XP, track streaks, and unlock achievements.
 - **Local AI** Choose the Apple Intelligence AI model for a fully local, offline experience.
 
-Perfect for students looking to optimize their revision with **AI study tools**, **automated flashcards**, and **smart quizzes**.
+Perfect for students looking to optimize their revision with **AI study tools**, **Quizlet-like flashcards**, and **smart quizzes**.
 
 Generate summaries, quizzes, and flashcards from your notes (paste, scan, or import a PDF), track progress with gamification, and keep learning with widgets and notifications.
 
 ## Features
 
-- Create study sets from pasted text, scanned pages (VisionKit), or uploaded PDFs
+- Create study sets from pasted text, scanned pages (OCR), or uploaded PDFs
 - Two modes: generate from your content or ask the AI to teach you a new topic
 - AI summaries, multiple-choice questions, and flashcards via OpenRouter
 - Quiz and flashcard practice flows, plus math rendering (SwiftMath)
@@ -107,6 +107,7 @@ In Xcode, select the `StudySnap` scheme and press **Cmd+R** to run on a simulato
    - **Summary/Guide:** AI-written overview in paragraph or bullet form.
    - **Questions:** multiple-choice with explanations (and Quiz practice flow).
    - **Flashcards:** swipe through concise Q/A cards.
+   - **Tutor:** a smart AI tutor with context of your work to assist you
 5. Track progress with levels, XP, streaks, achievements, and theme switching from the profile.
 6. Add the StudySnap widget from the Home Screen to keep studying top of mind.
 
