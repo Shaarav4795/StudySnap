@@ -105,72 +105,109 @@ struct ModelSettingsView: View {
 
 struct OpenRouterHelpView: View {
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var themeManager = ThemeManager.shared
 
     var body: some View {
-        NavigationView {
-            List {
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: "key.radiowaves.forward.fill")
-                                .font(.largeTitle)
-                                .foregroundColor(.blue)
-                            VStack(alignment: .leading) {
-                                Text("OpenRouter API")
+        NavigationStack {
+            ZStack {
+                Color(uiColor: .systemGroupedBackground)
+                    .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Header
+                        VStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(themeManager.primaryGradient)
+                                    .frame(width: 80, height: 80)
+                                
+                                Image(systemName: "key.radiowaves.forward.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(.white)
+                            }
+                            
+                            Text("OpenRouter API")
+                                .font(.title2.bold())
+                                .foregroundColor(.primary)
+                            
+                            Text("To use advanced AI models or when Apple Intelligence isn't available, you need a free OpenRouter API key.")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                        .padding(.top, 20)
+                        
+                        // Instructions
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Instructions")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal)
+                            
+                            VStack(spacing: 12) {
+                                StepView(number: 1, title: "Create Account", description: "Sign up at openrouter.ai using Google or GitHub.", icon: "person.badge.plus")
+                                StepView(number: 2, title: "Generate Key", description: "Go to Settings > Keys and create a new API key.", icon: "key")
+                                StepView(number: 3, title: "Connect", description: "Copy the key and paste it into the field in StudySnap.", icon: "arrow.right.doc.on.clipboard")
+                            }
+                            .padding()
+                            .background(Color(uiColor: .secondarySystemGroupedBackground))
+                            .cornerRadius(16)
+                            .padding(.horizontal)
+                        }
+                        
+                        // No Payment Info
+                        HStack(alignment: .top, spacing: 16) {
+                            Image(systemName: "creditcard.fill")
+                                .font(.title2)
+                                .foregroundColor(.green)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("No Payment Required")
                                     .font(.headline)
-                                Text("Free Access")
+                                Text("OpenRouter offers free models. You do not need to add a credit card to get started.")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
                         }
-                        .padding(.bottom, 4)
+                        .padding()
+                        .background(Color(uiColor: .secondarySystemGroupedBackground))
+                        .cornerRadius(16)
+                        .padding(.horizontal)
                         
-                        Text("To use advanced AI models or when Apple Intelligence isn't available, you need a free OpenRouter API key.")
-                            .font(.callout)
-                    }
-                    .padding(.vertical, 8)
-                }
-
-                Section("Instructions") {
-                    StepView(number: 1, title: "Create Account", description: "Sign up at openrouter.ai using Google or GitHub.", icon: "person.badge.plus")
-                    StepView(number: 2, title: "Generate Key", description: "Go to Settings > Keys and create a new API key.", icon: "key")
-                    StepView(number: 3, title: "Connect", description: "Copy the key and paste it into the field in StudySnap.", icon: "arrow.right.doc.on.clipboard")
-                }
-
-                Section {
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "creditcard.fill")
-                            .font(.title2)
-                            .foregroundColor(.green)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("No Payment Required")
-                                .font(.headline)
-                            Text("OpenRouter offers free models. You do not need to add a credit card to get started.")
-                                .font(.footnote)
-                                .foregroundColor(.secondary)
+                        // Link Button
+                        Link(destination: URL(string: "https://openrouter.ai/settings/keys")!) {
+                            HStack {
+                                Text("Open OpenRouter Settings")
+                                    .fontWeight(.semibold)
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                            }
+                            .padding()
+                            .foregroundColor(.white)
+                            .background(themeManager.primaryColor)
+                            .cornerRadius(12)
                         }
-                    }
-                    .padding(.vertical, 4)
-                }
-                
-                Section {
-                    Link(destination: URL(string: "https://openrouter.ai/settings/keys")!) {
-                        Label("Open OpenRouter Settings", systemImage: "safari")
+                        .padding(.horizontal)
+                        .padding(.bottom, 20)
                     }
                 }
             }
-            .navigationTitle("Setup Guide")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") {
-                                HapticsManager.shared.playTap()
-                                dismiss()
-                            }
+                    Button {
+                        HapticsManager.shared.playTap()
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.headline)
+                            .foregroundColor(themeManager.primaryColor)
+                    }
                 }
             }
         }
-        .presentationDetents([.medium, .large])
     }
 }
 

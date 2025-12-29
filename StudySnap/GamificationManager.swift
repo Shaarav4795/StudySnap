@@ -326,6 +326,45 @@ final class GamificationManager: ObservableObject {
         try? context.save()
     }
     
+    // MARK: - Daily Mix Completion
+    
+    /// Check if Daily Mix was already completed today
+    func hasDailyMixCompletedToday(profile: UserProfile) -> Bool {
+        guard let lastMixDate = profile.lastDailyMixDate else { return false }
+        return Calendar.current.isDateInToday(lastMixDate)
+    }
+    
+    @MainActor
+    func recordDailyMixCompletion(
+        questionsCorrect: Int,
+        flashcardsStudied: Int,
+        profile: UserProfile,
+        context: ModelContext
+    ) {
+        // Prevent double rewards on same day
+        guard !hasDailyMixCompletedToday(profile: profile) else { return }
+        
+        // Calculate XP
+        var xp = XPRewards.dailyMixBase
+        xp += questionsCorrect * XPRewards.dailyMixQuestionCorrect
+        xp += flashcardsStudied * XPRewards.dailyMixFlashcard
+        
+        addXP(xp, to: profile, context: context)
+        
+        // Calculate coins
+        let coins = CoinRewards.dailyMixBase + (questionsCorrect * CoinRewards.dailyMixQuestionCorrect) + (flashcardsStudied * CoinRewards.dailyMixFlashcard)
+        addCoins(coins, to: profile, context: context)
+        
+        // Update streak (Daily Mix counts as study activity)
+        updateStreak(for: profile, context: context)
+        
+        // Mark as completed today
+        profile.lastDailyMixDate = Date()
+        
+        try? context.save()
+        updateWidgetData(from: profile)
+    }
+    
     // MARK: - Flashcard Completion
     
     @MainActor

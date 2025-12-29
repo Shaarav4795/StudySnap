@@ -29,6 +29,12 @@ struct StudySetDetailView: View {
                         Label("Flashcards", systemImage: "rectangle.on.rectangle.angled")
                     }
                     .tag(2)
+                
+                StudyChatView(studySet: studySet)
+                    .tabItem {
+                        Label("Tutor", systemImage: "brain.head.profile")
+                    }
+                    .tag(3)
             }
             .onAppear {
                 if guideManager.currentStep == .openSet {

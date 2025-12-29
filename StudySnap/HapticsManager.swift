@@ -54,10 +54,24 @@ final class HapticsManager {
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
     }
+    
+    func success() {
+        playSuccess()
+    }
 
     func playError() {
         DispatchQueue.main.async {
             UINotificationFeedbackGenerator().notificationOccurred(.error)
+        }
+    }
+    
+    func error() {
+        playError()
+    }
+    
+    func lightImpact() {
+        DispatchQueue.main.async {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
     }
 

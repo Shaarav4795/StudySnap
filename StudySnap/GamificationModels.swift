@@ -227,6 +227,7 @@ final class UserProfile {
     var currentStreak: Int
     var longestStreak: Int
     var lastStudyDate: Date?
+    var lastDailyMixDate: Date?
     var totalQuestionsCorrect: Int
     var totalQuizzesTaken: Int
     var perfectQuizzes: Int
@@ -247,6 +248,7 @@ final class UserProfile {
         self.currentStreak = 0
         self.longestStreak = 0
         self.lastStudyDate = nil
+        self.lastDailyMixDate = nil
         self.totalQuestionsCorrect = 0
         self.totalQuizzesTaken = 0
         self.perfectQuizzes = 0
@@ -419,6 +421,11 @@ struct XPRewards {
     static let dailyLoginBonus = 30
     static let streakBonus: Int = 8 // Per day of streak
     
+    // Daily Mix rewards (balanced - not too high)
+    static let dailyMixBase = 25
+    static let dailyMixQuestionCorrect = 8
+    static let dailyMixFlashcard = 5
+    
     static func streakMultiplier(for streak: Int) -> Double {
         // Bonus multiplier based on streak
         switch streak {
@@ -440,4 +447,9 @@ struct CoinRewards {
     static let studySetCreated = 15
     static let dailyLogin = 8
     static let streakBonus = 10 // Per day of streak (on certain milestones)
+    
+    // Daily Mix rewards (balanced)
+    static let dailyMixBase = 10
+    static let dailyMixQuestionCorrect = 3
+    static let dailyMixFlashcard = 2
 }

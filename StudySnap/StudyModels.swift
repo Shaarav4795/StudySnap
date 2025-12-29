@@ -43,6 +43,37 @@ struct StudySetIcon: Identifiable, Hashable {
     }
 }
 
+// MARK: - Tutor Models
+
+/// Response format type for specialized quick prompts
+enum TutorResponseFormatType: String, Sendable, Codable {
+    case standard
+    case comparison   // Side-by-side table format
+    case mnemonic     // Memory device with breakdown
+    case steps        // Numbered step-by-step
+    case example      // Real-world scenario format
+    case simplify     // ELI5 format
+    case keyPoints    // Bullet highlights
+    case analogy      // Analogy-focused
+    case mistakes     // Common errors format
+}
+
+struct QuickPrompt: Identifiable, Sendable {
+    let id: String
+    let label: String
+    let icon: String
+    let prompt: String
+    let format: TutorResponseFormatType
+    
+    nonisolated init(id: String, label: String, icon: String, prompt: String, format: TutorResponseFormatType = .standard) {
+        self.id = id
+        self.label = label
+        self.icon = icon
+        self.prompt = prompt
+        self.format = format
+    }
+}
+
 @Model
 final class StudyFolder {
     var id: UUID
@@ -72,6 +103,7 @@ final class StudySet {
     
     @Relationship(deleteRule: .cascade) var flashcards: [Flashcard] = []
     @Relationship(deleteRule: .cascade) var questions: [Question] = []
+    @Relationship(deleteRule: .cascade) var chatHistory: [ChatMessage] = []
     var folder: StudyFolder?
     
     init(title: String, originalText: String, summary: String? = nil, dateCreated: Date = Date(), mode: StudySetMode = .content, iconId: String = "book") {
@@ -90,6 +122,11 @@ final class StudySet {
     
     var icon: StudySetIcon {
         StudySetIcon.icon(for: iconId) ?? StudySetIcon.defaultIcon
+    }
+    
+    /// Returns sorted chat history by timestamp
+    var sortedChatHistory: [ChatMessage] {
+        chatHistory.sorted { $0.timestamp < $1.timestamp }
     }
 }
 
@@ -126,5 +163,24 @@ final class Question {
         self.answer = answer
         self.options = options
         self.explanation = explanation
+    }
+}
+
+// MARK: - Tutor Chat Message
+
+@Model
+final class ChatMessage {
+    var id: UUID
+    var text: String
+    var isUser: Bool
+    var timestamp: Date
+    
+    var studySet: StudySet?
+    
+    init(text: String, isUser: Bool, timestamp: Date = Date()) {
+        self.id = UUID()
+        self.text = text
+        self.isUser = isUser
+        self.timestamp = timestamp
     }
 }

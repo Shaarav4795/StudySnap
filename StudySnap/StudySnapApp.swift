@@ -18,6 +18,7 @@ struct StudySnapApp: App {
             StudySet.self,
             Flashcard.self,
             Question.self,
+            ChatMessage.self,
             UserProfile.self,
             Achievement.self,
             UnlockedItem.self,

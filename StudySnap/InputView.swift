@@ -89,6 +89,17 @@ struct InputView: View {
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle("New Study Set")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
             .sheet(item: $activeSheet) { item in
                 switch item {
                 case .scanner:
@@ -331,9 +342,6 @@ struct InputView: View {
                         Button(action: {
                             HapticsManager.shared.playTap()
                             selectedFolder = nil
-                            withAnimation {
-                                isFolderPickerExpanded = false
-                            }
                         }) {
                             HStack {
                                 Image(systemName: "folder.badge.minus")
@@ -358,9 +366,6 @@ struct InputView: View {
                             Button(action: {
                                 HapticsManager.shared.playTap()
                                 selectedFolder = folder
-                                withAnimation {
-                                    isFolderPickerExpanded = false
-                                }
                             }) {
                                 HStack {
                                     Image(systemName: StudySetIcon.icon(for: folder.iconId)?.systemName ?? "folder.fill")

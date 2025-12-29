@@ -29,6 +29,9 @@ struct ContentView: View {
     @State private var isShowingMoveToFolderSheet: Bool = false
     @State private var hasRequestedNotifications = false
     @State private var navigationPath = NavigationPath()
+    @State private var isShowingDailyMix = false
+    @State private var isFoldersExpanded = true
+    @State private var isStudySetsExpanded = true
     
     enum AppDestination: Hashable {
         case profile
@@ -129,6 +132,9 @@ struct ContentView: View {
                 
                 if studySets.isEmpty && studyFolders.isEmpty && searchText.isEmpty {
                     VStack(spacing: 16) {
+                        // Daily Mix Card
+                        dailyMixCard
+                        
                         // Gamification Header Card (scrolls with content)
                         gamificationHeader
 
@@ -144,6 +150,9 @@ struct ContentView: View {
                     }
                 } else if filteredStudySets.isEmpty && filteredFolders.isEmpty {
                     VStack(spacing: 16) {
+                        // Daily Mix Card
+                        dailyMixCard
+                        
                         // Keep the gamification header visible when searching
                         gamificationHeader
 
@@ -159,7 +168,15 @@ struct ContentView: View {
                     }
                 } else {
                     List {
-                        // Gamification Header as first item in list
+                        // Daily Mix Card as first item
+                        Section {
+                            dailyMixCard
+                                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 0, trailing: 0))
+                                .listRowBackground(Color.clear)
+                        }
+                        .listRowSeparator(.hidden)
+                        
+                        // Gamification Header as second item in list
                         Section {
                             gamificationHeader
                                 .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
@@ -169,108 +186,117 @@ struct ContentView: View {
                         
                         // Folders Section
                         if !filteredFolders.isEmpty {
-                            Section(header: Text("Folders")) {
-                                ForEach(filteredFolders) { folder in
-                                    ZStack {
-                                        NavigationLink(value: folder) {
-                                            EmptyView()
-                                        }
-                                        .opacity(0)
-                                        
-                                        VStack(alignment: .leading, spacing: 12) {
-                                            HStack {
-                                                Image(systemName: StudySetIcon.icon(for: folder.iconId)?.systemName ?? "folder.fill")
-                                                    .foregroundColor(.white)
-                                                    .padding(8)
-                                                    .background(Circle().fill(themeManager.primaryColor))
-                                                
-                                                Text(folder.name)
-                                                    .font(.headline)
-                                                    .foregroundColor(.primary)
-                                                
-                                                Spacer()
-                                                
-                                                Image(systemName: "chevron.right")
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
-                                            }
-                                            
-                                            HStack(alignment: .center, spacing: 8) {
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: "calendar")
-                                                        .font(.caption2)
-                                                        .foregroundColor(.secondary)
-                                                    Text("\(folder.dateCreated, style: .date)")
-                                                        .font(.caption)
-                                                        .foregroundColor(.secondary)
-                                                }
-
-                                                Spacer()
-
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: "doc.on.doc.fill")
-                                                        .font(.caption2)
-                                                    Text("\(folder.studySets.count) Sets")
-                                                        .font(.caption2)
-                                                }
-                                                .foregroundColor(.purple)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 6)
-                                                .background(Color.purple.opacity(0.14))
-                                                .cornerRadius(8)
-                                            }
-                                        }
-                                        .padding()
-                                        .background(Color(uiColor: .secondarySystemGroupedBackground))
-                                        .cornerRadius(16)
-                                        .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+                            Section {
+                                // Folders Header (scrolls with content)
+                                Button(action: {
+                                    withAnimation {
+                                        isFoldersExpanded.toggle()
                                     }
-                                    .listRowSeparator(.hidden)
+                                }) {
+                                    HStack {
+                                        Text("Folders")
+                                            .font(.title3)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.primary)
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .rotationEffect(.degrees(isFoldersExpanded ? 90 : 0))
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, 8)
+                                }
+                                .buttonStyle(.plain)
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+
+                                if isFoldersExpanded {
+                                    // Adaptive grid that scales with screen size
+                                    let columns = [
+                                        GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 12)
+                                    ]
+
+                                    LazyVGrid(columns: columns, alignment: .center, spacing: 12) {
+                                        ForEach(filteredFolders) { folder in
+                                            Button {
+                                                navigationPath.append(folder)
+                                            } label: {
+                                                FolderCard(folder: folder)
+                                            }
+                                            .buttonStyle(.plain)
+                                            .contentShape(RoundedRectangle(cornerRadius: 18))
+                                            .overlay(alignment: .topTrailing) {
+                                                Menu {
+                                                    Button {
+                                                        folderToEdit = folder
+                                                        isShowingCreateFolderSheet = true
+                                                    } label: {
+                                                        Label("Rename", systemImage: "pencil")
+                                                    }
+
+                                                    Button(role: .destructive) {
+                                                        withAnimation {
+                                                            modelContext.delete(folder)
+                                                        }
+                                                    } label: {
+                                                        Label("Delete", systemImage: "trash")
+                                                    }
+                                                } label: {
+                                                    Image(systemName: "ellipsis.circle")
+                                                        .font(.title3)
+                                                        .foregroundColor(.secondary)
+                                                        .padding(8)
+                                                }
+                                                .contentShape(Rectangle())
+                                            }
+                                        }
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.bottom, 20)
+                                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 20, trailing: 0))
                                     .listRowBackground(Color.clear)
-                                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                                    .contextMenu {
-                                        Button {
-                                            folderToEdit = folder
-                                            isShowingCreateFolderSheet = true
-                                        } label: {
-                                            Label("Rename", systemImage: "pencil")
-                                        }
-                                        
-                                        Button(role: .destructive) {
-                                            withAnimation {
-                                                modelContext.delete(folder)
-                                            }
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                    }
-                                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                        Button {
-                                            HapticsManager.shared.playTap()
-                                            folderToEdit = folder
-                                            isShowingCreateFolderSheet = true
-                                        } label: {
-                                            Label("Rename", systemImage: "pencil")
-                                        }
-                                        .tint(.blue)
-                                    }
-                                    .swipeActions(edge: .trailing) {
-                                        Button(role: .destructive) {
-                                            HapticsManager.shared.playTap()
-                                            withAnimation {
-                                                modelContext.delete(folder)
-                                            }
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                    }
+                                    .listRowSeparator(.hidden)
                                 }
                             }
                         }
 
                         if !filteredStudySets.isEmpty {
-                            Section(header: !filteredFolders.isEmpty ? Text("Study Sets") : nil) {
-                                ForEach(filteredStudySets) { set in
+                            Section {
+                                // Study Sets Header (only show if folders exist)
+                                if !filteredFolders.isEmpty {
+                                    Button(action: {
+                                        withAnimation {
+                                            isStudySetsExpanded.toggle()
+                                        }
+                                    }) {
+                                        HStack {
+                                            Text("Study Sets")
+                                                .font(.title3)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.primary)
+                                            
+                                            Spacer()
+                                            
+                                            Image(systemName: "chevron.right")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                                .rotationEffect(.degrees(isStudySetsExpanded ? 90 : 0))
+                                        }
+                                        .padding(.horizontal, 16)
+                                        .padding(.top, 8)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .listRowInsets(EdgeInsets())
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
+                                }
+                                
+                                if isStudySetsExpanded {
+                                    ForEach(filteredStudySets) { set in
                                     ZStack {
                                         NavigationLink(value: set) {
                                             EmptyView()
@@ -402,6 +428,7 @@ struct ContentView: View {
                                     .accessibilityLabel("Study set: \(set.title). Created on \(set.dateCreated, style: .date). Mode: \(set.studySetMode == .topic ? "Learning Topic" : "From Content")")
                                     .accessibilityHint("Opens study set details")
                                 }
+                                }
                             }
                         }
                     }
@@ -437,7 +464,7 @@ struct ContentView: View {
             }
             .sheet(isPresented: $isShowingMoveToFolderSheet) {
                 if let set = setMovingToFolder {
-                    MoveToFolderView(studySet: set)
+                    MoveToFolderView(studySet: set, studyFolders: studyFolders)
                 }
             }
             .toolbar {
@@ -495,6 +522,9 @@ struct ContentView: View {
             }
             .onOpenURL { url in
                 handleDeepLink(url)
+            }
+            .fullScreenCover(isPresented: $isShowingDailyMix) {
+                DailyMixView()
             }
             .sheet(isPresented: $isShowingInputSheet) {
                 InputView()
@@ -577,23 +607,28 @@ struct ContentView: View {
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
-                                Button("Cancel") {
+                                Button {
                                     HapticsManager.shared.playTap()
                                     setToRename = nil
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
                                 }
-                                .foregroundColor(.secondary)
                             }
                             ToolbarItem(placement: .confirmationAction) {
-                                Button("Save") {
+                                Button {
                                     HapticsManager.shared.playTap()
                                     withAnimation {
                                         set.title = renameTitle
                                         set.iconId = renameIconId
                                     }
                                     setToRename = nil
+                                } label: {
+                                    Image(systemName: "checkmark")
+                                        .font(.headline)
+                                        .foregroundColor(themeManager.primaryColor)
                                 }
-                                .foregroundColor(themeManager.primaryColor)
-                                .bold()
                             }
                         }
                     }
@@ -614,6 +649,87 @@ struct ContentView: View {
                     .zIndex(200)  // Ensure guide overlay appears above all other content
                 }
                 .allowsHitTesting(!guideManager.isCollapsed)  // Allow interaction only when expanded
+            }
+        }
+    }
+    
+    // MARK: - Daily Mix Card
+    
+    private var hasDailyMixContent: Bool {
+        let totalQuestions = studySets.reduce(0) { $0 + $1.questions.count }
+        let totalFlashcards = studySets.reduce(0) { $0 + $1.flashcards.count }
+        return totalQuestions > 15 && totalFlashcards > 15
+    }
+    
+    private var dailyMixCard: some View {
+        Group {
+            if hasDailyMixContent {
+                Button {
+                    HapticsManager.shared.playTap()
+                    isShowingDailyMix = true
+                } label: {
+                    HStack(spacing: 14) {
+                        // Icon with solid background
+                        ZStack {
+                            Circle()
+                                .fill(themeManager.primaryColor)
+                                .frame(width: 50, height: 50)
+                            
+                            Image(systemName: "bolt.fill")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 6) {
+                                Text("Daily Mix")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                
+                                if gamificationManager.hasDailyMixCompletedToday(profile: profile) {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.caption2)
+                                        Text("Done")
+                                            .font(.caption2.bold())
+                                    }
+                                    .foregroundColor(.green)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.green.opacity(0.15))
+                                    .cornerRadius(6)
+                                }
+                            }
+                            
+                            Text(gamificationManager.hasDailyMixCompletedToday(profile: profile)
+                                 ? "Great job! Come back tomorrow."
+                                 : "Keep your streak alive!")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(themeManager.primaryColor.opacity(0.3), lineWidth: 1.5)
+                            )
+                    )
+                    .shadow(color: themeManager.primaryColor.opacity(0.12), radius: 8, x: 0, y: 4)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal)
+                .padding(.top, 8)
             }
         }
     }
@@ -707,7 +823,7 @@ struct ContentView: View {
                     Image(avatar.imageName)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 18, height: 18)
+                        .frame(width: 24, height: 24)
                 }
             }
         }
@@ -721,6 +837,76 @@ struct ContentView: View {
         }
     }
 
+}
+
+// MARK: - Folder Card
+
+private struct FolderCard: View {
+    let folder: StudyFolder
+    @ObservedObject private var themeManager = ThemeManager.shared
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let iconSize = width * 0.36
+            let spacing = width * 0.08
+
+            VStack(spacing: spacing) {
+                // Icon
+                Circle()
+                    .fill(themeManager.secondaryColor.opacity(0.9))
+                    .overlay(
+                        Circle()
+                            .stroke(themeManager.primaryColor.opacity(0.25), lineWidth: 2)
+                    )
+                    .frame(width: iconSize, height: iconSize)
+                    .overlay(
+                        Image(systemName: StudySetIcon.icon(for: folder.iconId)?.systemName ?? "folder.fill")
+                            .font(.system(size: iconSize * 0.45, weight: .semibold))
+                            .foregroundColor(.white)
+                    )
+
+                // Title and count
+                VStack(spacing: spacing * 0.7) {
+                    Text(folder.name)
+                        .font(.subheadline.bold())
+                        .foregroundColor(.primary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity)
+
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.on.doc.fill")
+                            .font(.caption2)
+                        Text("\(folder.studySets.count)")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(themeManager.primaryColor)
+                    )
+                }
+
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(themeManager.primaryColor.opacity(0.08))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(themeManager.primaryColor.opacity(0.2), lineWidth: 1.1)
+                    )
+            )
+            .shadow(color: themeManager.primaryColor.opacity(0.12), radius: 6, x: 0, y: 3)
+        }
+        .aspectRatio(1.1, contentMode: .fit)
+    }
 }
 
 #Preview {

@@ -14,54 +14,100 @@ struct CreateFolderView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    TextField("Folder Name", text: $folderName)
-                        .font(.headline)
-                } header: {
-                    Text("Name")
-                }
+            ZStack {
+                Color(uiColor: .systemGroupedBackground)
+                    .ignoresSafeArea()
                 
-                Section {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: 12) {
-                        ForEach(StudySetIcon.allIcons) { icon in
-                            ZStack {
-                                Circle()
-                                    .fill(selectedIconId == icon.id ? themeManager.primaryColor : Color(uiColor: .secondarySystemFill))
-                                    .frame(width: 44, height: 44)
-                                
-                                Image(systemName: icon.systemName)
-                                    .foregroundColor(selectedIconId == icon.id ? .white : .primary)
-                                    .font(.system(size: 20))
-                            }
-                            .onTapGesture {
-                                withAnimation(.spring(response: 0.3)) {
-                                    selectedIconId = icon.id
+                VStack(spacing: 24) {
+                    // Header with icon
+                    VStack(spacing: 16) {
+                        ZStack {
+                            Circle()
+                                .fill(themeManager.primaryGradient)
+                                .frame(width: 80, height: 80)
+                            
+                            Image(systemName: folderToEdit == nil ? "folder.badge.plus" : "folder.badge.gearshape")
+                                .font(.system(size: 32))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Text(folderToEdit == nil ? "New Folder" : "Edit Folder")
+                            .font(.title2.bold())
+                            .foregroundColor(.primary)
+                    }
+                    
+                    // Input field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Name")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        
+                        TextField("Folder Name", text: $folderName)
+                            .font(.body)
+                            .padding()
+                            .background(Color(uiColor: .secondarySystemGroupedBackground))
+                            .cornerRadius(12)
+                            .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+                    }
+                    .padding(.horizontal)
+                    
+                    // Icon Picker
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Icon")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 12) {
+                            ForEach(StudySetIcon.allIcons) { icon in
+                                Button(action: {
+                                    HapticsManager.shared.playTap()
+                                    withAnimation(.spring(response: 0.3)) {
+                                        selectedIconId = icon.id
+                                    }
+                                }) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(selectedIconId == icon.id ? themeManager.primaryColor : Color(uiColor: .tertiarySystemGroupedBackground))
+                                            .frame(width: 48, height: 48)
+                                        
+                                        Image(systemName: icon.systemName)
+                                            .font(.system(size: 20))
+                                            .foregroundColor(selectedIconId == icon.id ? .white : .primary)
+                                    }
                                 }
-                                HapticsManager.shared.playTap()
+                                .buttonStyle(.plain)
                             }
                         }
                     }
-                    .padding(.vertical, 8)
-                } header: {
-                    Text("Icon")
+                    .padding(.horizontal)
+                    
+                    Spacer()
                 }
+                .padding(.top, 40)
+                .padding(.horizontal)
             }
-            .navigationTitle(folderToEdit == nil ? "New Folder" : "Edit Folder")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
                     }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(folderToEdit == nil ? "Create" : "Save") {
+                    Button {
                         saveFolder()
+                    } label: {
+                        Image(systemName: "checkmark")
+                            .font(.headline)
+                            .foregroundColor(themeManager.primaryColor)
                     }
                     .disabled(folderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    .fontWeight(.bold)
                 }
             }
             .onAppear {
@@ -71,8 +117,6 @@ struct CreateFolderView: View {
                 }
             }
         }
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
     }
     
     private func saveFolder() {

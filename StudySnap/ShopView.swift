@@ -236,7 +236,7 @@ struct AvatarShopCard: View {
                     Image(avatar.imageName)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 40, height: 40)
+                        .frame(width: 50, height: 50)
                         .opacity(isOwned || !isLocked ? 1 : 0.5)
                 }
                 

@@ -105,7 +105,7 @@ struct ProfileView: View {
                     Image(avatar.imageName)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 60, height: 60)
+                        .frame(width: 75, height: 75)
                 }
             }
             .shadow(color: themeManager.primaryColor.opacity(0.3), radius: 10, x: 0, y: 5)
@@ -323,26 +323,71 @@ struct ProfileView: View {
     
     private var editUsernameSheet: some View {
         NavigationStack {
-            Form {
-                Section("Username") {
-                    TextField("Enter username", text: $newUsername)
+            ZStack {
+                Color(uiColor: .systemGroupedBackground)
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 24) {
+                    // Header with icon
+                    VStack(spacing: 16) {
+                        ZStack {
+                            Circle()
+                                .fill(themeManager.primaryGradient)
+                                .frame(width: 80, height: 80)
+                            
+                            Image(systemName: "person.text.rectangle")
+                                .font(.system(size: 32))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Text("Edit Profile")
+                            .font(.title2.bold())
+                            .foregroundColor(.primary)
+                    }
+                    
+                    // Input field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Username")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        
+                        TextField("Enter username", text: $newUsername)
+                            .font(.body)
+                            .padding()
+                            .background(Color(uiColor: .secondarySystemGroupedBackground))
+                            .cornerRadius(12)
+                            .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+                    }
+                    .padding(.horizontal)
+                    
+                    Spacer()
                 }
+                .padding(.top, 40)
+                .padding(.horizontal)
             }
-            .navigationTitle("Edit Profile")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button {
                         HapticsManager.shared.playTap()
                         showEditUsername = false
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button {
                         HapticsManager.shared.playTap()
                         profile.username = newUsername
                         try? modelContext.save()
                         showEditUsername = false
+                    } label: {
+                        Image(systemName: "checkmark")
+                            .font(.headline)
+                            .foregroundColor(themeManager.primaryColor)
                     }
                     .disabled(newUsername.isEmpty)
                 }
