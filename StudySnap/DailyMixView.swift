@@ -244,7 +244,7 @@ struct DailyMixView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(themeManager.primaryGradient)
+                        .background(themeManager.primaryColor)
                         .cornerRadius(16)
                     }
                 } else if isAlreadyCompleted {
@@ -260,10 +260,10 @@ struct DailyMixView: View {
                             Text("Practice Again (No Rewards)")
                         }
                         .font(.headline)
-                        .foregroundColor(themeManager.primaryColor)
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(themeManager.primaryColor.opacity(0.15))
+                        .background(themeManager.primaryColor)
                         .cornerRadius(16)
                     }
                 } else {
@@ -313,8 +313,9 @@ struct DailyMixView: View {
                         .tint(themeManager.primaryColor)
                         .padding(.horizontal)
                     
-                    ScrollView {
-                        VStack(spacing: 20) {
+                    GeometryReader { proxy in
+                        ScrollView {
+                            VStack(spacing: 20) {
                             // Question Card
                             VStack {
                                 MathTextView(question.prompt, fontSize: 20)
@@ -410,6 +411,9 @@ struct DailyMixView: View {
                             }
                         }
                         .padding(.bottom, 100)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: proxy.size.height, alignment: isAnswerVisible ? .top : .center)
+                    }
                     }
                 }
                 
@@ -425,7 +429,7 @@ struct DailyMixView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(themeManager.primaryGradient)
+                                .background(themeManager.primaryColor)
                                 .cornerRadius(16)
                         }
                     }
@@ -482,7 +486,8 @@ struct DailyMixView: View {
                             isStudied: studiedCardIds.contains(mixFlashcards[index].id),
                             isMastered: masteredCardIds.contains(mixFlashcards[index].id),
                             onStudied: { markStudied(mixFlashcards[index].id) },
-                            onMastered: { markMastered(mixFlashcards[index].id) }
+                            onMastered: { markMastered(mixFlashcards[index].id) },
+                            themeColor: themeManager.primaryColor
                         )
                         .tag(index)
                         .padding()
@@ -652,7 +657,7 @@ struct DailyMixView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(themeManager.primaryGradient)
+                    .background(themeManager.primaryColor)
                     .cornerRadius(16)
             }
             .padding(.horizontal)
@@ -823,6 +828,7 @@ private struct DailyMixFlashcardView: View {
     var isMastered: Bool = false
     var onStudied: (() -> Void)?
     var onMastered: (() -> Void)?
+    var themeColor: Color = ThemeManager.shared.primaryColor
     
     @State private var isFlipped = false
     
@@ -871,10 +877,10 @@ private struct DailyMixFlashcardView: View {
                 }) {
                     Label("I Know This!", systemImage: "checkmark.circle.fill")
                         .font(.subheadline.bold())
-                        .foregroundColor(.green)
+                        .foregroundColor(.white)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
-                        .background(Color.green.opacity(0.15))
+                        .background(themeColor)
                         .cornerRadius(20)
                 }
             } else if isFlipped && isMastered {
