@@ -3,13 +3,14 @@ import SwiftUI
 // MARK: - Guide Targeting
 
 enum GuideTarget: Hashable {
-    case homeSettings
     case homeCreate
-    case homeProfile
     case inputGenerate
     case questionsStartQuiz
     case flashcardsDeck
     case profileHeader
+    case settingsTab
+    case homeTab
+    case modelPicker
 }
 
 struct GuideTargetPreferenceKey: PreferenceKey {
@@ -34,6 +35,7 @@ struct GuideOverlayLayer: View {
     let accent: Color
     let prefs: [GuideTarget: Anchor<CGRect>]
     let geometry: GeometryProxy
+    var selectedTab: AppTab = .home
     let onSkip: () -> Void
     let onAdvance: (() -> Void)?
 
@@ -41,10 +43,10 @@ struct GuideOverlayLayer: View {
         guard let step = guideManager.currentStep else { return AnyView(EmptyView()) }
         let target = targetFor(step: step)
         let callout = calloutContent(for: step)
+        let rect = target.flatMap { prefs[$0] }.map { geometry[$0] }
 
         return AnyView(ZStack(alignment: .topLeading) {
-            if let target, let anchor = prefs[target] {
-                let rect = geometry[anchor]
+            if let rect = rect {
                 HighlightShape(rect: rect)
                     .fill(Color.black.opacity(0.55))
                     .blendMode(.destinationOut)
@@ -85,7 +87,7 @@ struct GuideOverlayLayer: View {
                         .transition(.scale(scale: 0.95).combined(with: .opacity))
                 }
             } else {
-                // Fallback: show callout only
+                // No highlight available; show callout only (e.g., when asking to switch tabs)
                 if !guideManager.isCollapsed {
                     callout
                         .background(
@@ -97,8 +99,9 @@ struct GuideOverlayLayer: View {
                                 )
                         )
                         .shadow(color: .black.opacity(0.15), radius: 16, x: 0, y: 8)
-                        .padding(.top, 12)
-                        .padding(.horizontal, 12)
+                                .frame(maxWidth: 320)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .position(calloutPosition(around: nil, in: geometry.size, step: step))
                         .transition(.scale(scale: 0.95).combined(with: .opacity))
                 }
             }
@@ -189,29 +192,28 @@ struct GuideOverlayLayer: View {
         case .openSet: return "folder"
         case .exploreQuiz: return "checkmark.circle"
         case .exploreFlashcards: return "rectangle.on.rectangle.angled"
-        case .openProfile: return "person"
         case .exploreGamification: return "flame"
         }
     }
 
     private func stepLabel(for step: GuideManager.Step) -> String {
         switch step {
-        case .configureModel: return "Step 1 of 7"
-        case .createFirstSet: return "Step 2 of 7"
-        case .tuneOptions, .generateSet: return "Step 3 of 7"
-        case .openSet: return "Step 4 of 7"
-        case .exploreQuiz: return "Step 5 of 7"
-        case .exploreFlashcards: return "Step 6 of 7"
-        case .openProfile, .exploreGamification: return "Step 7 of 7"
+        case .configureModel: return "Step 1 of 6"
+        case .createFirstSet: return "Step 2 of 6"
+        case .tuneOptions, .generateSet: return "Step 3 of 6"
+        case .openSet: return "Step 4 of 6"
+        case .exploreQuiz: return "Step 5 of 6"
+        case .exploreFlashcards, .exploreGamification: return "Step 6 of 6"
         }
     }
 
     private func targetFor(step: GuideManager.Step) -> GuideTarget? {
         switch step {
-        case .configureModel: return .homeSettings
-        case .createFirstSet: return .homeCreate
+        case .configureModel:
+            return selectedTab == .settings ? .modelPicker : nil
+        case .createFirstSet:
+            return selectedTab == .home ? .homeCreate : nil
         case .tuneOptions, .generateSet: return .inputGenerate
-        case .openProfile: return .homeProfile
         case .exploreQuiz: return .questionsStartQuiz
         case .exploreFlashcards: return .flashcardsDeck
         case .exploreGamification: return .profileHeader
@@ -227,53 +229,55 @@ struct GuideOverlayLayer: View {
         case .openSet: return "Open your new set"
         case .exploreQuiz: return "Start a quick quiz"
         case .exploreFlashcards: return "Review with flashcards"
-        case .openProfile: return "Check your profile"
-        case .exploreGamification: return "See streaks & shop"
+        case .exploreGamification: return "Track your progress"
         }
     }
 
     private func calloutMessage(for step: GuideManager.Step) -> String {
         switch step {
-        case .configureModel: return "Set up your preferred AI model or add your API key."
-        case .createFirstSet: return "Tap the + button to begin."
+        case .configureModel:
+            return selectedTab == .settings
+            ? "Set up your preferred AI model or add your API key."
+            : "Tap the Settings tab below, then set your preferred model."
+        case .createFirstSet:
+            return selectedTab == .home
+            ? "Tap the + button to begin."
+            : "Tap the Home tab below, then hit + to start."
         case .tuneOptions, .generateSet: return "Adjust counts/difficulty, then Generate."
         case .openSet: return "Tap the study set you just created to enter."
         case .exploreQuiz: return "Open Questions and tap Start Quiz."
-        case .exploreFlashcards: return "Flip a few cards and mark mastered."
-        case .openProfile: return "Open Profile to see progress and shop."
-        case .exploreGamification: return "Track streaks, coins, and shop items."
+        case .exploreFlashcards: return "Open Flashcards to review your set."
+        case .exploreGamification: return "Track streaks, coins, and achievements in the tabs below."
         }
     }
 
-    private func calloutPosition(around rect: CGRect, in container: CGSize, step: GuideManager.Step) -> CGPoint {
-        // Prefer below target; ensure adequate spacing from top safe area
+    private func calloutPosition(around rect: CGRect?, in container: CGSize, step: GuideManager.Step) -> CGPoint {
+        // If no rect (e.g., instructing to tap a tab), place above tab bar
         let padding: CGFloat = 16
         let calloutWidth: CGFloat = 300
-        let calloutHeight: CGFloat = 160  // Increased to accommodate full content
-        let minTopY: CGFloat = 120  // Minimum distance from top to avoid navigation bar
-        
+        let calloutHeight: CGFloat = 160
+
+        if rect == nil {
+            let tabBarHeight = geometry.safeAreaInsets.bottom + 49
+            let y = container.height - tabBarHeight - calloutHeight/1.6
+            return CGPoint(x: container.width / 2, y: y)
+        }
+
+        guard let rect else { return CGPoint(x: container.width/2, y: container.height/2) }
+
         if step == .exploreQuiz {
             return CGPoint(x: container.width / 2, y: container.height * 0.45)
         }
-        
-        // Calculate positions
+
         let topY = rect.minY - calloutHeight/2 - padding
         let bottomY = rect.maxY + calloutHeight/2 + padding
-        
-        // Prefer placing below the target unless it would go off screen
-        let useBottom = bottomY + calloutHeight/2 < container.height - padding
-        let y: CGFloat
-        
-        if useBottom {
-            y = bottomY
-        } else if topY > minTopY {
-            y = topY
-        } else {
-            // If both positions are problematic, center vertically with safe margins
-            y = max(minTopY + calloutHeight/2, container.height / 2)
+
+        if rect.maxY > container.height * 0.8 {
+            return CGPoint(x: container.width / 2, y: topY)
         }
-        
-        // Ensure horizontal positioning stays within bounds
+
+        let useBottom = bottomY + calloutHeight/2 < container.height - padding
+        let y: CGFloat = useBottom ? bottomY : topY
         let x = min(max(rect.midX, calloutWidth/2 + padding), container.width - calloutWidth/2 - padding)
         return CGPoint(x: x, y: y)
     }

@@ -15,7 +15,6 @@ final class GuideManager: ObservableObject {
         case openSet
         case exploreQuiz
         case exploreFlashcards
-        case openProfile
         case exploreGamification
     }
 
@@ -73,13 +72,11 @@ final class GuideManager: ObservableObject {
     func advanceAfterVisitedFlashcards() {
         guard currentStep == .exploreFlashcards else { return }
         isCollapsed = false
-        currentStep = .openProfile
+        currentStep = .exploreGamification
     }
 
     func advanceAfterOpenedProfile() {
-        guard currentStep == .openProfile else { return }
-        isCollapsed = false
-        currentStep = .exploreGamification
+        // No longer used since profile is a separate tab
     }
 
     func finishGamification() {

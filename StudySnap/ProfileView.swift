@@ -35,9 +35,6 @@ struct ProfileView: View {
                     // Stats Grid
                     statsGrid
 
-                    // Quick Links
-                    quickLinksSection
-
                     // Small credit text shown only when scrolled to bottom
                     Text("Created with ♡ by Shaarav4795")
                         .font(.footnote)
@@ -71,11 +68,6 @@ struct ProfileView: View {
             TutorialView()
                 .environmentObject(themeManager)
                 .environmentObject(guideManager)
-        }
-        .onAppear {
-            if guideManager.currentStep == .openProfile {
-                guideManager.advanceAfterOpenedProfile()
-            }
         }
         .overlayPreferenceValue(GuideTargetPreferenceKey.self) { prefs in
             GeometryReader { proxy in
@@ -293,32 +285,6 @@ struct ProfileView: View {
         .cornerRadius(16)
     }
     
-    // MARK: - Quick Links Section
-    
-    private var quickLinksSection: some View {
-        VStack(spacing: 12) {
-            NavigationLink(destination: AchievementsView()) {
-                QuickLinkRow(
-                    icon: "trophy.fill",
-                    color: .yellow,
-                    title: "Achievements",
-                    subtitle: "\(profile.achievements.count) earned"
-                )
-            }
-            .simultaneousGesture(TapGesture().onEnded { HapticsManager.shared.playTap() })
-            
-            NavigationLink(destination: ShopView()) {
-                QuickLinkRow(
-                    icon: "bag.fill",
-                    color: .purple,
-                    title: "Shop",
-                    subtitle: "Avatars & Themes"
-                )
-            }
-            .simultaneousGesture(TapGesture().onEnded { HapticsManager.shared.playTap() })
-        }
-    }
-    
     // MARK: - Edit Username Sheet
     
     private var editUsernameSheet: some View {
@@ -419,41 +385,6 @@ struct StatCard: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .cornerRadius(12)
-    }
-}
-
-struct QuickLinkRow: View {
-    let icon: String
-    let color: Color
-    let title: String
-    let subtitle: String
-    
-    var body: some View {
-        HStack(spacing: 15) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(color)
-                .frame(width: 40)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
         .padding()
         .background(Color(uiColor: .secondarySystemGroupedBackground))
         .cornerRadius(12)

@@ -8,6 +8,35 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Tab Enum
+enum AppTab: Int, CaseIterable {
+    case shop = 0
+    case achievements = 1
+    case home = 2
+    case profile = 3
+    case settings = 4
+    
+    var title: String {
+        switch self {
+        case .shop: return "Shop"
+        case .achievements: return "Achievements"
+        case .home: return "Home"
+        case .profile: return "Profile"
+        case .settings: return "Settings"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .shop: return "bag.fill"
+        case .achievements: return "trophy.fill"
+        case .home: return "house.fill"
+        case .profile: return "person.fill"
+        case .settings: return "gearshape.fill"
+        }
+    }
+}
+
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \StudySet.dateCreated, order: .reverse) private var studySets: [StudySet]
@@ -32,11 +61,7 @@ struct ContentView: View {
     @State private var isShowingDailyMix = false
     @State private var isFoldersExpanded = true
     @State private var isStudySetsExpanded = true
-    
-    enum AppDestination: Hashable {
-        case profile
-        case settings
-    }
+    @State private var selectedTab: AppTab = .home
     
     private var profile: UserProfile {
         if let existing = profiles.first {
@@ -68,44 +93,90 @@ struct ContentView: View {
     }
 
     var body: some View {
-        homeView
-            .onAppear {
-                themeManager.updateTheme(for: profile.selectedThemeId)
+        TabView(selection: $selectedTab) {
+            // Shop Tab
+            NavigationStack {
+                ShopView()
             }
-            .onChange(of: profile.selectedThemeId) { _, newValue in
-                themeManager.updateTheme(for: newValue)
+            .tabItem {
+                Label(AppTab.shop.title, systemImage: AppTab.shop.icon)
             }
-            .onChange(of: studySets) { _, newSets in
-                gamificationManager.syncStudySets(newSets)
+            .tag(AppTab.shop)
+            
+            // Achievements Tab
+            NavigationStack {
+                AchievementsView()
             }
-            .onAppear {
-                gamificationManager.syncStudySets(studySets)
+            .tabItem {
+                Label(AppTab.achievements.title, systemImage: AppTab.achievements.icon)
             }
-            .overlay(alignment: .top) {
-                // Achievement notification overlay
-                if gamificationManager.showAchievementUnlocked && !isSearching, let achievement = gamificationManager.unlockedAchievement {
-                    AchievementUnlockedView(achievement: achievement)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .zIndex(100)
-                        .padding(.top, 50)
+            .tag(AppTab.achievements)
+            
+            // Home Tab (center, default)
+            homeView
+                .tabItem {
+                    Label(AppTab.home.title, systemImage: AppTab.home.icon)
                 }
+                .tag(AppTab.home)
+            
+            // Profile Tab
+            NavigationStack {
+                ProfileView()
+                    .environmentObject(guideManager)
             }
-            .overlay(alignment: .top) {
-                // Level up notification
-                if gamificationManager.showLevelUp && !isSearching {
-                    LevelUpView(level: gamificationManager.newLevel)
-                        .transition(.scale.combined(with: .opacity))
-                        .zIndex(101)
-                        .padding(.top, 100)
-                }
+            .tabItem {
+                Label(AppTab.profile.title, systemImage: AppTab.profile.icon)
             }
-            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: (gamificationManager.showAchievementUnlocked && !isSearching))
-            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: (gamificationManager.showLevelUp && !isSearching))
-            .task {
-                guard hasRequestedNotifications == false else { return }
-                hasRequestedNotifications = true
-                await NotificationManager.shared.bootstrapNotifications(for: profile)
+            .tag(AppTab.profile)
+            
+            // Settings Tab
+            NavigationStack {
+                ModelSettingsView()
+                    .environmentObject(guideManager)
             }
+            .tabItem {
+                Label(AppTab.settings.title, systemImage: AppTab.settings.icon)
+            }
+            .tag(AppTab.settings)
+        }
+        .tint(themeManager.primaryColor)
+        .onAppear {
+            themeManager.updateTheme(for: profile.selectedThemeId)
+        }
+        .onChange(of: profile.selectedThemeId) { _, newValue in
+            themeManager.updateTheme(for: newValue)
+        }
+        .onChange(of: studySets) { _, newSets in
+            gamificationManager.syncStudySets(newSets)
+        }
+        .onAppear {
+            gamificationManager.syncStudySets(studySets)
+        }
+        .overlay(alignment: .top) {
+            // Achievement notification overlay
+            if gamificationManager.showAchievementUnlocked && !isSearching, let achievement = gamificationManager.unlockedAchievement {
+                AchievementUnlockedView(achievement: achievement)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(100)
+                    .padding(.top, 50)
+            }
+        }
+        .overlay(alignment: .top) {
+            // Level up notification
+            if gamificationManager.showLevelUp && !isSearching {
+                LevelUpView(level: gamificationManager.newLevel)
+                    .transition(.scale.combined(with: .opacity))
+                    .zIndex(101)
+                    .padding(.top, 100)
+            }
+        }
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: (gamificationManager.showAchievementUnlocked && !isSearching))
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: (gamificationManager.showLevelUp && !isSearching))
+        .task {
+            guard hasRequestedNotifications == false else { return }
+            hasRequestedNotifications = true
+            await NotificationManager.shared.bootstrapNotifications(for: profile)
+        }
     }
     
     private func handleDeepLink(_ url: URL) {
@@ -115,11 +186,12 @@ struct ContentView: View {
             if let setIDString = components.queryItems?.first(where: { $0.name == "setID" })?.value,
                let setID = UUID(uuidString: setIDString),
                let set = studySets.first(where: { $0.id == setID }) {
+                selectedTab = .home
                 navigationPath.append(set)
             }
         } else if url.host == "stats" {
-            // Navigate to profile for stats
-            navigationPath.append(AppDestination.profile)
+            // Navigate to profile tab for stats
+            selectedTab = .profile
         }
     }
     
@@ -443,21 +515,11 @@ struct ContentView: View {
             .navigationTitle("StudySnap")
             .navigationDestination(for: StudySet.self) { set in
                 StudySetDetailView(studySet: set)
+                    .toolbar(.hidden, for: .tabBar)
             }
             .navigationDestination(for: StudyFolder.self) { folder in
                 FolderDetailView(folder: folder)
-            }
-            .navigationDestination(for: AppDestination.self) { destination in
-                switch destination {
-                case .profile:
-                    ProfileView()
-                        .environmentObject(guideManager)
-                case .settings:
-                    ModelSettingsView()
-                        .onDisappear {
-                            guideManager.advanceAfterConfiguredModel()
-                        }
-                }
+                    .toolbar(.hidden, for: .tabBar)
             }
             .sheet(isPresented: $isShowingCreateFolderSheet) {
                 CreateFolderView(folderToEdit: folderToEdit)
@@ -468,56 +530,35 @@ struct ContentView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    NavigationLink(value: AppDestination.profile) {
-                        profileButton
-                    }
-                }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 14) {
-                        NavigationLink(value: AppDestination.settings) {
-                            ZStack {
-                                Circle()
-                                    .fill(themeManager.primaryColor)
-                                    .frame(width: 32, height: 32)
-                                
-                                Image(systemName: "gear")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.white)
-                            }
-                        }
-                        .accessibilityLabel("Model Settings")
-                        .guideTarget(.homeSettings)
-
-                        Menu {
-                            Button {
-                                HapticsManager.shared.playTap()
-                                isShowingInputSheet = true
-                                guideManager.advanceAfterTappedCreate()
-                            } label: {
-                                Label("New Study Set", systemImage: "doc.badge.plus")
-                            }
-                            
-                            Button {
-                                HapticsManager.shared.playTap()
-                                folderToEdit = nil
-                                isShowingCreateFolderSheet = true
-                            } label: {
-                                Label("New Folder", systemImage: "folder.badge.plus")
-                            }
+                    Menu {
+                        Button {
+                            HapticsManager.shared.playTap()
+                            isShowingInputSheet = true
+                            guideManager.advanceAfterTappedCreate()
                         } label: {
-                            ZStack {
-                                Circle()
-                                    .fill(themeManager.primaryColor)
-                                    .frame(width: 32, height: 32)
-                                
-                                Image(systemName: "plus")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(.white)
-                            }
+                            Label("New Study Set", systemImage: "doc.badge.plus")
                         }
-                        .guideTarget(.homeCreate)
+                        
+                        Button {
+                            HapticsManager.shared.playTap()
+                            folderToEdit = nil
+                            isShowingCreateFolderSheet = true
+                        } label: {
+                            Label("New Folder", systemImage: "folder.badge.plus")
+                        }
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(themeManager.primaryColor)
+                                .frame(width: 36, height: 36)
+                            
+                            Image(systemName: "plus")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                        }
                     }
+                    .guideTarget(.homeCreate)
                 }
             }
             .onOpenURL { url in
@@ -643,12 +684,21 @@ struct ContentView: View {
                         accent: themeManager.primaryColor,
                         prefs: prefs,
                         geometry: proxy,
+                        selectedTab: selectedTab,
                         onSkip: { guideManager.skipGuide() },
                         onAdvance: nil
                     )
                     .zIndex(200)  // Ensure guide overlay appears above all other content
                 }
                 .allowsHitTesting(!guideManager.isCollapsed)  // Allow interaction only when expanded
+            }
+            .onChange(of: selectedTab) { oldValue, newValue in
+                if guideManager.currentStep == .configureModel && newValue == .settings {
+                    guideManager.advanceAfterConfiguredModel()
+                }
+                if guideManager.currentStep == .exploreGamification {
+                    guideManager.finishGamification()
+                }
             }
         }
     }
@@ -807,26 +857,6 @@ struct ContentView: View {
         .cornerRadius(16)
         .padding(.horizontal)
         .padding(.top, 8)
-    }
-    
-    // MARK: - Profile Button
-    
-    private var profileButton: some View {
-        HStack(spacing: 6) {
-            // Avatar
-            ZStack {
-                Circle()
-                    .fill(themeManager.primaryGradient)
-                    .frame(width: 32, height: 32)
-                
-                if let avatar = AvatarItem.avatar(for: profile.selectedAvatarId) {
-                    Image(avatar.imageName)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 24, height: 24)
-                }
-            }
-        }
     }
 
     private func deleteItems(offsets: IndexSet) {

@@ -30,6 +30,7 @@ struct ModelSettingsView: View {
                 .onChange(of: preferenceBinding.wrappedValue) { _, _ in
                     HapticsManager.shared.playTap()
                 }
+                .guideTarget(.modelPicker)
 
                 Text(preferenceBinding.wrappedValue.detail)
                     .font(.footnote)
@@ -206,6 +207,12 @@ struct OpenRouterHelpView: View {
                             .foregroundColor(themeManager.primaryColor)
                     }
                 }
+            }
+        }
+        .onAppear {
+            let guide = GuideManager.shared
+            if guide.currentStep == .configureModel {
+                guide.advanceAfterConfiguredModel()
             }
         }
     }
