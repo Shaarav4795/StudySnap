@@ -410,6 +410,9 @@ private enum SectionCardType: String {
     case summary = "SUMMARY"
     case insight = "INSIGHT"
     case example = "EXAMPLE"
+    case mathstep = "MATHSTEP"
+    case solution = "SOLUTION"
+    case answer = "ANSWER"
     
     var icon: String {
         switch self {
@@ -429,6 +432,9 @@ private enum SectionCardType: String {
         case .summary: return "text.alignleft"
         case .insight: return "sparkles"
         case .example: return "doc.text.magnifyingglass"
+        case .mathstep: return "function"
+        case .solution: return "checkmark.circle"
+        case .answer: return "equal.circle"
         }
     }
     
@@ -450,6 +456,9 @@ private enum SectionCardType: String {
         case .summary: return .gray
         case .insight: return .pink
         case .example: return .blue
+        case .mathstep: return .indigo
+        case .solution: return .green
+        case .answer: return .blue
         }
     }
 }
@@ -518,10 +527,11 @@ private struct FormattedMessageView: View {
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             
-            // Check for bare section labels like "SUMMARY:" without brackets
-            if let bareMatch = trimmed.range(of: "^(SUMMARY|INSIGHT|TAKEAWAY|TIP):\\s*", options: .regularExpression) {
+            // Check for bare section labels like "SUMMARY:" without brackets (case-insensitive)
+            if let bareMatch = trimmed.range(of: "^(SUMMARY|INSIGHT|TAKEAWAY|TIP|SOLUTION|ANSWER|MATHSTEP|MATH STEP):\\s*", options: [.regularExpression, .caseInsensitive]) {
                 let labelPart = String(trimmed[bareMatch])
                     .replacingOccurrences(of: ":", with: "")
+                    .replacingOccurrences(of: " ", with: "")
                     .trimmingCharacters(in: .whitespaces)
                     .uppercased()
                 if let cardType = SectionCardType(rawValue: labelPart) {
@@ -543,12 +553,14 @@ private struct FormattedMessageView: View {
                 }
             }
             
-            // Check for section tags [MNEMONIC], [STEPS], etc. - either alone or with text after
-            if let tagMatch = trimmed.range(of: "^\\[([A-Z]+)\\]", options: .regularExpression) {
+            // Check for section tags [MNEMONIC], [STEPS], etc. - case-insensitive, allows spaces
+            if let tagMatch = trimmed.range(of: "^\\[([A-Za-z ]+)\\]", options: .regularExpression) {
                 let tagPart = String(trimmed[tagMatch])
                 let tagName = tagPart
                     .replacingOccurrences(of: "[", with: "")
                     .replacingOccurrences(of: "]", with: "")
+                    .replacingOccurrences(of: " ", with: "")
+                    .uppercased()
                 
                 // Check if this is a valid section tag
                 if let cardType = SectionCardType(rawValue: tagName) {
@@ -573,12 +585,14 @@ private struct FormattedMessageView: View {
             
             // If inside a section, collect content
             if currentSectionType != nil && !trimmed.isEmpty {
-                // Check if it's a new section tag (with or without inline text)
-                if let tagMatch = trimmed.range(of: "^\\[([A-Z]+)\\]", options: .regularExpression) {
+                // Check if it's a new section tag (with or without inline text) - case-insensitive
+                if let tagMatch = trimmed.range(of: "^\\[([A-Za-z ]+)\\]", options: .regularExpression) {
                     let tagPart = String(trimmed[tagMatch])
                     let tagName = tagPart
                         .replacingOccurrences(of: "[", with: "")
                         .replacingOccurrences(of: "]", with: "")
+                        .replacingOccurrences(of: " ", with: "")
+                        .uppercased()
                     if let newType = SectionCardType(rawValue: tagName) {
                         // Flush current section and start new one
                         if !currentSectionContent.isEmpty {
@@ -757,12 +771,20 @@ private struct FormattedMessageView: View {
     private func renderBlock(_ block: TextBlock) -> some View {
         switch block {
         case .paragraph(let text):
-            renderInlineMarkdown(text)
+            if text.contains("$") {
+                MathTextView(text, fontSize: 16)
+            } else {
+                renderInlineMarkdown(text)
+            }
             
         case .header(let text, let level):
-            renderInlineMarkdown(text)
-                .font(level == 1 ? .headline : (level == 2 ? .subheadline.bold() : .subheadline.bold()))
-                .foregroundStyle(.primary)
+            if text.contains("$") {
+                MathTextView(text, fontSize: level == 1 ? 18 : 16, forceBold: true)
+            } else {
+                renderInlineMarkdown(text)
+                    .font(level == 1 ? .headline : (level == 2 ? .subheadline.bold() : .subheadline.bold()))
+                    .foregroundStyle(.primary)
+            }
             
         case .bulletList(let items):
             VStack(alignment: .leading, spacing: 6) {
@@ -772,7 +794,11 @@ private struct FormattedMessageView: View {
                             .fill(Color.accentColor)
                             .frame(width: 6, height: 6)
                             .padding(.top, 6)
-                        renderInlineMarkdown(item)
+                        if item.contains("$") {
+                            MathTextView(item, fontSize: 16)
+                        } else {
+                            renderInlineMarkdown(item)
+                        }
                     }
                 }
             }
@@ -789,8 +815,13 @@ private struct FormattedMessageView: View {
                                 .font(.caption.bold())
                                 .foregroundColor(.accentColor)
                         }
-                        renderInlineMarkdown(item)
-                            .padding(.top, 2)
+                        if item.contains("$") {
+                            MathTextView(item, fontSize: 16)
+                                .padding(.top, 2)
+                        } else {
+                            renderInlineMarkdown(item)
+                                .padding(.top, 2)
+                        }
                     }
                 }
             }
@@ -803,7 +834,11 @@ private struct FormattedMessageView: View {
                 Image(systemName: checked ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(checked ? .green : .red)
                     .font(.body)
-                renderInlineMarkdown(text)
+                if text.contains("$") {
+                    MathTextView(text, fontSize: 16)
+                } else {
+                    renderInlineMarkdown(text)
+                }
             }
             .padding(.vertical, 4)
             
@@ -1032,26 +1067,37 @@ private struct SectionCardView: View {
     
     @ViewBuilder
     private func renderContentLine(_ line: String) -> some View {
+        let containsMath = line.contains("$")
+        
         if line.contains("→") || line.contains("↔") {
-            // Mapping line
+            // Mapping line - split by arrow but preserve math
             let parts = line.replacingOccurrences(of: "↔", with: "→").components(separatedBy: "→")
             if parts.count == 2 {
                 HStack(alignment: .top, spacing: 8) {
-                    Text(parseInline(cleanBullet(parts[0])))
-                        .font(.subheadline)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
+                    if containsMath {
+                        MathTextView(cleanBullet(parts[0]), fontSize: 15)
+                    } else {
+                        Text(parseInline(cleanBullet(parts[0])))
+                            .font(.subheadline)
+                    }
                     Image(systemName: "arrow.right")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text(parseInline(parts[1].trimmingCharacters(in: .whitespaces)))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
+                    if containsMath {
+                        MathTextView(parts[1].trimmingCharacters(in: .whitespaces), fontSize: 15)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(parseInline(parts[1].trimmingCharacters(in: .whitespaces)))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             } else {
-                Text(parseInline(line))
+                if containsMath {
+                    MathTextView(line, fontSize: 15)
+                } else {
+                    Text(parseInline(line))
+                }
             }
         } else if line.hasPrefix("•") || line.hasPrefix("-") {
             HStack(alignment: .top, spacing: 8) {
@@ -1059,14 +1105,20 @@ private struct SectionCardView: View {
                     .fill(type.color)
                     .frame(width: 5, height: 5)
                     .padding(.top, 6)
-                Text(parseInline(cleanBullet(line)))
+                if containsMath {
+                    MathTextView(cleanBullet(line), fontSize: 15)
+                } else {
+                    Text(parseInline(cleanBullet(line)))
+                }
+            }
+        } else {
+            if containsMath {
+                MathTextView(line, fontSize: 15)
+            } else {
+                Text(parseInline(line))
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
             }
-        } else {
-            Text(parseInline(line))
-                .lineLimit(nil)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
     

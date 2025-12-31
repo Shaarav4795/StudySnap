@@ -56,6 +56,7 @@ enum TutorResponseFormatType: String, Sendable, Codable {
     case keyPoints    // Bullet highlights
     case analogy      // Analogy-focused
     case mistakes     // Common errors format
+    case mathSolver   // Step-by-step math problem solver
 }
 
 struct QuickPrompt: Identifiable, Sendable {

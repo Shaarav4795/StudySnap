@@ -1014,17 +1014,33 @@ actor AIService {
         
         CRITICAL RULES:
         1. Start with content immediately. NEVER say "Certainly", "Sure", "Here's", etc.
-        2. MAXIMUM 100 words total. Be extremely concise.
+        2. MAXIMUM 100 words total unless solving a math problem. Be extremely concise.
         3. Use **bold** for key terms only.
         4. Use • for bullets, numbered lists (1. 2. 3.) for steps.
-        5. For fractions use a/b. For exponents: x².
-        6. Never echo instructions or study set name.
+        5. Never echo instructions or study set name.
         
-        TAG RULES (CRITICAL):
-        - When format instructions specify a tag like [SIMPLE], [MNEMONIC], [COMPARE], etc., you MUST start your response with that EXACT tag in ALL CAPS inside square brackets.
-        - Example: If format says use [SIMPLE], your response MUST begin with "[SIMPLE]" on its own line.
-        - Tags must be ALL UPPERCASE: [SIMPLE] not [Simple], [MNEMONIC] not [Mnemonic]
+        MATH FORMATTING (CRITICAL - use LaTeX with $ delimiters):
+        - Wrap ALL math expressions in single dollar signs: $...$
+        - Fractions: $\\frac{a}{b}$ (NOT a/b for complex fractions)
+        - Exponents: $x^{2}$, $e^{-x}$
+        - Roots: $\\sqrt{x}$, $\\sqrt[3]{x}$
+        - Greek: $\\alpha$, $\\beta$, $\\pi$, $\\theta$
+        - Operators: $\\times$, $\\div$, $\\pm$, $\\cdot$
+        - Example: The quadratic formula is $x = \\frac{-b \\pm \\sqrt{b^{2} - 4ac}}{2a}$
+        
+        MATH PROBLEM DETECTION:
+        If the user asks to solve, calculate, or work out a specific math problem (equation, expression, word problem with numbers), you MUST:
+        1. Start your response with [MATHSTEP] tag
+        2. Show step-by-step solution with each step numbered
+        3. Use → to show transformations
+        4. End with [SOLUTION] tag containing the final answer
+        5. Optionally add [TIP] with the key concept used
+        
+        TAG RULES:
+        - When format instructions specify a tag like [SIMPLE], [MNEMONIC], [COMPARE], etc., start with that EXACT tag in ALL CAPS.
+        - Tags must be ALL UPPERCASE: [SIMPLE] not [Simple]
         - Sub-tags like [BREAKDOWN], [TIP], [SUMMARY] must also be ALL CAPS.
+        - Tags are optional for simple conversational responses.
         
         \(formatBlock)
         """
@@ -1276,6 +1292,41 @@ actor AIService {
             
             All tags MUST be ALL CAPS. Max 2 mistakes. Max 100 words total.
             """
+        case .mathSolver:
+            return """
+            YOU MUST START YOUR RESPONSE WITH: [MATHSTEP]
+            
+            You are solving a specific math problem step by step. Break it down clearly.
+            
+            FORMAT:
+            [MATHSTEP]
+            **Problem:** [Restate the problem briefly]
+            
+            **Step 1:** [Description of what you're doing]
+            → $[LaTeX expression showing the work]$
+            
+            **Step 2:** [Next operation]
+            → $[LaTeX expression]$
+            
+            **Step 3:** [Continue as needed]
+            → $[LaTeX expression]$
+            
+            [SOLUTION]
+            **Answer:** $[Final answer in LaTeX]$
+            
+            [TIP]
+            [One sentence explaining the key concept or method used.]
+            
+            MATH FORMATTING (use LaTeX with $ delimiters):
+            - Wrap ALL math in $...$
+            - Fractions: $\\frac{numerator}{denominator}$
+            - Exponents: $x^{2}$, $a^{n}$
+            - Roots: $\\sqrt{x}$, $\\sqrt[n]{x}$
+            - Equals/arrows: use → for step transitions, $=$ inside expressions
+            - Example: $2x + 5 = 15$ → $2x = 10$ → $x = 5$
+            
+            Keep steps atomic (one operation per step). Maximum 6 steps.
+            """
         }
     }
     
@@ -1347,6 +1398,13 @@ actor AIService {
                 icon: "exclamationmark.triangle",
                 prompt: "[FORMAT:mistakes] What are the top mistakes, how to fix them, and one quick example?",
                 format: .mistakes
+            ),
+            QuickPrompt(
+                id: "mathsolve",
+                label: "Solve math",
+                icon: "function",
+                prompt: "[FORMAT:mathSolver] Solve this math problem step by step, showing all work.",
+                format: .mathSolver
             ),
             QuickPrompt(
                 id: "why",
