@@ -166,7 +166,7 @@ struct OpenRouterHelpView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("No Payment Required")
                                     .font(.headline)
-                                Text("OpenRouter offers free models. You do not need to add a credit card to get started.")
+                                Text("OpenRouter offers free models. You do not need to add a credit card to get started.\nOpenRouter provides 50 free requests each day. Creating a study set uses 3 requests. Sending a message to the tutor uses 1 request. Using Apple Intelligence does not consume any OpenRouter requests. After the free requests are exhausted, you must wait until the next day. If you try to use OpenRouter models after the limit, StudySnap will show an error.")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }

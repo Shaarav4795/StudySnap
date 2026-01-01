@@ -39,6 +39,7 @@ enum AppTab: Int, CaseIterable {
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \StudySet.dateCreated, order: .reverse) private var studySets: [StudySet]
     @Query(sort: \StudyFolder.dateCreated, order: .reverse) private var studyFolders: [StudyFolder]
     @Query private var profiles: [UserProfile]
@@ -289,10 +290,10 @@ struct ContentView: View {
                                 if isFoldersExpanded {
                                     // Adaptive grid that scales with screen size
                                     let columns = [
-                                        GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 12)
+                                        GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 14)
                                     ]
 
-                                    LazyVGrid(columns: columns, alignment: .center, spacing: 12) {
+                                    LazyVGrid(columns: columns, alignment: .center, spacing: 24) {
                                         ForEach(filteredFolders) { folder in
                                             Button {
                                                 navigationPath.append(folder)
@@ -548,16 +549,20 @@ struct ContentView: View {
                             Label("New Folder", systemImage: "folder.badge.plus")
                         }
                     } label: {
-                        ZStack {
-                            Circle()
-                                .fill(themeManager.primaryColor)
-                                .frame(width: 36, height: 36)
-                            
+                        HStack(spacing: 6) {
                             Image(systemName: "plus")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
+                                .font(.system(size: 16, weight: .bold))
+                            
+                            Text("New")
+                                .font(.system(size: 16, weight: .bold))
                         }
+                        .foregroundColor(colorScheme == .light ? .white : .black)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(themeManager.primaryColor)
+                        .clipShape(Capsule())
                     }
+                    .buttonStyle(.plain)
                     .guideTarget(.homeCreate)
                 }
             }
@@ -708,6 +713,12 @@ struct ContentView: View {
     private var hasDailyMixContent: Bool {
         let totalQuestions = studySets.reduce(0) { $0 + $1.questions.count }
         let totalFlashcards = studySets.reduce(0) { $0 + $1.flashcards.count }
+        
+        // Hide if already completed today
+        if gamificationManager.hasDailyMixCompletedToday(profile: profile) {
+            return false
+        }
+        
         return totalQuestions > 15 && totalFlashcards > 15
     }
     
@@ -731,29 +742,11 @@ struct ContentView: View {
                         }
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 6) {
-                                Text("Daily Mix")
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                                
-                                if gamificationManager.hasDailyMixCompletedToday(profile: profile) {
-                                    HStack(spacing: 3) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.caption2)
-                                        Text("Done")
-                                            .font(.caption2.bold())
-                                    }
-                                    .foregroundColor(.green)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.green.opacity(0.15))
-                                    .cornerRadius(6)
-                                }
-                            }
+                            Text("Daily Mix")
+                                .font(.headline)
+                                .foregroundColor(.primary)
                             
-                            Text(gamificationManager.hasDailyMixCompletedToday(profile: profile)
-                                 ? "Great job! Come back tomorrow."
-                                 : "Keep your streak alive!")
+                            Text("Keep your streak alive!")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .lineLimit(2)
@@ -878,8 +871,8 @@ private struct FolderCard: View {
     var body: some View {
         GeometryReader { proxy in
             let width = proxy.size.width
-            let iconSize = width * 0.36
-            let spacing = width * 0.08
+            let iconSize = width * 0.32
+            let spacing = width * 0.06
 
             VStack(spacing: spacing) {
                 // Icon
@@ -924,7 +917,7 @@ private struct FolderCard: View {
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .padding(12)
+            .padding(10)
             .background(
                 RoundedRectangle(cornerRadius: 18)
                     .fill(themeManager.primaryColor.opacity(0.08))
@@ -935,7 +928,7 @@ private struct FolderCard: View {
             )
             .shadow(color: themeManager.primaryColor.opacity(0.12), radius: 6, x: 0, y: 3)
         }
-        .aspectRatio(1.1, contentMode: .fit)
+        .aspectRatio(1.3, contentMode: .fit)
     }
 }
 
