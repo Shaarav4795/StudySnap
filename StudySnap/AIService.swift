@@ -61,6 +61,39 @@ actor AIService {
         }
     }
     
+    // OpenRouter Multimodal (Vision) API Structs
+    private struct OpenRouterMultimodalRequest: Codable, Sendable {
+        let model: String
+        let messages: [MultimodalMessage]
+        
+        struct MultimodalMessage: Codable, Sendable {
+            let role: String
+            let content: [ContentPart]
+        }
+        
+        struct ContentPart: Codable, Sendable {
+            let type: String  // "text" or "image_url"
+            let text: String?
+            let image_url: ImageURL?
+            
+            init(text: String) {
+                self.type = "text"
+                self.text = text
+                self.image_url = nil
+            }
+            
+            init(imageURL: String) {
+                self.type = "image_url"
+                self.text = nil
+                self.image_url = ImageURL(url: imageURL)
+            }
+        }
+        
+        struct ImageURL: Codable, Sendable {
+            let url: String  // "data:image/jpeg;base64,..."
+        }
+    }
+    
     private let endpoint = URL(string: "https://openrouter.ai/api/v1/chat/completions")!
     
     private init() {}
@@ -1036,10 +1069,11 @@ actor AIService {
         4. End with [SOLUTION] tag containing the final answer
         5. Optionally add [TIP] with the key concept used
         
-        TAG RULES:
-        - When format instructions specify a tag like [SIMPLE], [MNEMONIC], [COMPARE], etc., start with that EXACT tag in ALL CAPS.
-        - Tags must be ALL UPPERCASE: [SIMPLE] not [Simple]
-        - Sub-tags like [BREAKDOWN], [TIP], [SUMMARY] must also be ALL CAPS.
+        CRITICAL RULES:
+        1. Start with content immediately. NEVER say "Certainly", "Sure", "Here's", etc.
+        2. Use **bold** for key terms only (not for section headings).
+        3. Use • for bullets and 1./2./3. for steps.
+        4. SECTION HEADINGS MUST BE TAGS like [SKILL], [STEPS], [SOLUTION] (no markdown bold headings, no colons).
         - Tags are optional for simple conversational responses.
         
         \(formatBlock)
@@ -1170,6 +1204,175 @@ actor AIService {
         #else
         throw AIError.apiError("FoundationModels framework is unavailable.")
         #endif
+    }
+    
+    // MARK: - Vision Chat (Image Analysis)
+    
+    /// Performs a vision chat request with an image attachment
+    /// Always uses OpenRouter (Apple Intelligence does not support vision)
+    func performVisionChat(
+        imageData: Data,
+        userMessage: String,
+        context: TutorContext
+    ) async throws -> String {
+        let visionModel = await MainActor.run { ModelSettings.visionModel }
+        print("[StudySnap Vision] Uploading image, size: \(imageData.count) bytes")
+        print("[StudySnap Vision] Model: \(visionModel)")
+        
+        // Build context string
+        let contextString = context.buildContextString()
+        
+        // Vision-specific system prompt
+                let systemPrompt = #"""
+                You are a study tutor analyzing an image. Output must use TAGS ONLY (no markdown headings/colons). If you cannot include the required tags, return: [SKILL] Unable to comply\n[KEYTAKEAWAY] Add tags and retry.
+
+                TAGS:
+                - Math: [SKILL], [MATHSTEP] (one block with numbered steps), [SOLUTION], [KEYTAKEAWAY], optional [TIP]
+                - Work check: [WORKCHECK], [ERROR STEP], [CORRECTION], [SOLUTION], [KEYTAKEAWAY]
+                - Science/graphs: [SKILL], [KEYPOINTS] or [EXPLANATION], [KEYTAKEAWAY], optional [TIP]
+                - Code: [SKILL], [STEPS] (numbered), [KEYTAKEAWAY], optional [TIP]
+                - Writing: [SKILL], [KEYPOINTS], [EXPLANATION], [KEYTAKEAWAY]
+                - Notes/screens: [SUMMARY], [STEPS] or [KEYPOINTS], [KEYTAKEAWAY]
+
+                HARD RULES:
+                - Start immediately; no preamble. DO NOT output anything outside tags.
+                - For math, use a SINGLE [MATHSTEP] block containing at least 2 numbered lines showing transformations. No multiple [MATHSTEP] tags.
+                - Math must be LaTeX inside single $...$ only. Allowed: $\frac{a}{b}$, $x^{2}$, $\sqrt{x}$, $\times$, $\div$, $\pm$, $\cdot$. Forbidden: \( \), \[ \], $$, \boxed, code fences.
+                - Keep only the tags relevant to the chosen template. Do NOT add extra sections (e.g., no [KEYPOINTS]/[EXPLANATION] for math unless asked).
+                - Be concise; prefer numbered steps/bullets.
+
+                TEMPLATES (choose one):
+                - Math solve:
+                    [SKILL] ...
+                    [MATHSTEP] 1) ... → ...\n2) ... → ... (show algebra)
+                    [SOLUTION] ...
+                    [KEYTAKEAWAY] ...
+                    [TIP] ... (optional)
+                - Work check:
+                    [WORKCHECK]\n[ERROR STEP] ...\n[CORRECTION] ...\n[SOLUTION] ...\n[KEYTAKEAWAY] ...
+                - Science/diagram/graph:
+                    [SKILL]\n[KEYPOINTS] ...\n[KEYTAKEAWAY] ...\n[TIP] ...
+                - Code/debugging:
+                    [SKILL]\n[STEPS] 1) ...\n2) ...\n[KEYTAKEAWAY] ...\n[TIP] ...
+                - Writing/grammar:
+                    [SKILL]\n[KEYPOINTS] ...\n[EXPLANATION] ...\n[KEYTAKEAWAY] ...
+                - General notes/screens:
+                    [SUMMARY]\n[STEPS] or [KEYPOINTS] ...\n[KEYTAKEAWAY] ...
+
+                STRONG EXAMPLES (copy the tag order and brevity):
+                - Math (one [MATHSTEP] block with numbered transformations):
+                    [SKILL] Simplify negative exponents
+                    [MATHSTEP] 1) $\frac{4x^{-2}y^{3}}{ka^{-3}}$ → $\frac{4y^{3}}{k} \cdot \frac{a^{3}}{x^{2}}$ (move $a^{-3}$ up, $x^{-2}$ down)\n2) Multiply numerators/denominators → $\frac{4a^{3}y^{3}}{kx^{2}}$
+                    [SOLUTION] $\frac{4a^{3}y^{3}}{kx^{2}}$
+                    [KEYTAKEAWAY] Flip negatives across the fraction to make exponents positive.
+                - Work check (no extra tags):
+                    [WORKCHECK]\n[ERROR STEP] Sign flipped on line 2\n[CORRECTION] Distribute: $-3(x-2)=-3x+6$\n[SOLUTION] $y=-3x+11$\n[KEYTAKEAWAY] Track negatives when distributing.
+                - Science/diagram (keep it lean):
+                    [SKILL] Circuit analysis\n[KEYPOINTS] Series circuit; $R_{eq}=R_{1}+R_{2}$; current identical everywhere\n[KEYTAKEAWAY] Series voltages add, current shared.\n[TIP] Label current direction before summing voltages.
+                - Graph/data:
+                    [SKILL] Velocity-time graph\n[KEYPOINTS] Slope=acceleration; area=displacement\n[KEYTAKEAWAY] Area under curve gives distance.
+                - Code:
+                    [SKILL] Python loop bug\n[STEPS] 1) Use range(n), not range(n+1)\n2) Init sum outside loop\n[KEYTAKEAWAY] Loop bounds and init placement matter.
+                - Writing:
+                    [SKILL] Thesis clarity\n[KEYPOINTS] Add a claim sentence; fix tense drift\n[EXPLANATION] Insert a 1-line claim; keep past tense consistent\n[KEYTAKEAWAY] Lead with claim; keep tense steady.
+
+                USE-CASE REMINDERS:
+                - Math: [SKILL] → [MATHSTEP] → [SOLUTION] → [KEYTAKEAWAY] (+[TIP] optional).
+                - Work check: [WORKCHECK] → [ERROR STEP] → [CORRECTION] → [SOLUTION] → [KEYTAKEAWAY].
+                - Science/graphs: [SKILL] → [KEYPOINTS]/[EXPLANATION] → [KEYTAKEAWAY] → [TIP].
+                - Code: [SKILL] → [STEPS] → [KEYTAKEAWAY] (+[TIP]).
+                - Writing: [SKILL] → [KEYPOINTS] → [EXPLANATION] → [KEYTAKEAWAY].
+                - Notes/screens: [SUMMARY] → [STEPS]/[KEYPOINTS] → [KEYTAKEAWAY].
+
+                CONTEXT (for reference - may be empty):
+                \#(contextString.isEmpty ? "No additional context provided." : contextString)
+                """#
+        
+        // Build the user message with context
+        let fullUserMessage = userMessage.isEmpty ? "Analyze this image and help me understand it." : userMessage
+        
+        return try await runOpenRouterVision(
+            systemPrompt: systemPrompt,
+            userMessage: fullUserMessage,
+            imageData: imageData,
+            visionModel: visionModel
+        )
+    }
+    
+    private func runOpenRouterVision(
+        systemPrompt: String,
+        userMessage: String,
+        imageData: Data,
+        visionModel: String
+    ) async throws -> String {
+        let apiKey = try await openRouterApiKey()
+        let model = visionModel
+        
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("StudySnap", forHTTPHeaderField: "X-Title")
+        
+        // Convert image to base64
+        let base64Image = imageData.base64EncodedString()
+        let imageURL = "data:image/jpeg;base64,\(base64Image)"
+        
+        print("[StudySnap Vision] Base64 encoded, length: \(base64Image.count) characters")
+        
+        // Build multimodal messages
+        let systemMessage = OpenRouterMultimodalRequest.MultimodalMessage(
+            role: "system",
+            content: [OpenRouterMultimodalRequest.ContentPart(text: systemPrompt)]
+        )
+        
+        let userContent: [OpenRouterMultimodalRequest.ContentPart] = [
+            OpenRouterMultimodalRequest.ContentPart(imageURL: imageURL),
+            OpenRouterMultimodalRequest.ContentPart(text: userMessage)
+        ]
+        
+        let userMessageObj = OpenRouterMultimodalRequest.MultimodalMessage(
+            role: "user",
+            content: userContent
+        )
+        
+        let payload = OpenRouterMultimodalRequest(
+            model: model,
+            messages: [systemMessage, userMessageObj]
+        )
+        
+        request.httpBody = try JSONEncoder().encode(payload)
+        
+        await applyRateLimitDelay()
+        
+        print("[StudySnap Vision] Sending request to OpenRouter...")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            print("[StudySnap Vision] Error: No HTTP response received")
+            throw AIError.generationFailed
+        }
+        
+        print("[StudySnap Vision] Response status code: \(httpResponse.statusCode)")
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            if let errorText = String(data: data, encoding: .utf8) {
+                print("[StudySnap Vision] API Error: \(errorText)")
+            }
+            throw AIError.apiError("Vision API status code: \(httpResponse.statusCode)")
+        }
+        
+        let decodedResponse = try JSONDecoder().decode(OpenRouterResponse.self, from: data)
+        guard let content = decodedResponse.choices.first?.message.content else {
+            print("[StudySnap Vision] Error: No content in response")
+            throw AIError.invalidResponse
+        }
+        
+        print("[StudySnap Vision] Successfully received response")
+        print("AI (Vision) response:\n\(content)\n--- end response ---")
+        
+        return content
     }
     
     // MARK: - Format Instructions for Specialized Responses

@@ -6,6 +6,7 @@ import SwiftData
 struct StudyChatView: View {
     let studySet: StudySet
     @Environment(\.modelContext) private var modelContext
+    @AppStorage(ModelSettings.Keys.openRouterApiKey) private var storedOpenRouterKey: String = ""
     @State private var messageText = ""
     @State private var isLoading = false
     @State private var showingFlashcardPreview = false
@@ -17,6 +18,14 @@ struct StudyChatView: View {
     @State private var scrollProxy: ScrollViewProxy?
     @State private var showClearConfirmation = false
     
+    // Camera/Image state
+    @State private var selectedImage: UIImage?
+    @State private var showImagePicker = false
+    @State private var imagePickerSourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var showImageSourceDialog = false
+    @State private var showApiKeyAlert = false
+    @State private var messageImages: [UUID: UIImage] = [:]
+    
     // For smooth typing indicator
     @State private var typingDots = ""
     @State private var typingTimer: Timer?
@@ -26,118 +35,229 @@ struct StudyChatView: View {
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Persistent header actions
-            HStack {
-                Spacer()
-                Button {
-                    showClearConfirmation = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.counterclockwise")
-                        Text("New Chat")
+        let isOverlayPresented = showImageSourceDialog || showClearConfirmation
+        ZStack {
+            VStack(spacing: 0) {
+                // Persistent header actions
+                HStack {
+                    Spacer()
+                    Button {
+                        showClearConfirmation = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.counterclockwise")
+                            Text("New Chat")
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color(.systemBackground))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(Color.accentColor.opacity(0.4), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                     }
-                    .font(.subheadline.weight(.semibold))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(Color(.systemBackground))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.accentColor.opacity(0.4), lineWidth: 1)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
+                    .disabled(sortedMessages.isEmpty)
+                    .accessibilityLabel("Clear Chat")
                 }
-                .disabled(sortedMessages.isEmpty)
-                .accessibilityLabel("Clear Chat")
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            
-            // Chat messages
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        // Welcome message if no history
-                        if sortedMessages.isEmpty && !isLoading {
-                            WelcomeMessageView(studySetTitle: studySet.title)
-                                .id("welcome")
-                        }
-                        
-                        ForEach(sortedMessages) { message in
-                            ChatBubbleView(
-                                message: message,
-                                onSaveAsFlashcard: {
-                                    selectedMessageForAction = message
-                                    Task {
-                                        await convertMessageToFlashcards(message)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                
+                // Chat messages
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            // Welcome message if no history
+                            if sortedMessages.isEmpty && !isLoading {
+                                WelcomeMessageView(studySetTitle: studySet.title)
+                                    .id("welcome")
+                            }
+                            
+                            ForEach(sortedMessages) { message in
+                                ChatBubbleView(
+                                    message: message,
+                                    attachedImage: messageImages[message.id],
+                                    onSaveAsFlashcard: {
+                                        selectedMessageForAction = message
+                                        Task {
+                                            await convertMessageToFlashcards(message)
+                                        }
                                     }
-                                }
+                                )
+                                .id(message.id)
+                            }
+                            
+                            // Typing indicator
+                            if isLoading {
+                                TypingIndicatorView()
+                                    .id("typing")
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                    }
+                    .onAppear {
+                        scrollProxy = proxy
+                        loadQuickPrompts()
+                    }
+                    .onChange(of: sortedMessages.count) { _, _ in
+                        scrollToBottom(proxy: proxy)
+                    }
+                    .onChange(of: isLoading) { _, loading in
+                        if loading {
+                            scrollToBottom(proxy: proxy)
+                        }
+                    }
+                }
+                
+                Divider()
+                
+                // Image preview (when image is selected)
+                if let image = selectedImage {
+                    HStack(spacing: 12) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 60, height: 60)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.accentColor, lineWidth: 2)
                             )
-                            .id(message.id)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Image attached")
+                                .font(.subheadline.bold())
+                            Text("Ready to send")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                         
-                        // Typing indicator
-                        if isLoading {
-                            TypingIndicatorView()
-                                .id("typing")
+                        Spacer()
+                        
+                        Button {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                selectedImage = nil
+                            }
+                            HapticsManager.shared.lightImpact()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(.secondarySystemGroupedBackground))
                 }
-                .onAppear {
-                    scrollProxy = proxy
-                    loadQuickPrompts()
-                }
-                .onChange(of: sortedMessages.count) { _, _ in
-                    scrollToBottom(proxy: proxy)
-                }
-                .onChange(of: isLoading) { _, loading in
-                    if loading {
-                        scrollToBottom(proxy: proxy)
+                
+                // Quick prompts
+                QuickPromptsBar(
+                    prompts: quickPrompts,
+                    onSelect: { prompt in
+                        messageText = prompt.prompt
+                        sendMessage(format: prompt.format)
                     }
-                }
+                )
+                
+                // Input bar
+                ChatInputBar(
+                    text: $messageText,
+                    selectedImage: selectedImage,
+                    isLoading: isLoading,
+                    onSend: { sendMessage() },
+                    onCameraPressed: { handleCameraPressed() },
+                    onTextChange: { _ in
+                        updateQuickPrompts()
+                    }
+                )
+            }
+            .background(Color(.systemGroupedBackground))
+            .blur(radius: isOverlayPresented ? 1 : 0)
+            .allowsHitTesting(!isOverlayPresented)
+            
+            if showImageSourceDialog {
+                Color.black.opacity(0.25)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                            showImageSourceDialog = false
+                        }
+                    }
+                
+                ImageSourcePopup(
+                    onTakePhoto: {
+                        imagePickerSourceType = .camera
+                        showImagePicker = true
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                            showImageSourceDialog = false
+                        }
+                    },
+                    onChoosePhoto: {
+                        imagePickerSourceType = .photoLibrary
+                        showImagePicker = true
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                            showImageSourceDialog = false
+                        }
+                    },
+                    onDismiss: {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                            showImageSourceDialog = false
+                        }
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .transition(.scale.combined(with: .opacity))
             }
             
-            Divider()
-            
-            // Quick prompts
-            QuickPromptsBar(
-                prompts: quickPrompts,
-                onSelect: { prompt in
-                    messageText = prompt.prompt
-                    sendMessage(format: prompt.format)
-                }
-            )
-            
-            // Input bar
-            ChatInputBar(
-                text: $messageText,
-                isLoading: isLoading,
-                onSend: { sendMessage() },
-                onTextChange: { _ in
-                    updateQuickPrompts()
-                }
-            )
+            if showClearConfirmation {
+                Color.black.opacity(0.25)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                            showClearConfirmation = false
+                        }
+                    }
+                
+                ConfirmPopup(
+                    title: "Clear Chat History?",
+                    message: "This will delete all messages in this conversation. This cannot be undone.",
+                    primaryTitle: "Clear All",
+                    primaryRole: .destructive,
+                    secondaryTitle: "Cancel",
+                    onPrimary: {
+                        clearChatHistory()
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                            showClearConfirmation = false
+                        }
+                    },
+                    onSecondary: {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                            showClearConfirmation = false
+                        }
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                .transition(.scale.combined(with: .opacity))
+            }
         }
-        .background(Color(.systemGroupedBackground))
-        .confirmationDialog(
-            "Clear Chat History?",
-            isPresented: $showClearConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Clear All Messages", role: .destructive) {
-                clearChatHistory()
-            }
-            Button("Cancel", role: .cancel) { }
+        .alert("OpenRouter API Key Required", isPresented: $showApiKeyAlert) {
+            Button("OK", role: .cancel) { }
         } message: {
-            Text("This will delete all messages in this conversation. This cannot be undone.")
+            Text("Uploading images requires an OpenRouter API key. Add one in Settings.")
         }
         .alert("Error", isPresented: $showError) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(errorMessage)
+        }
+        .sheet(isPresented: $showImagePicker) {
+            ImagePickerView(
+                sourceType: imagePickerSourceType,
+                selectedImage: $selectedImage
+            )
         }
         .sheet(isPresented: $showingFlashcardPreview) {
             FlashcardPreviewSheet(
@@ -158,27 +278,62 @@ struct StudyChatView: View {
     
     // MARK: - Actions
     
+    private func handleCameraPressed() {
+        let trimmedKey = storedOpenRouterKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedKey.isEmpty {
+            showApiKeyAlert = true
+            HapticsManager.shared.error()
+            return
+        }
+        showImageSourceDialog = true
+        HapticsManager.shared.lightImpact()
+    }
+    
     private func sendMessage(format: AIService.TutorResponseFormat = .standard) {
         let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isLoading else { return }
+        let hasImage = selectedImage != nil
+        
+        // Require either text or image
+        guard (!text.isEmpty || hasImage), !isLoading else { return }
         
         // Strip format markers from display text
         let displayText = text.replacingOccurrences(of: "\\[FORMAT:\\w+\\]\\s*", with: "", options: .regularExpression)
+        let storedText = displayText.isEmpty && hasImage ? "[Image]" : displayText
         
-        // Add user message
-        let userMessage = ChatMessage(text: displayText, isUser: true)
+        // Convert image to data if present (not persisted, only for sending)
+        var imageData: Data? = nil
+        if let image = selectedImage {
+            // Compress to JPEG for reasonable size
+            imageData = image.jpegData(compressionQuality: 0.7)
+            print("[StudySnap Vision] Image captured, size: \(imageData?.count ?? 0) bytes")
+        }
+        
+        // Add user message (image is NOT persisted to avoid SwiftData migration issues)
+        let userMessage = ChatMessage(
+            text: storedText,
+            isUser: true
+        )
         userMessage.studySet = studySet
         studySet.chatHistory.append(userMessage)
         modelContext.insert(userMessage)
+        if let capturedImage = selectedImage {
+            messageImages[userMessage.id] = capturedImage
+        }
         
+        let capturedImage = selectedImage
         messageText = ""
+        selectedImage = nil
         isLoading = true
         
         // Trigger haptic
         HapticsManager.shared.lightImpact()
         
         Task {
-            await generateResponse(for: text, format: format)
+            if let image = capturedImage, let data = image.jpegData(compressionQuality: 0.7) {
+                await generateVisionResponse(imageData: data, userMessage: displayText)
+            } else {
+                await generateResponse(for: text, format: format)
+            }
         }
     }
     
@@ -203,7 +358,7 @@ struct StudyChatView: View {
             
             await MainActor.run {
                 // Add AI response
-                let aiMessage = ChatMessage(text: response, isUser: false)
+                let aiMessage = ChatMessage(text: normalizeAIOutput(response), isUser: false)
                 aiMessage.studySet = studySet
                 studySet.chatHistory.append(aiMessage)
                 modelContext.insert(aiMessage)
@@ -220,6 +375,44 @@ struct StudyChatView: View {
             await MainActor.run {
                 isLoading = false
                 errorMessage = "Failed to get response: \(error.localizedDescription)"
+                showError = true
+                HapticsManager.shared.error()
+            }
+        }
+    }
+    
+    private func generateVisionResponse(imageData: Data, userMessage: String) async {
+        do {
+            let context = AIService.TutorContext.create(from: studySet)
+            
+            print("[StudySnap Vision] Sending vision request...")
+            
+            let response = try await AIService.shared.performVisionChat(
+                imageData: imageData,
+                userMessage: userMessage,
+                context: context
+            )
+            
+            await MainActor.run {
+                // Add AI response
+                let aiMessage = ChatMessage(text: normalizeAIOutput(response), isUser: false)
+                aiMessage.studySet = studySet
+                studySet.chatHistory.append(aiMessage)
+                modelContext.insert(aiMessage)
+                
+                isLoading = false
+                
+                // Success haptic
+                HapticsManager.shared.success()
+                
+                // Update quick prompts based on new context
+                loadQuickPrompts()
+            }
+        } catch {
+            print("[StudySnap Vision] Error: \(error.localizedDescription)")
+            await MainActor.run {
+                isLoading = false
+                errorMessage = "Failed to analyze image: \(error.localizedDescription)"
                 showError = true
                 HapticsManager.shared.error()
             }
@@ -303,7 +496,63 @@ struct StudyChatView: View {
             modelContext.delete(message)
         }
         studySet.chatHistory.removeAll()
+        messageImages.removeAll()
         HapticsManager.shared.lightImpact()
+    }
+
+    /// Normalizes AI output for consistent rendering (math + section tags)
+    private func normalizeAIOutput(_ text: String) -> String {
+        var result = text
+        // Convert \( \) and \[ \] LaTeX delimiters to $ / $$ so MathTextView renders
+        result = result.replacingOccurrences(of: "\\(", with: "$")
+        result = result.replacingOccurrences(of: "\\)", with: "$")
+        result = result.replacingOccurrences(of: "\\[", with: "$$")
+        result = result.replacingOccurrences(of: "\\]", with: "$$")
+        // Drop \boxed wrappers
+        let boxedPattern = #"\\boxed\{([^}]*)\}"#
+        result = result.replacingOccurrences(of: boxedPattern, with: "$1", options: .regularExpression)
+        // Normalize common bold headings into tags the renderer understands
+        let tagPatterns: [(pattern: String, replacement: String)] = [
+            ("\\*\\*\\s*SOLUTION\\s*\\*\\*", "[SOLUTION]"),
+            ("\\*\\*\\s*ANSWER\\s*\\*\\*", "[ANSWER]"),
+            ("\\*\\*\\s*KEY\\s*TAKEAWAY[S]?\\s*\\*\\*", "[TAKEAWAY]"),
+            ("\\*\\*\\s*KEY\\s*POINTS\\s*\\*\\*", "[KEYPOINTS]"),
+            ("\\*\\*\\s*STEPS\\s*\\*\\*", "[STEPS]"),
+            ("\\*\\*\\s*SKILL[S]?\\s*\\*\\*", "[SKILL]"),
+            ("\\*\\*\\s*EXPLANATION\\s*\\*\\*", "[EXPLANATION]"),
+            ("\\*\\*\\s*TIP\\s*\\*\\*", "[TIP]"),
+            ("\\*\\*\\s*SUMMARY\\s*\\*\\*", "[SUMMARY]")
+        ]
+        for entry in tagPatterns {
+            result = result.replacingOccurrences(of: entry.pattern, with: entry.replacement, options: .regularExpression)
+        }
+        // Handle plain labels or bare tokens into tags
+        let prefixPatterns: [(pattern: String, replacement: String)] = [
+            (#"(?im)^\s*SOLUTION\s*:?.*"#, "[SOLUTION] \0"),
+            (#"(?im)^\s*ANSWER\s*:?.*"#, "[ANSWER] \0"),
+            (#"(?im)^\s*KEY\s*TAKEAWAY[S]?\s*:?.*"#, "[TAKEAWAY] \0"),
+            (#"(?im)^\s*KEY\s*POINTS\s*:?.*"#, "[KEYPOINTS] \0"),
+            (#"(?im)^\s*STEPS\s*:?.*"#, "[STEPS] \0"),
+            (#"(?im)^\s*SKILL[S]?\s*:?.*"#, "[SKILL] \0"),
+            (#"(?im)^\s*EXPLANATION\s*:?.*"#, "[EXPLANATION] \0"),
+            (#"(?im)^\s*TIP\s*:?.*"#, "[TIP] \0"),
+            (#"(?im)^\s*SUMMARY\s*:?.*"#, "[SUMMARY] \0"),
+            (#"(?im)^\s*MATHSTEP\s*:?.*"#, "[MATHSTEP] \0"),
+            (#"(?im)^\s*WORKCHECK\s*:?.*"#, "[WORKCHECK] \0"),
+            (#"(?im)^\s*ERROR\s*STEP\s*:?.*"#, "[ERROR STEP] \0"),
+            (#"(?im)^\s*CORRECTION\s*:?.*"#, "[CORRECTION] \0")
+        ]
+        for entry in prefixPatterns {
+            result = result.replacingOccurrences(of: entry.pattern, with: entry.replacement, options: [.regularExpression])
+        }
+        // Also wrap bare leading tags without brackets (e.g., "SKILL ...") into [TAG]
+        let bareTagPattern = #"(?im)^(SKILL|MATHSTEP|WORKCHECK|ERROR STEP|CORRECTION|SOLUTION|KEYTAKEAWAY|TIP|KEYPOINTS|EXPLANATION|SUMMARY|STEPS)\b"#
+        result = result.replacingOccurrences(of: bareTagPattern, with: "[$1]", options: [.regularExpression])
+        // If no tags are present at all, wrap the whole response in a fallback [SUMMARY] tag to render
+        if result.range(of: #"\[([A-Z ]+)\]"#, options: .regularExpression) == nil {
+            result = "[SUMMARY]\n" + result
+        }
+        return result
     }
 }
 
@@ -336,6 +585,7 @@ private struct WelcomeMessageView: View {
 
 private struct ChatBubbleView: View {
     let message: ChatMessage
+    let attachedImage: UIImage?
     let onSaveAsFlashcard: () -> Void
     
     var body: some View {
@@ -348,8 +598,24 @@ private struct ChatBubbleView: View {
                 // Message bubble
                 Group {
                     if message.isUser {
-                        Text(message.text)
-                            .foregroundStyle(.white)
+                        VStack(alignment: .trailing, spacing: 10) {
+                            if !message.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && message.text != "[Image]" {
+                                Text(message.text)
+                            }
+                            if let image = attachedImage {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 160, height: 160)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                                    )
+                                    .shadow(color: Color.black.opacity(0.2), radius: 6, y: 3)
+                            }
+                        }
+                        .foregroundStyle(.white)
                     } else {
                         FormattedMessageView(text: message.text)
                     }
@@ -399,6 +665,7 @@ private enum SectionCardType: String {
     case scenario = "SCENARIO"
     case simple = "SIMPLE"
     case keypoints = "KEYPOINTS"
+    case skill = "SKILL"
     case analogy = "ANALOGY"
     case mistakes = "MISTAKES"
     case compare = "COMPARE"
@@ -413,6 +680,36 @@ private enum SectionCardType: String {
     case mathstep = "MATHSTEP"
     case solution = "SOLUTION"
     case answer = "ANSWER"
+    // Vision/Work analysis tags
+    case workcheck = "WORKCHECK"
+    case errorStep = "ERRORSTEP"
+    case correction = "CORRECTION"
+    case explanation = "EXPLANATION"
+    
+    /// Normalizes common misspellings to the correct tag
+    static func fromNormalized(_ raw: String) -> SectionCardType? {
+        let normalized = raw.uppercased()
+            .replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "_", with: "")
+        
+        // Handle common misspellings
+        switch normalized {
+        case "EXPALANATION", "EXPLANTION", "EXPLAINATION":
+            return .explanation
+        case "SOULTION", "SOUTION":
+            return .solution
+        case "ERRORSTEP", "ERROR_STEP", "ERRORSTEPS":
+            return .errorStep
+        case "KEYTAKEAWAY", "KEY_TAKEAWAY":
+            return .takeaway
+        case "SKILLREQUIRED", "SKILL_REQUIRED":
+            return .skill
+        case "WORKCHECK", "WORK_CHECK":
+            return .workcheck
+        default:
+            return SectionCardType(rawValue: normalized)
+        }
+    }
     
     var icon: String {
         switch self {
@@ -421,6 +718,7 @@ private enum SectionCardType: String {
         case .scenario: return "theatermasks"
         case .simple: return "lightbulb.min"
         case .keypoints: return "list.bullet"
+        case .skill: return "hammer"
         case .analogy: return "arrow.triangle.branch"
         case .mistakes: return "exclamationmark.triangle"
         case .compare: return "arrow.left.arrow.right"
@@ -435,6 +733,10 @@ private enum SectionCardType: String {
         case .mathstep: return "function"
         case .solution: return "checkmark.circle"
         case .answer: return "equal.circle"
+        case .workcheck: return "checkmark.shield"
+        case .errorStep: return "xmark.circle"
+        case .correction: return "arrow.uturn.right"
+        case .explanation: return "text.bubble"
         }
     }
     
@@ -445,6 +747,7 @@ private enum SectionCardType: String {
         case .scenario: return .orange
         case .simple: return .green
         case .keypoints: return .indigo
+        case .skill: return .cyan
         case .analogy: return .teal
         case .mistakes: return .red
         case .compare: return .cyan
@@ -459,6 +762,10 @@ private enum SectionCardType: String {
         case .mathstep: return .indigo
         case .solution: return .green
         case .answer: return .blue
+        case .workcheck: return .blue
+        case .errorStep: return .red
+        case .correction: return .green
+        case .explanation: return .teal
         }
     }
 }
@@ -1352,18 +1659,175 @@ private struct QuickPromptsBar: View {
     }
 }
 
+// MARK: - Image Source Popup
+
+private struct ImageSourcePopup: View {
+    let onTakePhoto: () -> Void
+    let onChoosePhoto: () -> Void
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Attach an image")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    onDismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            
+            Text("Use photos to solve math, check your work, explain science diagrams, or debug tricky steps.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            VStack(spacing: 10) {
+                Button(action: onTakePhoto) {
+                    HStack {
+                        Image(systemName: "camera.fill")
+                        Text("Take a photo")
+                        Spacer()
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.accentColor.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                
+                Button(action: onChoosePhoto) {
+                    HStack {
+                        Image(systemName: "photo.fill.on.rectangle.fill")
+                        Text("Choose from library")
+                        Spacer()
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: 360)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18), radius: 18, y: 6)
+    }
+}
+
+// MARK: - Confirm Popup
+
+private struct ConfirmPopup: View {
+    let title: String
+    let message: String
+    let primaryTitle: String
+    let primaryRole: ButtonRole
+    let secondaryTitle: String
+    let onPrimary: () -> Void
+    let onSecondary: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text(title)
+                    .font(.headline)
+                Spacer()
+                Button {
+                    onSecondary()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            HStack(spacing: 12) {
+                Button(role: .cancel) {
+                    onSecondary()
+                } label: {
+                    Text(secondaryTitle)
+                        .font(.subheadline.bold())
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                
+                Button(role: primaryRole) {
+                    onPrimary()
+                } label: {
+                    Text(primaryTitle)
+                        .font(.subheadline.bold())
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(primaryRole == .destructive ? Color.red : Color.accentColor)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: 360)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18), radius: 18, y: 6)
+    }
+}
+
 // MARK: - Chat Input Bar
 
 private struct ChatInputBar: View {
     @Binding var text: String
+    let selectedImage: UIImage?
     let isLoading: Bool
     let onSend: () -> Void
+    let onCameraPressed: () -> Void
     let onTextChange: (String) -> Void
     
     @FocusState private var isFocused: Bool
     
+    private var canSend: Bool {
+        let hasText = !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasImage = selectedImage != nil
+        return (hasText || hasImage) && !isLoading
+    }
+    
     var body: some View {
         HStack(spacing: 12) {
+            // Camera button
+            Button {
+                onCameraPressed()
+            } label: {
+                ZStack {
+                    LinearGradient(
+                        colors: [Color.orange, Color.accentColor],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .opacity(isLoading ? 0.4 : 1)
+                    .frame(width: 40, height: 40)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Image(systemName: "camera.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.white)
+                }
+            }
+            .disabled(isLoading)
+            .accessibilityLabel("Add image")
+            .accessibilityHint("Take a photo or select an image to analyze")
+            
             TextField("Ask about this material...", text: $text, axis: .vertical)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 16)
@@ -1376,7 +1840,7 @@ private struct ChatInputBar: View {
                     onTextChange(newValue)
                 }
                 .onSubmit {
-                    if !text.isEmpty && !isLoading {
+                    if canSend {
                         onSend()
                     }
                 }
@@ -1386,13 +1850,9 @@ private struct ChatInputBar: View {
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 32))
-                    .foregroundStyle(
-                        text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading
-                            ? Color(.tertiaryLabel)
-                            : Color.accentColor
-                    )
+                    .foregroundStyle(canSend ? Color.accentColor : Color(.tertiaryLabel))
             }
-            .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
+            .disabled(!canSend)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -1647,6 +2107,48 @@ private struct FlashcardPreviewRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Image Picker View
+
+private struct ImagePickerView: UIViewControllerRepresentable {
+    let sourceType: UIImagePickerController.SourceType
+    @Binding var selectedImage: UIImage?
+    @Environment(\.dismiss) private var dismiss
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = sourceType
+        picker.delegate = context.coordinator
+        picker.allowsEditing = false
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePickerView
+        
+        init(_ parent: ImagePickerView) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.selectedImage = image
+                print("[StudySnap Vision] Image selected from picker")
+            }
+            parent.dismiss()
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
     }
 }
 

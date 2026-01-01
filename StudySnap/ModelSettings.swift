@@ -35,6 +35,7 @@ enum ModelSettings {
     }
 
     static let defaultOpenRouterModel = "openai/gpt-oss-20b:free"
+    static let visionModel = "nvidia/nemotron-nano-12b-v2-vl:free"
 
     static func preference() async -> AIModelPreference {
         await MainActor.run {
