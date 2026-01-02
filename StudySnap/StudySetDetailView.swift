@@ -18,13 +18,13 @@ struct StudySetDetailView: View {
                     }
                     .tag(0)
                 
-                QuestionsView(questions: studySet.questions)
+                QuestionsView(studySet: studySet)
                     .tabItem {
                         Label("Questions", systemImage: "list.bullet.clipboard")
                     }
                     .tag(1)
                 
-                FlashcardsView(flashcards: studySet.flashcards)
+                FlashcardsView(studySet: studySet)
                     .tabItem {
                         Label("Flashcards", systemImage: "rectangle.on.rectangle.angled")
                     }

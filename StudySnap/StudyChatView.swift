@@ -6,7 +6,7 @@ import SwiftData
 struct StudyChatView: View {
     let studySet: StudySet
     @Environment(\.modelContext) private var modelContext
-    @AppStorage(ModelSettings.Keys.openRouterApiKey) private var storedOpenRouterKey: String = ""
+    @AppStorage(ModelSettings.Keys.groqApiKey) private var storedGroqKey: String = ""
     @State private var messageText = ""
     @State private var isLoading = false
     @State private var showingFlashcardPreview = false
@@ -243,10 +243,10 @@ struct StudyChatView: View {
                 .transition(.scale.combined(with: .opacity))
             }
         }
-        .alert("OpenRouter API Key Required", isPresented: $showApiKeyAlert) {
+        .alert("Groq API Key Required", isPresented: $showApiKeyAlert) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("Uploading images requires an OpenRouter API key. Add one in Settings.")
+            Text("Uploading images requires an Groq API key. Add one in Settings.")
         }
         .alert("Error", isPresented: $showError) {
             Button("OK", role: .cancel) { }
@@ -279,7 +279,7 @@ struct StudyChatView: View {
     // MARK: - Actions
     
     private func handleCameraPressed() {
-        let trimmedKey = storedOpenRouterKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedKey = storedGroqKey.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedKey.isEmpty {
             showApiKeyAlert = true
             HapticsManager.shared.error()
@@ -374,7 +374,7 @@ struct StudyChatView: View {
         } catch {
             await MainActor.run {
                 isLoading = false
-                errorMessage = "Failed to get response: \(error.localizedDescription)"
+                errorMessage = "Failed to get response: \(AIService.formatError(error))"
                 showError = true
                 HapticsManager.shared.error()
             }
@@ -412,7 +412,7 @@ struct StudyChatView: View {
             print("[StudySnap Vision] Error: \(error.localizedDescription)")
             await MainActor.run {
                 isLoading = false
-                errorMessage = "Failed to analyze image: \(error.localizedDescription)"
+                errorMessage = "Failed to analyze image: \(AIService.formatError(error))"
                 showError = true
                 HapticsManager.shared.error()
             }
@@ -440,7 +440,7 @@ struct StudyChatView: View {
         } catch {
             await MainActor.run {
                 isLoading = false
-                errorMessage = "Failed to create flashcards: \(error.localizedDescription)"
+                errorMessage = "Failed to create flashcards: \(AIService.formatError(error))"
                 showError = true
             }
         }
@@ -521,7 +521,8 @@ struct StudyChatView: View {
             ("\\*\\*\\s*SKILL[S]?\\s*\\*\\*", "[SKILL]"),
             ("\\*\\*\\s*EXPLANATION\\s*\\*\\*", "[EXPLANATION]"),
             ("\\*\\*\\s*TIP\\s*\\*\\*", "[TIP]"),
-            ("\\*\\*\\s*SUMMARY\\s*\\*\\*", "[SUMMARY]")
+            ("\\*\\*\\s*SUMMARY\\s*\\*\\*", "[SUMMARY]"),
+            ("\\*\\*\\s*KEY\\s*TAKEAWAY[S]?\\s*\\*\\*", "[KEYTAKEAWAY]")
         ]
         for entry in tagPatterns {
             result = result.replacingOccurrences(of: entry.pattern, with: entry.replacement, options: .regularExpression)
@@ -530,7 +531,7 @@ struct StudyChatView: View {
         let prefixPatterns: [(pattern: String, replacement: String)] = [
             (#"(?im)^\s*SOLUTION\s*:?.*"#, "[SOLUTION] \0"),
             (#"(?im)^\s*ANSWER\s*:?.*"#, "[ANSWER] \0"),
-            (#"(?im)^\s*KEY\s*TAKEAWAY[S]?\s*:?.*"#, "[TAKEAWAY] \0"),
+            (#"(?im)^\s*KEY\s*TAKEAWAY[S]?\s*:?.*"#, "[KEYTAKEAWAY] \0"),
             (#"(?im)^\s*KEY\s*POINTS\s*:?.*"#, "[KEYPOINTS] \0"),
             (#"(?im)^\s*STEPS\s*:?.*"#, "[STEPS] \0"),
             (#"(?im)^\s*SKILL[S]?\s*:?.*"#, "[SKILL] \0"),
@@ -835,13 +836,13 @@ private struct FormattedMessageView: View {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             
             // Check for bare section labels like "SUMMARY:" without brackets (case-insensitive)
-            if let bareMatch = trimmed.range(of: "^(SUMMARY|INSIGHT|TAKEAWAY|TIP|SOLUTION|ANSWER|MATHSTEP|MATH STEP):\\s*", options: [.regularExpression, .caseInsensitive]) {
+            if let bareMatch = trimmed.range(of: "^(SUMMARY|INSIGHT|TAKEAWAY|KEYTAKEAWAY|KEY TAKEAWAY|TIP|SOLUTION|ANSWER|MATHSTEP|MATH STEP):\\s*", options: [.regularExpression, .caseInsensitive]) {
                 let labelPart = String(trimmed[bareMatch])
                     .replacingOccurrences(of: ":", with: "")
                     .replacingOccurrences(of: " ", with: "")
                     .trimmingCharacters(in: .whitespaces)
                     .uppercased()
-                if let cardType = SectionCardType(rawValue: labelPart) {
+                if let cardType = SectionCardType.fromNormalized(labelPart) {
                     flushPending()
                     if inTable {
                         blocks.append(.table(headers: tableHeaders, rows: tableRows))
@@ -870,7 +871,7 @@ private struct FormattedMessageView: View {
                     .uppercased()
                 
                 // Check if this is a valid section tag
-                if let cardType = SectionCardType(rawValue: tagName) {
+                if let cardType = SectionCardType.fromNormalized(tagName) {
                     flushPending()
                     if inTable {
                         blocks.append(.table(headers: tableHeaders, rows: tableRows))
@@ -900,7 +901,7 @@ private struct FormattedMessageView: View {
                         .replacingOccurrences(of: "]", with: "")
                         .replacingOccurrences(of: " ", with: "")
                         .uppercased()
-                    if let newType = SectionCardType(rawValue: tagName) {
+                    if let newType = SectionCardType.fromNormalized(tagName) {
                         // Flush current section and start new one
                         if !currentSectionContent.isEmpty {
                             blocks.append(.sectionCard(type: currentSectionType!, title: currentSectionType!.rawValue, content: currentSectionContent))

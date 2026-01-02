@@ -5,14 +5,26 @@ struct QuizView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var profiles: [UserProfile]
     @StateObject private var gamificationManager = GamificationManager.shared
+    @StateObject private var themeManager = ThemeManager.shared
     
-    let questions: [Question]
+    let studySet: StudySet
+    @State private var questions: [Question]
     @State private var currentQuestionIndex = 0
     @State private var score = 0
     @State private var isAnswerVisible = false
     @State private var isQuizFinished = false
     @State private var hasRecordedCompletion = false
     @Environment(\.dismiss) var dismiss
+    @State private var showGenerateMoreSheet = false
+    @State private var isGeneratingMore = false
+    @State private var additionalQuestionCount: Double = 5
+    @State private var relativeDifficulty: AIService.RelativeDifficulty = .same
+    @State private var generationError: String?
+
+    init(studySet: StudySet) {
+        self.studySet = studySet
+        _questions = State(initialValue: studySet.questions)
+    }
     
     private var profile: UserProfile {
         if let existing = profiles.first {
@@ -156,31 +168,28 @@ struct QuizView: View {
                                     }
                                     
                                     VStack(spacing: 16) {
-                                        ForEach(Array(options.enumerated()), id: \.element) { index, option in
+                                        let optionIndices = Array(options.indices)
+                                        ForEach(optionIndices, id: \.self) { index in
+                                            let option = options[index]
                                             Button(action: {
                                                 HapticsManager.shared.playTap()
                                                 checkAnswer(option)
                                             }) {
                                                 HStack(spacing: 15) {
-                                                    // Option Letter Circle
                                                     ZStack {
                                                         Circle()
                                                             .fill(isAnswerVisible ? (option == questions[currentQuestionIndex].answer ? Color.green : (option == selectedAnswer ? Color.red : Color.gray.opacity(0.2))) : Color.accentColor.opacity(0.1))
                                                             .frame(width: 36, height: 36)
-                                                        
                                                         Text(["A", "B", "C", "D"][index % 4])
                                                             .font(.headline)
                                                             .foregroundColor(isAnswerVisible ? (option == questions[currentQuestionIndex].answer || option == selectedAnswer ? .white : .secondary) : .accentColor)
                                                     }
-                                                    
                                                     MathTextView(option, fontSize: 17)
                                                         .fontWeight(.medium)
                                                         .multilineTextAlignment(.leading)
                                                         .foregroundColor(.primary)
                                                         .fixedSize(horizontal: false, vertical: true)
-                                                    
                                                     Spacer()
-                                                    
                                                     if isAnswerVisible {
                                                         if option == questions[currentQuestionIndex].answer {
                                                             Image(systemName: "checkmark.circle.fill")
@@ -320,6 +329,82 @@ struct QuizView: View {
         }
         .navigationTitle("Quiz Mode")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showGenerateMoreSheet) {
+            NavigationStack {
+                Form {
+                    Section(header: Text("How many questions?")) {
+                        HStack {
+                            Text("Questions")
+                            Spacer()
+                            Text("\(Int(additionalQuestionCount))")
+                                .foregroundColor(.secondary)
+                                .bold()
+                        }
+                        Slider(value: $additionalQuestionCount, in: 3...20, step: 1) {
+                            Text("Questions")
+                        }
+                        .tint(themeManager.primaryColor)
+                        .accessibilityValue("\(Int(additionalQuestionCount)) questions")
+                        .onChange(of: additionalQuestionCount) { _, _ in
+                            HapticsManager.shared.playTap()
+                        }
+                    }
+                    
+                    Section(header: Text("Difficulty")) {
+                        Picker("Difficulty", selection: $relativeDifficulty) {
+                            ForEach(AIService.RelativeDifficulty.allCases) { difficulty in
+                                Text(difficulty.rawValue).tag(difficulty)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .onChange(of: relativeDifficulty) { _, _ in
+                            HapticsManager.shared.playTap()
+                        }
+                    }
+                    
+                    Section {
+                        Button {
+                            generateMoreQuestions()
+                        } label: {
+                            HStack {
+                                if isGeneratingMore {
+                                    ProgressView()
+                                        .progressViewStyle(.circular)
+                                        .tint(.white)
+                                }
+                                Text(isGeneratingMore ? "Generating..." : "Generate")
+                                    .bold()
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .disabled(isGeneratingMore)
+                    }
+                }
+                .navigationTitle("Generate More")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") {
+                            HapticsManager.shared.playTap()
+                            showGenerateMoreSheet = false
+                        }
+                    }
+                }
+            }
+        }
+        .alert("Could not generate", isPresented: Binding(
+            get: { generationError != nil },
+            set: { if !$0 { generationError = nil } }
+        )) {
+            Button("OK", role: .cancel) {
+                HapticsManager.shared.playTap()
+                generationError = nil
+            }
+        } message: {
+            if let generationError {
+                Text(generationError)
+            }
+        }
     }
     
     @State private var selectedAnswer: String?
@@ -402,5 +487,52 @@ struct QuizView: View {
             coins += CoinRewards.perfectQuiz
         }
         return coins
+    }
+
+    private func generateMoreQuestions() {
+        HapticsManager.shared.playTap()
+        generationError = nil
+        isGeneratingMore = true
+        Task {
+            let service = AIService.shared
+            do {
+                let newData = try await service.generateQuestions(
+                    from: studySet.originalText,
+                    count: Int(additionalQuestionCount),
+                    relativeDifficulty: relativeDifficulty
+                )
+                await MainActor.run {
+                    let newQuestions = newData.map { data -> Question in
+                        let question = Question(
+                            prompt: data.question,
+                            answer: data.answer,
+                            options: data.options,
+                            explanation: data.explanation
+                        )
+                        question.studySet = studySet
+                        modelContext.insert(question)
+                        return question
+                    }
+                    questions.append(contentsOf: newQuestions)
+                    resetQuizState()
+                    isGeneratingMore = false
+                    showGenerateMoreSheet = false
+                }
+            } catch {
+                await MainActor.run {
+                    generationError = AIService.formatError(error)
+                    isGeneratingMore = false
+                }
+            }
+        }
+    }
+    
+    private func resetQuizState() {
+        currentQuestionIndex = 0
+        score = 0
+        isAnswerVisible = false
+        isQuizFinished = false
+        hasRecordedCompletion = false
+        selectedAnswer = nil
     }
 }

@@ -3,19 +3,49 @@ import Foundation
 import FoundationModels
 #endif
 
-enum AIError: Error {
+enum AIError: LocalizedError {
     case generationFailed
     case invalidResponse
     case parsingFailed
     case apiError(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .generationFailed:
+            return "The AI failed to generate a response. Please try again."
+        case .invalidResponse:
+            return "The AI returned an invalid response format."
+        case .parsingFailed:
+            return "Failed to parse the AI response into the required format."
+        case .apiError(let message):
+            return "AI Error: \(message)"
+        }
+    }
 }
 
 actor AIService {
     static let shared = AIService()
 
+    /// Formats an error for display to the user, ensuring error codes are included.
+    static func formatError(_ error: Error) -> String {
+        if let aiError = error as? AIError {
+            return aiError.localizedDescription
+        }
+        
+        let nsError = error as NSError
+        let code = nsError.code
+        let description = nsError.localizedDescription
+        
+        if code != 0 {
+            return "\(description) (Error Code: \(code))"
+        } else {
+            return description
+        }
+    }
+
     private enum Provider {
         case appleIntelligence
-        case openRouter
+        case groq
     }
 
     private struct ProviderSelection {
@@ -38,8 +68,8 @@ actor AIService {
         let back: String
     }
 
-    // OpenRouter API Structs
-    private struct OpenRouterRequest: Codable, Sendable {
+    // Groq API Structs
+    private struct GroqRequest: Codable, Sendable {
         let model: String
         let messages: [Message]
         
@@ -49,7 +79,7 @@ actor AIService {
         }
     }
 
-    private struct OpenRouterResponse: Codable, Sendable {
+    private struct GroqResponse: Codable, Sendable {
         let choices: [Choice]
         
         struct Choice: Codable, Sendable {
@@ -60,9 +90,19 @@ actor AIService {
             let content: String
         }
     }
+
+    private struct GroqErrorResponse: Codable, Sendable {
+        let error: ErrorDetails
+        
+        struct ErrorDetails: Codable, Sendable {
+            let message: String
+            let type: String?
+            let code: String?
+        }
+    }
     
-    // OpenRouter Multimodal (Vision) API Structs
-    private struct OpenRouterMultimodalRequest: Codable, Sendable {
+    // Groq Multimodal (Vision) API Structs
+    private struct GroqMultimodalRequest: Codable, Sendable {
         let model: String
         let messages: [MultimodalMessage]
         
@@ -94,13 +134,14 @@ actor AIService {
         }
     }
     
-    private let endpoint = URL(string: "https://openrouter.ai/api/v1/chat/completions")!
+    private let endpoint = URL(string: "https://api.groq.com/openai/v1/chat/completions")!
     
     private init() {}
 
     // Small randomised delay to reduce rate-limiting (0.5 - 1.0 seconds)
     private func applyRateLimitDelay() async {
-        let millis = UInt64(Int.random(in: 500...1000))
+        // Longer delay to avoid hitting Groq's rate limits
+        let millis = UInt64(Int.random(in: 500...1500))
         do {
             try await Task.sleep(nanoseconds: millis * 1_000_000)
         } catch {
@@ -116,27 +157,26 @@ actor AIService {
             do {
                 return try await runAppleIntelligence(systemPrompt: systemPrompt, userPrompt: userPrompt)
             } catch {
-                let reason = "Apple Intelligence unavailable (\(error.localizedDescription)). Falling back to OpenRouter (BYOK)."
+                let reason = "Apple Intelligence unavailable (\(error.localizedDescription)). Falling back to Groq (BYOK)."
                 setFallbackNoticeIfNeeded(selection.fallbackNotice ?? reason)
-                return try await runOpenRouter(systemPrompt: systemPrompt, userPrompt: userPrompt)
+                return try await runGroq(systemPrompt: systemPrompt, userPrompt: userPrompt)
             }
-        case .openRouter:
+        case .groq:
             setFallbackNoticeIfNeeded(selection.fallbackNotice)
-            return try await runOpenRouter(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            return try await runGroq(systemPrompt: systemPrompt, userPrompt: userPrompt)
         }
     }
 
-    private func runOpenRouter(systemPrompt: String, userPrompt: String) async throws -> String {
-        let apiKey = try await openRouterApiKey()
-        let model = await ModelSettings.openRouterModel()
+    private func runGroq(systemPrompt: String, userPrompt: String) async throws -> String {
+        let apiKey = try await groqApiKey()
+        let model = await ModelSettings.groqModel()
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("StudySnap", forHTTPHeaderField: "X-Title")
 
-        let payload = OpenRouterRequest(
+        let payload = GroqRequest(
             model: model,
             messages: [
                 .init(role: "system", content: systemPrompt),
@@ -155,18 +195,21 @@ actor AIService {
         }
 
         guard (200...299).contains(httpResponse.statusCode) else {
-            if let errorText = String(data: data, encoding: .utf8) {
-                print("OpenRouter API Error: \(errorText)")
+            var errorDetail = "Status code: \(httpResponse.statusCode)"
+            if let errorResponse = try? JSONDecoder().decode(GroqErrorResponse.self, from: data) {
+                errorDetail = "\(errorResponse.error.message) (Code: \(errorResponse.error.code ?? "\(httpResponse.statusCode)"))"
+            } else if let errorText = String(data: data, encoding: .utf8) {
+                print("Groq API Error: \(errorText)")
             }
-            throw AIError.apiError("Status code: \(httpResponse.statusCode)")
+            throw AIError.apiError(errorDetail)
         }
 
-        let decodedResponse = try JSONDecoder().decode(OpenRouterResponse.self, from: data)
+        let decodedResponse = try JSONDecoder().decode(GroqResponse.self, from: data)
         guard let content = decodedResponse.choices.first?.message.content else {
             throw AIError.invalidResponse
         }
 
-        print("AI (OpenRouter) response:\n\(content)\n--- end response ---")
+        print("AI (Groq) response:\n\(content)\n--- end response ---")
 
         return content
     }
@@ -190,21 +233,21 @@ actor AIService {
         let preference = await ModelSettings.preference()
 
         switch preference {
-        case .openRouterOnly:
-            return ProviderSelection(provider: .openRouter, fallbackNotice: nil)
+        case .groqOnly:
+            return ProviderSelection(provider: .groq, fallbackNotice: nil)
         case .automatic:
             if Self.appleIntelligenceAvailable {
                 return ProviderSelection(provider: .appleIntelligence, fallbackNotice: nil)
             }
-            let notice = "Apple Intelligence requires iOS 26+ with supported hardware and enabled in Settings. Falling back to OpenRouter (BYOK)."
-            return ProviderSelection(provider: .openRouter, fallbackNotice: notice)
+            let notice = "Apple Intelligence requires iOS 26+ with supported hardware and enabled in Settings. Falling back to Groq (BYOK)."
+            return ProviderSelection(provider: .groq, fallbackNotice: notice)
         }
     }
 
-    private func openRouterApiKey() async throws -> String {
-        let key = await ModelSettings.openRouterApiKey()
+    private func groqApiKey() async throws -> String {
+        let key = await ModelSettings.groqApiKey()
         guard key.isEmpty == false else {
-            throw AIError.apiError("Missing OpenRouter API key. Add it in Model Settings.")
+            throw AIError.apiError("Missing Groq API key. Add it in Model Settings.")
         }
         return key
     }
@@ -247,6 +290,25 @@ actor AIService {
         case advanced = "Advanced"
         
         var id: String { self.rawValue }
+    }
+
+    enum RelativeDifficulty: String, CaseIterable, Identifiable {
+        case easier = "Easier"
+        case same = "Same Difficulty"
+        case harder = "Harder"
+        
+        var id: String { self.rawValue }
+        
+        var guidance: String {
+            switch self {
+            case .easier:
+                return "Simplify language and focus on foundational, one-step ideas. Avoid edge cases."
+            case .same:
+                return "Match the current difficulty and tone of the learner's existing material."
+            case .harder:
+                return "Increase complexity with multi-step reasoning, trickier distractors, and deeper concepts."
+            }
+        }
     }
     
     private func cleanJSON(_ jsonString: String) -> String {
@@ -297,21 +359,6 @@ actor AIService {
         return options.contains { normalizeWhitespace($0) == normAnswer }
     }
 
-    // Produces a clear annotation used in fallback/mock responses so the UI can
-    // show that the content is not live AI output, include an error code, and
-    // instruct the user to retry.
-    private func fallbackAnnotation(for error: Error) -> String {
-        let code: String
-        if case AIError.apiError(let msg) = error {
-            code = msg
-        } else {
-            let ns = error as NSError
-            code = "\(ns.domain) \(ns.code)"
-        }
-
-        return "*** ERROR — AI Unavailable: Showing MOCK DATA. Error: \(code). Please retry. ***"
-    }
-    
     func generateSummary(from text: String, style: SummaryStyle = .paragraph, wordCount: Int = 150, difficulty: SummaryDifficulty = .intermediate) async throws -> String {
         do {
             let systemPrompt = "You are a concise study assistant. Produce clean, well-formatted output that follows instructions exactly. Do not add headings, labels, bullets, or extra commentary."
@@ -354,25 +401,26 @@ actor AIService {
             
             return try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
         } catch {
-            print("AI Generation failed: \(error). Falling back to mock.")
-            // Fallback to mock if generation fails
-            try await Task.sleep(nanoseconds: 2 * 1_000_000_000)
-            let note = fallbackAnnotation(for: error)
-            return """
-            *** ERROR — MOCK DATA ***
-            AI request failed: \(String(describing: error))
-            \(note)
-
-            This is a concise summary of the provided text. The text discusses the importance of study habits and how using AI can enhance learning efficiency. It covers key topics such as active recall, spaced repetition, and the benefits of summarising information.
-            """
+            print("AI Generation failed: \(error)")
+            throw error
         }
     }
     
-    func generateQuestions(from text: String, count: Int) async throws -> [(question: String, answer: String, options: [String], explanation: String?)] {
+    func generateQuestions(from text: String, count: Int, relativeDifficulty: RelativeDifficulty? = nil) async throws -> [(question: String, answer: String, options: [String], explanation: String?)] {
         do {
             let systemPrompt = "You are a precise quiz generator. Output ONLY the requested format. No conversational text."
+            let difficultyAdjustment: String
+            if let relativeDifficulty {
+                difficultyAdjustment = """
+                Difficulty adjustment: \(relativeDifficulty.rawValue). \(relativeDifficulty.guidance)
+                """
+            } else {
+                difficultyAdjustment = "Difficulty: Match the current set's complexity."
+            }
             let userPrompt = """
             Generate \(count) multiple choice study questions based on the text below.
+
+            \(difficultyAdjustment)
             
             STRICT OUTPUT FORMAT (Tag-based):
             
@@ -489,29 +537,22 @@ actor AIService {
             return questions
             
         } catch {
-            print("AI Generation failed: \(error). Falling back to mock.")
-
-            // Mock Fallback
-            try await Task.sleep(nanoseconds: 2 * 1_000_000_000)
-
-            var questions: [(String, String, [String], String?)] = []
-            let note = fallbackAnnotation(for: error)
-            for i in 1...count {
-                let correctAnswer = "The correct answer for question \(i)"
-                let distractors = ["Distractor 1", "Distractor 2", "Distractor 3"]
-                let options = (distractors + [correctAnswer]).shuffled()
-                let explanation = "This is the explanation for question \(i). It explains why the answer is correct.\n\n\(note)"
-                let questionText = "[MOCK DATA] \(note)\n\nWhat is the key concept in section \(i)?"
-
-                questions.append((questionText, correctAnswer, options, explanation))
-            }
-            return questions
+            print("AI Generation failed: \(error)")
+            throw error
         }
     }
     
-    func generateFlashcards(from text: String, count: Int) async throws -> [(front: String, back: String)] {
+    func generateFlashcards(from text: String, count: Int, relativeDifficulty: RelativeDifficulty? = nil) async throws -> [(front: String, back: String)] {
         do {
-            let systemPrompt = "You are a precise flashcard generator. Follow the exact tag format. No markdown, no numbering, no extra prose. Front and back must be plain text (no TeX/LaTeX)."
+            let systemPrompt = "You are a precise flashcard generator. Follow the exact tag format. No markdown, no numbering, no extra prose. Front and back must be plain text."
+            let difficultyAdjustment: String
+            if let relativeDifficulty {
+                difficultyAdjustment = """
+                Difficulty adjustment: \(relativeDifficulty.rawValue). \(relativeDifficulty.guidance)
+                """
+            } else {
+                difficultyAdjustment = "Difficulty: Match the current set's complexity."
+            }
             let userPrompt = """
             Generate \(count) flashcards (like in Quizlet) based on the following text.
 
@@ -526,10 +567,11 @@ actor AIService {
             IMPORTANT - FOLLOW ALL:
             1) Do NOT use JSON or markdown.
             2) Do NOT use headings (#, ##) or bold/italics. No numbering of cards.
-            3) Do NOT include TeX/LaTeX math in FRONT or BACK. Use plain text only.
-            4) Keep the 'front' very short (3-9 words) and the 'back' concise (under 20 words).
-            5) Keep EXACT tags as shown. No extra tags or bullets.
-            6) Produce exactly \(count) flashcards.
+            3) Keep the 'front' very short (3-9 words) and the 'back' concise (under 20 words).
+            4) Keep EXACT tags as shown. No extra tags or bullets.
+            5) Produce exactly \(count) flashcards.
+
+            \(difficultyAdjustment)
 
             GOOD EXAMPLE (copy structure, change content):
             [FRONT]
@@ -622,17 +664,8 @@ actor AIService {
             return cards
             
         } catch {
-            print("AI Generation failed: \(error). Falling back to mock.")
-
-            // Mock Fallback
-            try await Task.sleep(nanoseconds: 2 * 1_000_000_000)
-
-            var cards: [(String, String)] = []
-            let note = fallbackAnnotation(for: error)
-            for i in 1...count {
-                cards.append(("Term \(i)", "Definition for term \(i) derived from the text.\n\n\(note)"))
-            }
-            return cards
+            print("AI Generation failed: \(error)")
+            throw error
         }
     }
     
@@ -686,18 +719,8 @@ actor AIService {
             
             return try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
         } catch {
-            print("AI Generation failed: \(error). Falling back to mock.")
-            try await Task.sleep(nanoseconds: 2 * 1_000_000_000)
-            let note = fallbackAnnotation(for: error)
-            return """
-            *** ERROR — MOCK DATA ***
-            AI request failed: \(String(describing: error))
-            \(note)
-
-            # Learning Guide: \(topic)
-
-            This is a comprehensive guide to help you learn about \(topic). The guide covers fundamental concepts, practical applications, and tips for mastery.
-            """
+            print("AI Generation failed: \(error)")
+            throw error
         }
     }
     
@@ -828,27 +851,15 @@ actor AIService {
             return questions
             
         } catch {
-            print("AI Generation failed: \(error). Falling back to mock.")
-            try await Task.sleep(nanoseconds: 2 * 1_000_000_000)
-
-            var questions: [(String, String, [String], String?)] = []
-            let note = fallbackAnnotation(for: error)
-            for i in 1...count {
-                let correctAnswer = "Correct answer about \(topic) - concept \(i)"
-                let distractors = ["Incorrect option A", "Incorrect option B", "Incorrect option C"]
-                let options = (distractors + [correctAnswer]).shuffled()
-                let explanation = "This is the explanation for question \(i) about \(topic).\n\n\(note)"
-                let questionText = "[MOCK DATA] \(note)\n\nQuestion \(i) about \(topic)?"
-                questions.append((questionText, correctAnswer, options, explanation))
-            }
-            return questions
+            print("AI Generation failed: \(error)")
+            throw error
         }
     }
     
     /// Generates flashcards to help learn a new topic
     func generateTopicFlashcards(topic: String, count: Int, difficulty: SummaryDifficulty = .intermediate) async throws -> [(front: String, back: String)] {
         do {
-            let systemPrompt = "You are a precise flashcard generator. Follow the exact tag format. No markdown, no numbering, no extra prose. Front and back must be plain text (no TeX/LaTeX)."
+            let systemPrompt = "You are a precise flashcard generator. Follow the exact tag format. No markdown, no numbering, no extra prose."
             let difficultyInstruction: String
             switch difficulty {
             case .beginner:
@@ -875,10 +886,9 @@ actor AIService {
             IMPORTANT - FOLLOW ALL:
             1) Do NOT use JSON or markdown.
             2) Do NOT use headings (#, ##) or bold/italics. No numbering of cards.
-            3) Do NOT include TeX/LaTeX math in FRONT or BACK. Use plain text only.
-            4) Keep the 'front' very short (3-9 words) and the 'back' concise (under 20 words).
-            5) Keep EXACT tags as shown. No extra tags or bullets.
-            6) Produce exactly \(count) flashcards.
+            3) Keep the 'front' very short (3-9 words) and the 'back' concise (under 20 words).
+            4) Keep EXACT tags as shown. No extra tags or bullets.
+            5) Produce exactly \(count) flashcards.
 
             GOOD EXAMPLE (copy structure, change content):
             [FRONT]
@@ -962,15 +972,8 @@ actor AIService {
             return cards
             
         } catch {
-            print("AI Generation failed: \(error). Falling back to mock.")
-            try await Task.sleep(nanoseconds: 2 * 1_000_000_000)
-
-            var cards: [(String, String)] = []
-            let note = fallbackAnnotation(for: error)
-            for i in 1...count {
-                cards.append(("Key concept \(i) of \(topic)", "Explanation of concept \(i) related to \(topic).\n\n\(note)"))
-            }
-            return cards
+            print("AI Generation failed: \(error)")
+            throw error
         }
     }
     
@@ -1118,37 +1121,36 @@ actor AIService {
                     messages: messages
                 )
             } catch {
-                let reason = "Apple Intelligence unavailable. Falling back to OpenRouter."
+                let reason = "Apple Intelligence unavailable. Falling back to Groq."
                 setFallbackNoticeIfNeeded(selection.fallbackNotice ?? reason)
-                return try await runOpenRouterConversation(
+                return try await runGroqConversation(
                     systemPrompt: systemPrompt,
                     messages: messages
                 )
             }
-        case .openRouter:
+        case .groq:
             setFallbackNoticeIfNeeded(selection.fallbackNotice)
-            return try await runOpenRouterConversation(
+            return try await runGroqConversation(
                 systemPrompt: systemPrompt,
                 messages: messages
             )
         }
     }
     
-    private func runOpenRouterConversation(
+    private func runGroqConversation(
         systemPrompt: String,
         messages: [ChatTurn]
     ) async throws -> String {
-        let apiKey = try await openRouterApiKey()
-        let model = await ModelSettings.openRouterModel()
+        let apiKey = try await groqApiKey()
+        let model = await ModelSettings.groqModel()
         
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("StudySnap", forHTTPHeaderField: "X-Title")
         
         // Build messages array with system prompt and conversation history
-        var apiMessages: [OpenRouterRequest.Message] = [
+        var apiMessages: [GroqRequest.Message] = [
             .init(role: "system", content: systemPrompt)
         ]
         
@@ -1156,7 +1158,7 @@ actor AIService {
             apiMessages.append(.init(role: msg.role, content: msg.content))
         }
         
-        let payload = OpenRouterRequest(model: model, messages: apiMessages)
+        let payload = GroqRequest(model: model, messages: apiMessages)
         request.httpBody = try JSONEncoder().encode(payload)
         
         await applyRateLimitDelay()
@@ -1168,13 +1170,16 @@ actor AIService {
         }
         
         guard (200...299).contains(httpResponse.statusCode) else {
-            if let errorText = String(data: data, encoding: .utf8) {
-                print("OpenRouter API Error: \(errorText)")
+            var errorDetail = "Status code: \(httpResponse.statusCode)"
+            if let errorResponse = try? JSONDecoder().decode(GroqErrorResponse.self, from: data) {
+                errorDetail = "\(errorResponse.error.message) (Code: \(errorResponse.error.code ?? "\(httpResponse.statusCode)"))"
+            } else if let errorText = String(data: data, encoding: .utf8) {
+                print("Groq API Error: \(errorText)")
             }
-            throw AIError.apiError("Status code: \(httpResponse.statusCode)")
+            throw AIError.apiError(errorDetail)
         }
         
-        let decodedResponse = try JSONDecoder().decode(OpenRouterResponse.self, from: data)
+        let decodedResponse = try JSONDecoder().decode(GroqResponse.self, from: data)
         guard let content = decodedResponse.choices.first?.message.content else {
             throw AIError.invalidResponse
         }
@@ -1209,7 +1214,7 @@ actor AIService {
     // MARK: - Vision Chat (Image Analysis)
     
     /// Performs a vision chat request with an image attachment
-    /// Always uses OpenRouter (Apple Intelligence does not support vision)
+    /// Always uses Groq (Apple Intelligence does not support vision)
     func performVisionChat(
         imageData: Data,
         userMessage: String,
@@ -1291,7 +1296,7 @@ actor AIService {
         // Build the user message with context
         let fullUserMessage = userMessage.isEmpty ? "Analyze this image and help me understand it." : userMessage
         
-        return try await runOpenRouterVision(
+        return try await runGroqVision(
             systemPrompt: systemPrompt,
             userMessage: fullUserMessage,
             imageData: imageData,
@@ -1299,20 +1304,19 @@ actor AIService {
         )
     }
     
-    private func runOpenRouterVision(
+    private func runGroqVision(
         systemPrompt: String,
         userMessage: String,
         imageData: Data,
         visionModel: String
     ) async throws -> String {
-        let apiKey = try await openRouterApiKey()
+        let apiKey = try await groqApiKey()
         let model = visionModel
         
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("StudySnap", forHTTPHeaderField: "X-Title")
         
         // Convert image to base64
         let base64Image = imageData.base64EncodedString()
@@ -1321,22 +1325,22 @@ actor AIService {
         print("[StudySnap Vision] Base64 encoded, length: \(base64Image.count) characters")
         
         // Build multimodal messages
-        let systemMessage = OpenRouterMultimodalRequest.MultimodalMessage(
+        let systemMessage = GroqMultimodalRequest.MultimodalMessage(
             role: "system",
-            content: [OpenRouterMultimodalRequest.ContentPart(text: systemPrompt)]
+            content: [GroqMultimodalRequest.ContentPart(text: systemPrompt)]
         )
         
-        let userContent: [OpenRouterMultimodalRequest.ContentPart] = [
-            OpenRouterMultimodalRequest.ContentPart(imageURL: imageURL),
-            OpenRouterMultimodalRequest.ContentPart(text: userMessage)
+        let userContent: [GroqMultimodalRequest.ContentPart] = [
+            GroqMultimodalRequest.ContentPart(imageURL: imageURL),
+            GroqMultimodalRequest.ContentPart(text: userMessage)
         ]
         
-        let userMessageObj = OpenRouterMultimodalRequest.MultimodalMessage(
+        let userMessageObj = GroqMultimodalRequest.MultimodalMessage(
             role: "user",
             content: userContent
         )
         
-        let payload = OpenRouterMultimodalRequest(
+        let payload = GroqMultimodalRequest(
             model: model,
             messages: [systemMessage, userMessageObj]
         )
@@ -1345,7 +1349,7 @@ actor AIService {
         
         await applyRateLimitDelay()
         
-        print("[StudySnap Vision] Sending request to OpenRouter...")
+        print("[StudySnap Vision] Sending request to Groq...")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -1357,13 +1361,16 @@ actor AIService {
         print("[StudySnap Vision] Response status code: \(httpResponse.statusCode)")
         
         guard (200...299).contains(httpResponse.statusCode) else {
-            if let errorText = String(data: data, encoding: .utf8) {
+            var errorDetail = "Vision API status code: \(httpResponse.statusCode)"
+            if let errorResponse = try? JSONDecoder().decode(GroqErrorResponse.self, from: data) {
+                errorDetail = "\(errorResponse.error.message) (Code: \(errorResponse.error.code ?? "\(httpResponse.statusCode)"))"
+            } else if let errorText = String(data: data, encoding: .utf8) {
                 print("[StudySnap Vision] API Error: \(errorText)")
             }
-            throw AIError.apiError("Vision API status code: \(httpResponse.statusCode)")
+            throw AIError.apiError(errorDetail)
         }
         
-        let decodedResponse = try JSONDecoder().decode(OpenRouterResponse.self, from: data)
+        let decodedResponse = try JSONDecoder().decode(GroqResponse.self, from: data)
         guard let content = decodedResponse.choices.first?.message.content else {
             print("[StudySnap Vision] Error: No content in response")
             throw AIError.invalidResponse

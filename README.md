@@ -20,11 +20,11 @@ Generate summaries, quizzes, and flashcards from your notes (paste, scan, or imp
 
 - Create study sets from pasted text, scanned pages (OCR), or uploaded PDFs
 - Two modes: generate from your content or ask the AI to teach you a new topic
-- AI summaries, multiple-choice questions, and flashcards via OpenRouter
+- AI summaries, multiple-choice questions, and flashcards via Groq
 - Quiz and flashcard practice flows, plus math rendering (SwiftMath)
 - Gamification: levels, XP, streaks, achievements, theming, and guide overlays
 - Widgets and notifications to keep study streaks alive
-- Choose your model - Apple Intelligence or OpenRouter
+- Choose your model - Apple Intelligence or Groq
 
 ## Screenshots
 
@@ -75,7 +75,7 @@ Generate summaries, quizzes, and flashcards from your notes (paste, scan, or imp
 
 - macOS with Xcode 26 (or newer) and the latest iOS SDK
 - iOS 26.0+ simulator or device
-- OpenRouter API key (free/paid), and network access for AI features
+- Groq API key (free/paid), and network access for AI features
 
 ## Quick start
 
@@ -90,9 +90,9 @@ xed .
 
 In Xcode, select the `StudySnap` scheme and press **Cmd+R** to run on a simulator or device. The widget target (`StudySnapWidgets`) builds alongside the app.
 
-## Configure OpenRouter (required for live AI, completely free)
+## Configure Groq (required for live AI, completely free)
 
-1. Get a key: sign up at <https://openrouter.ai>, create an API key, and copy it.
+1. Get a key: sign up at <https://console.groq.com>, create an API key, and copy it.
 2. Input your key in the app's settings menu.
 
 ## Using the app

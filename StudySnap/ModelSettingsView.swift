@@ -3,7 +3,7 @@ import SwiftUI
 struct ModelSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage(ModelSettings.Keys.preference) private var preferenceRaw: String = AIModelPreference.automatic.rawValue
-    @AppStorage(ModelSettings.Keys.openRouterApiKey) private var openRouterApiKey: String = ""
+    @AppStorage(ModelSettings.Keys.groqApiKey) private var groqApiKey: String = ""
     @State private var showHelp = false
 
     private var preferenceBinding: Binding<AIModelPreference> {
@@ -44,7 +44,7 @@ struct ModelSettingsView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Apple Intelligence available")
                                 .font(.subheadline).bold()
-                            Text("Automatic prefers on-device. If it fails, we fall back to OpenRouter with your key.")
+                            Text("Automatic prefers on-device. If it fails, we fall back to Groq with your key.")
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
                         }
@@ -54,7 +54,7 @@ struct ModelSettingsView: View {
                     }
 
                     Label {
-                        Text("Inputs over 10,000 characters exceed Apple Intelligence’s limit and may cause fall backs to OpenRouter.")
+                        Text("Inputs over 10,000 characters exceed Apple Intelligence’s limit and may cause fall backs to Groq.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     } icon: {
@@ -66,7 +66,7 @@ struct ModelSettingsView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Apple Intelligence not available")
                                 .font(.subheadline).bold()
-                            Text("Requires iOS 26+, supported hardware, and Apple Intelligence enabled in Settings. Automatic will fall back to OpenRouter with your key.")
+                            Text("Requires iOS 26+, supported hardware, and Apple Intelligence enabled in Settings. Automatic will fall back to Groq with your key.")
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
                         }
@@ -77,8 +77,8 @@ struct ModelSettingsView: View {
                 }
             }
 
-            Section("OpenRouter BYOK") {
-                TextField("Paste your OpenRouter API key", text: $openRouterApiKey)
+            Section("Groq BYOK") {
+                TextField("Paste your Groq API key", text: $groqApiKey)
                     .textInputAutocapitalization(.none)
                     .autocorrectionDisabled(true)
                 
@@ -89,22 +89,22 @@ struct ModelSettingsView: View {
                     Label("How to get a free API key", systemImage: "info.circle")
                 }
 
-                if openRouterApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Your OpenRouter API key is required to use OpenRouter models.").font(.footnote).foregroundColor(.secondary)
+                if groqApiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Your Groq API key is required to use Groq models.").font(.footnote).foregroundColor(.secondary)
                 } else {
-                    Text("API Key saved. You can now use OpenRouter models.").font(.footnote).foregroundColor(.green)
+                    Text("API Key saved. You can now use Groq models.").font(.footnote).foregroundColor(.green)
                 }
             }
         }
         .navigationTitle("Model Settings")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showHelp) {
-            OpenRouterHelpView()
+            GroqHelpView()
         }
     }
 }
 
-struct OpenRouterHelpView: View {
+struct GroqHelpView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var themeManager = ThemeManager.shared
 
@@ -128,11 +128,11 @@ struct OpenRouterHelpView: View {
                                     .foregroundColor(.white)
                             }
                             
-                            Text("OpenRouter API")
+                            Text("Groq API")
                                 .font(.title2.bold())
                                 .foregroundColor(.primary)
                             
-                            Text("To use advanced AI models or when Apple Intelligence isn't available, you need a free OpenRouter API key.")
+                            Text("To use advanced AI models or when Apple Intelligence isn't available, you need a free Groq API key.")
                                 .font(.body)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
@@ -148,8 +148,8 @@ struct OpenRouterHelpView: View {
                                 .padding(.horizontal)
                             
                             VStack(spacing: 12) {
-                                StepView(number: 1, title: "Create Account", description: "Sign up at openrouter.ai using Google or GitHub.", icon: "person.badge.plus")
-                                StepView(number: 2, title: "Generate Key", description: "Go to Settings > Keys and create a new API key.", icon: "key")
+                                StepView(number: 1, title: "Create Account", description: "Sign up at console.groq.com using Google or GitHub.", icon: "person.badge.plus")
+                                StepView(number: 2, title: "Generate Key", description: "Go to API Keys and create a new API key.", icon: "key")
                                 StepView(number: 3, title: "Connect", description: "Copy the key and paste it into the field in StudySnap.", icon: "arrow.right.doc.on.clipboard")
                             }
                             .padding()
@@ -164,9 +164,9 @@ struct OpenRouterHelpView: View {
                                 .font(.title2)
                                 .foregroundColor(.green)
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("No Payment Required")
+                                Text("Free Tier Available")
                                     .font(.headline)
-                                Text("OpenRouter offers free models. You do not need to add a credit card to get started.\nOpenRouter provides 50 free requests each day. Creating a study set uses 3 requests. Sending a message to the tutor uses 1 request. Using Apple Intelligence does not consume any OpenRouter requests. After the free requests are exhausted, you must wait until the next day. If you try to use OpenRouter models after the limit, StudySnap will show an error.")
+                                Text("Groq offers a generous free tier for developers. You can get started without a credit card. Check Groq's website for the latest rate limits and pricing.")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
@@ -177,9 +177,9 @@ struct OpenRouterHelpView: View {
                         .padding(.horizontal)
                         
                         // Link Button
-                        Link(destination: URL(string: "https://openrouter.ai/settings/keys")!) {
+                        Link(destination: URL(string: "https://console.groq.com/keys")!) {
                             HStack {
-                                Text("Open OpenRouter Settings")
+                                Text("Open Groq Console")
                                     .fontWeight(.semibold)
                                 Spacer()
                                 Image(systemName: "arrow.up.right")

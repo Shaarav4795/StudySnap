@@ -12,7 +12,7 @@ struct InputView: View {
     @StateObject private var themeManager = ThemeManager.shared
     @EnvironmentObject private var guideManager: GuideManager
     @AppStorage(ModelSettings.Keys.preference) private var modelPreferenceRaw: String = AIModelPreference.automatic.rawValue
-    @AppStorage(ModelSettings.Keys.openRouterApiKey) private var storedOpenRouterKey: String = ""
+    @AppStorage(ModelSettings.Keys.groqApiKey) private var storedGroqKey: String = ""
     
     // Mode selection
     enum InputMode: String, CaseIterable, Identifiable {
@@ -153,9 +153,9 @@ struct InputView: View {
         AIModelPreference(rawValue: modelPreferenceRaw) ?? .automatic
     }
     
-    private var mustUseOpenRouter: Bool {
+    private var mustUseGroq: Bool {
         switch preference {
-        case .openRouterOnly:
+        case .groqOnly:
             return true
         case .automatic:
             return !ModelSettings.appleIntelligenceAvailable
@@ -165,9 +165,9 @@ struct InputView: View {
     private func generateContent() {
         HapticsManager.shared.playTap()
 
-        let trimmedKey = storedOpenRouterKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        if mustUseOpenRouter && trimmedKey.isEmpty {
-            generationError = "Add your OpenRouter API key in Model Settings."
+        let trimmedKey = storedGroqKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if mustUseGroq && trimmedKey.isEmpty {
+            generationError = "Add your Groq API key in Model Settings."
             return
         }
 
@@ -259,7 +259,7 @@ struct InputView: View {
                 print("Error generating content: \(error)")
                 await MainActor.run {
                     isGenerating = false
-                    generationError = error.localizedDescription
+                    generationError = AIService.formatError(error)
                 }
             }
         }

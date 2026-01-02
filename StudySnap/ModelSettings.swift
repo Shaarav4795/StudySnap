@@ -6,23 +6,23 @@ import FoundationModels
 /// User-configurable model preference and BYOK storage.
 enum AIModelPreference: String, CaseIterable, Identifiable {
     case automatic
-    case openRouterOnly
+    case groqOnly
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
         case .automatic: return "Automatic"
-        case .openRouterOnly: return "OpenRouter Only"
+        case .groqOnly: return "Groq Only"
         }
     }
 
     var detail: String {
         switch self {
         case .automatic:
-            return "Prefers Apple Intelligence when available; otherwise uses OpenRouter with your key."
-        case .openRouterOnly:
-            return "Always uses your OpenRouter BYOK key."
+            return "Prefers Apple Intelligence when available; otherwise uses Groq with your key."
+        case .groqOnly:
+            return "Always uses your Groq BYOK key."
         }
     }
 }
@@ -30,16 +30,18 @@ enum AIModelPreference: String, CaseIterable, Identifiable {
 enum ModelSettings {
     enum Keys {
         static let preference = "ai.modelPreference"
-        static let openRouterApiKey = "ai.openRouter.apiKey"
-        static let openRouterModel = "ai.openRouter.model"
+        static let groqApiKey = "ai.groq.apiKey"
+        static let groqModel = "ai.groq.model"
     }
 
-    static let defaultOpenRouterModel = "openai/gpt-oss-20b:free"
-    static let visionModel = "nvidia/nemotron-nano-12b-v2-vl:free"
+    static let defaultGroqModel = "openai/gpt-oss-20b"
+    static let visionModel = "meta-llama/llama-4-maverick-17b-128e-instruct"
 
     static func preference() async -> AIModelPreference {
         await MainActor.run {
             let raw = UserDefaults.standard.string(forKey: Keys.preference) ?? AIModelPreference.automatic.rawValue
+            // Migration: if old value was "openRouterOnly" or "GroqOnly", map to "groqOnly"
+            if raw == "openRouterOnly" || raw == "GroqOnly" { return .groqOnly }
             return AIModelPreference(rawValue: raw) ?? .automatic
         }
     }
@@ -50,28 +52,28 @@ enum ModelSettings {
         }
     }
 
-    static func openRouterApiKey() async -> String {
+    static func groqApiKey() async -> String {
         await MainActor.run {
-            UserDefaults.standard.string(forKey: Keys.openRouterApiKey)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            UserDefaults.standard.string(forKey: Keys.groqApiKey)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         }
     }
 
-    static func setOpenRouterApiKey(_ value: String) async {
+    static func setGroqApiKey(_ value: String) async {
         await MainActor.run {
-            UserDefaults.standard.set(value, forKey: Keys.openRouterApiKey)
+            UserDefaults.standard.set(value, forKey: Keys.groqApiKey)
         }
     }
 
-    static func openRouterModel() async -> String {
+    static func groqModel() async -> String {
         await MainActor.run {
-            let raw = UserDefaults.standard.string(forKey: Keys.openRouterModel)?.trimmingCharacters(in: .whitespacesAndNewlines)
-            return raw?.isEmpty == false ? raw! : defaultOpenRouterModel
+            let raw = UserDefaults.standard.string(forKey: Keys.groqModel)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return raw?.isEmpty == false ? raw! : defaultGroqModel
         }
     }
 
-    static func setOpenRouterModel(_ value: String) async {
+    static func setGroqModel(_ value: String) async {
         await MainActor.run {
-            UserDefaults.standard.set(value, forKey: Keys.openRouterModel)
+            UserDefaults.standard.set(value, forKey: Keys.groqModel)
         }
     }
 
