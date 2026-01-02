@@ -167,6 +167,56 @@ actor AIService {
         }
     }
 
+    /// Performs a request with automatic retry on parsing failures.
+    /// If parsing fails, retries with the same provider.
+    private func performRequestWithParsingRetry(systemPrompt: String, userPrompt: String) async throws -> String {
+        let preference = await ModelSettings.preference()
+        
+        do {
+            return try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+        } catch let error as AIError {
+            // Only retry on parsing failures
+            guard case .parsingFailed = error else {
+                throw error
+            }
+            
+            print("AI Generation - Parsing failed, retrying with same provider...")
+            
+            // Retry with the same provider
+            switch preference {
+            case .automatic:
+                // Determine which provider was used and retry with it
+                if Self.appleIntelligenceAvailable {
+                    do {
+                        print("AI - Retrying with Apple Intelligence...")
+                        return try await runAppleIntelligence(systemPrompt: systemPrompt, userPrompt: userPrompt)
+                    } catch {
+                        print("AI - Apple Intelligence retry failed: \(error)")
+                        throw error
+                    }
+                } else {
+                    do {
+                        print("AI - Retrying with Groq...")
+                        return try await runGroq(systemPrompt: systemPrompt, userPrompt: userPrompt)
+                    } catch {
+                        print("AI - Groq retry failed: \(error)")
+                        throw error
+                    }
+                }
+            case .groqOnly:
+                do {
+                    print("AI - Retrying with Groq...")
+                    return try await runGroq(systemPrompt: systemPrompt, userPrompt: userPrompt)
+                } catch {
+                    print("AI - Groq retry failed: \(error)")
+                    throw error
+                }
+            }
+        } catch {
+            throw error
+        }
+    }
+
     private func runGroq(systemPrompt: String, userPrompt: String) async throws -> String {
         let apiKey = try await groqApiKey()
         let primaryModel = await ModelSettings.groqModel()
@@ -517,7 +567,7 @@ actor AIService {
             \(text)
             """
             
-            let rawContent = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let rawContent = try await performRequestWithParsingRetry(systemPrompt: systemPrompt, userPrompt: userPrompt)
             let content = normalizeTags(rawContent)
             
             var questions: [(String, String, [String], String?)] = []
@@ -656,7 +706,7 @@ actor AIService {
             \(text)
             """
             
-            let rawContent = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let rawContent = try await performRequestWithParsingRetry(systemPrompt: systemPrompt, userPrompt: userPrompt)
             let content = normalizeTags(rawContent)
             
             var cards: [(String, String)] = []
@@ -835,7 +885,7 @@ actor AIService {
             6. Ensure there are exactly 4 options for every question.
             """
             
-            let rawContent = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let rawContent = try await performRequestWithParsingRetry(systemPrompt: systemPrompt, userPrompt: userPrompt)
             let content = normalizeTags(rawContent)
             
             var questions: [(String, String, [String], String?)] = []
@@ -970,7 +1020,7 @@ actor AIService {
             - Examples: $\\frac{-b \\pm \\sqrt{b^{2} - 4ac}}{2a}$, $\\int_{0}^{\\infty} e^{-x^{2}} dx$
             """
             
-            let rawContent = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+            let rawContent = try await performRequestWithParsingRetry(systemPrompt: systemPrompt, userPrompt: userPrompt)
             let content = normalizeTags(rawContent)
             
             var cards: [(String, String)] = []
@@ -1837,7 +1887,7 @@ actor AIService {
         \(aiResponse)
         """
         
-        let rawContent = try await performRequest(systemPrompt: systemPrompt, userPrompt: userPrompt)
+        let rawContent = try await performRequestWithParsingRetry(systemPrompt: systemPrompt, userPrompt: userPrompt)
         let content = normalizeTags(rawContent)
         
         var cards: [(String, String)] = []
