@@ -169,8 +169,53 @@ actor AIService {
 
     private func runGroq(systemPrompt: String, userPrompt: String) async throws -> String {
         let apiKey = try await groqApiKey()
-        let model = await ModelSettings.groqModel()
-
+        let primaryModel = await ModelSettings.groqModel()
+        let modelsToTry = getTextModelFallbacks(primaryModel: primaryModel)
+        
+        var lastError: Error?
+        
+        for model in modelsToTry {
+            do {
+                let result = try await attemptGroqRequest(
+                    systemPrompt: systemPrompt,
+                    userPrompt: userPrompt,
+                    model: model,
+                    apiKey: apiKey
+                )
+                if model != primaryModel {
+                    print("AI (Groq) - Fell back to model: \(model)")
+                }
+                return result
+            } catch let error as AIError {
+                lastError = error
+                // Check if it's a rate limit error (429)
+                if case .apiError(let message) = error, message.contains("429") || message.contains("rate limit") {
+                    print("AI (Groq) - Model \(model) rate limited, trying fallback...")
+                    // Continue to next model
+                    continue
+                } else {
+                    // For non-rate-limit errors, throw immediately
+                    throw error
+                }
+            } catch {
+                lastError = error
+                throw error
+            }
+        }
+        
+        // If we get here, all models failed with rate limits
+        if let error = lastError {
+            throw error
+        }
+        throw AIError.generationFailed
+    }
+    
+    private func attemptGroqRequest(
+        systemPrompt: String,
+        userPrompt: String,
+        model: String,
+        apiKey: String
+    ) async throws -> String {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -212,6 +257,22 @@ actor AIService {
         print("AI (Groq) response:\n\(content)\n--- end response ---")
 
         return content
+    }
+    
+    private func getTextModelFallbacks(primaryModel: String) -> [String] {
+        // Define fallback chain for text models
+        // If primary is openai/gpt-oss-20b, fallback to openai/gpt-oss-120b, then llama-3.3-70b-versatile
+        let fallbackChain: [String: [String]] = [
+            "openai/gpt-oss-20b": ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"],
+            "openai/gpt-oss-120b": ["llama-3.3-70b-versatile"],
+            "llama-3.3-70b-versatile": []
+        ]
+        
+        var modelsToTry = [primaryModel]
+        if let fallbacks = fallbackChain[primaryModel] {
+            modelsToTry.append(contentsOf: fallbacks)
+        }
+        return modelsToTry
     }
 
     private func runAppleIntelligence(systemPrompt: String, userPrompt: String) async throws -> String {
@@ -1311,8 +1372,54 @@ actor AIService {
         visionModel: String
     ) async throws -> String {
         let apiKey = try await groqApiKey()
-        let model = visionModel
+        let modelsToTry = getVisionModelFallbacks(primaryModel: visionModel)
         
+        var lastError: Error?
+        
+        for model in modelsToTry {
+            do {
+                let result = try await attemptGroqVisionRequest(
+                    systemPrompt: systemPrompt,
+                    userMessage: userMessage,
+                    imageData: imageData,
+                    model: model,
+                    apiKey: apiKey
+                )
+                if model != visionModel {
+                    print("AI (Groq Vision) - Fell back to model: \(model)")
+                }
+                return result
+            } catch let error as AIError {
+                lastError = error
+                // Check if it's a rate limit error (429)
+                if case .apiError(let message) = error, message.contains("429") || message.contains("rate limit") {
+                    print("AI (Groq Vision) - Model \(model) rate limited, trying fallback...")
+                    // Continue to next model
+                    continue
+                } else {
+                    // For non-rate-limit errors, throw immediately
+                    throw error
+                }
+            } catch {
+                lastError = error
+                throw error
+            }
+        }
+        
+        // If we get here, all models failed with rate limits
+        if let error = lastError {
+            throw error
+        }
+        throw AIError.generationFailed
+    }
+    
+    private func attemptGroqVisionRequest(
+        systemPrompt: String,
+        userMessage: String,
+        imageData: Data,
+        model: String,
+        apiKey: String
+    ) async throws -> String {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -1380,6 +1487,21 @@ actor AIService {
         print("AI (Vision) response:\n\(content)\n--- end response ---")
         
         return content
+    }
+    
+    private func getVisionModelFallbacks(primaryModel: String) -> [String] {
+        // Define fallback chain for vision models
+        // If primary is meta-llama/llama-4-maverick-17b-128e-instruct, fallback to meta-llama/llama-4-scout-17b-16e-instruct
+        let fallbackChain: [String: [String]] = [
+            "meta-llama/llama-4-maverick-17b-128e-instruct": ["meta-llama/llama-4-scout-17b-16e-instruct"],
+            "meta-llama/llama-4-scout-17b-16e-instruct": []
+        ]
+        
+        var modelsToTry = [primaryModel]
+        if let fallbacks = fallbackChain[primaryModel] {
+            modelsToTry.append(contentsOf: fallbacks)
+        }
+        return modelsToTry
     }
     
     // MARK: - Format Instructions for Specialized Responses
