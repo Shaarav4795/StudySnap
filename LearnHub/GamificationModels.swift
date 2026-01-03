@@ -390,7 +390,7 @@ struct ThemeItem: Identifiable, Hashable {
     let description: String
     
     static let allThemes: [ThemeItem] = [
-        ThemeItem(id: "default_theme", name: "Default", primaryColor: "blue", secondaryColor: "cyan", cost: 0, requiredLevel: 1, description: "Classic StudySnap"),
+        ThemeItem(id: "default_theme", name: "Default", primaryColor: "blue", secondaryColor: "cyan", cost: 0, requiredLevel: 1, description: "Classic LearnHub"),
         ThemeItem(id: "ocean", name: "Ocean", primaryColor: "navy", secondaryColor: "teal", cost: 75, requiredLevel: 3, description: "Deep sea depths"),
         ThemeItem(id: "sunset", name: "Sunset", primaryColor: "orange", secondaryColor: "pink", cost: 100, requiredLevel: 5, description: "Warm evening glow"),
         ThemeItem(id: "forest", name: "Forest", primaryColor: "green", secondaryColor: "mint", cost: 125, requiredLevel: 7, description: "Nature's calm"),

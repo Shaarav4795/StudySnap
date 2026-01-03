@@ -1,13 +1,13 @@
 //
-//  StudySnapUITests.swift
-//  StudySnapUITests
+//  LearnHubUITests.swift
+//  LearnHubUITests
 //
 //  Created by Shaarav on 30/11/2025.
 //
 
 import XCTest
 
-final class StudySnapUITests: XCTestCase {
+final class LearnHubUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

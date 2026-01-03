@@ -86,7 +86,7 @@ struct WelcomePage: View {
             .padding(.bottom, 20)
             
             VStack(spacing: 16) {
-                Text("Welcome to StudySnap")
+                Text("Welcome to LearnHub")
                     .font(.title)
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
@@ -162,7 +162,7 @@ struct CreateSetPage: View {
                     .font(.title2.bold())
                     .padding(.top, 60)
                 
-                Text("Choose how you want to learn. StudySnap offers two powerful modes:")
+                Text("Choose how you want to learn. LearnHub offers two powerful modes:")
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
                     .padding(.horizontal)
@@ -706,7 +706,7 @@ struct NavigationPage: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 30) {
-                Text("Navigating StudySnap")
+                Text("Navigating LearnHub")
                     .font(.title2.bold())
                     .padding(.top, 60)
                 

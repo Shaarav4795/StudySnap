@@ -305,7 +305,7 @@ struct StudyChatView: View {
         if let image = selectedImage {
             // Compress to JPEG for reasonable size
             imageData = image.jpegData(compressionQuality: 0.7)
-            print("[StudySnap Vision] Image captured, size: \(imageData?.count ?? 0) bytes")
+            print("[LearnHub Vision] Image captured, size: \(imageData?.count ?? 0) bytes")
         }
         
         // Add user message (image is NOT persisted to avoid SwiftData migration issues)
@@ -385,7 +385,7 @@ struct StudyChatView: View {
         do {
             let context = AIService.TutorContext.create(from: studySet)
             
-            print("[StudySnap Vision] Sending vision request...")
+            print("[LearnHub Vision] Sending vision request...")
             
             let response = try await AIService.shared.performVisionChat(
                 imageData: imageData,
@@ -409,7 +409,7 @@ struct StudyChatView: View {
                 loadQuickPrompts()
             }
         } catch {
-            print("[StudySnap Vision] Error: \(error.localizedDescription)")
+            print("[LearnHub Vision] Error: \(error.localizedDescription)")
             await MainActor.run {
                 isLoading = false
                 errorMessage = "Failed to analyze image: \(AIService.formatError(error))"
@@ -2142,7 +2142,7 @@ private struct ImagePickerView: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             if let image = info[.originalImage] as? UIImage {
                 parent.selectedImage = image
-                print("[StudySnap Vision] Image selected from picker")
+                print("[LearnHub Vision] Image selected from picker")
             }
             parent.dismiss()
         }

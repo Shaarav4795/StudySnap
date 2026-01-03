@@ -1,6 +1,6 @@
 //
-//  StudySnapWidgetsControl.swift
-//  StudySnapWidgets
+//  LearnHubWidgetsControl.swift
+//  LearnHubWidgets
 //
 //  Created by Shaarav on 3/12/2025.
 //
@@ -9,10 +9,10 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-struct StudySnapWidgetsControl: ControlWidget {
+struct LearnHubWidgetsControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(
-            kind: "com.shaarav4795.StudySnap.StudySnapWidgets",
+            kind: "com.shaarav4795.LearnHub.LearnHubWidgets",
             provider: Provider()
         ) { value in
             ControlWidgetToggle(
@@ -28,7 +28,7 @@ struct StudySnapWidgetsControl: ControlWidget {
     }
 }
 
-extension StudySnapWidgetsControl {
+extension LearnHubWidgetsControl {
     struct Provider: ControlValueProvider {
         var previewValue: Bool {
             false

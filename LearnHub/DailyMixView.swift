@@ -1,6 +1,6 @@
 //
 //  DailyMixView.swift
-//  StudySnap
+//  LearnHub
 //
 //  Created by Shaarav on 28/12/2025.
 //

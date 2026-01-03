@@ -50,7 +50,7 @@ struct FlashcardProvider: AppIntentTimelineProvider {
             )
         }
         
-        let defaults = UserDefaults(suiteName: "group.com.shaarav4795.StudySnap")
+        let defaults = UserDefaults(suiteName: "group.com.shaarav4795.LearnHub")
         let indexKey = "cardIndex_\(set.id.uuidString)"
         let flipKey = "flipState_\(set.id.uuidString)"
         
@@ -158,12 +158,12 @@ struct FlashcardWidgetEntryView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .widgetURL(entry.studySet.map { URL(string: "studysnap://flashcards?setID=\($0.id.uuidString)") } ?? nil)
+        .widgetURL(entry.studySet.map { URL(string: "learnhub://flashcards?setID=\($0.id.uuidString)") } ?? nil)
     }
 }
 
 struct FlashcardWidget: Widget {
-    let kind: String = "StudySnapFlashcardWidget"
+    let kind: String = "LearnHubFlashcardWidget"
 
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: SelectStudySetIntent.self, provider: FlashcardProvider()) { entry in

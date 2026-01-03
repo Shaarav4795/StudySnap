@@ -5,7 +5,7 @@ final class NotificationManager {
     static let shared = NotificationManager()
     private let center = UNUserNotificationCenter.current()
     private let defaults = UserDefaults.standard
-    private let hasAskedKey = "studysnap.notifications.hasAsked"
+    private let hasAskedKey = "learnhub.notifications.hasAsked"
     private init() {}
     
     private enum Identifier {

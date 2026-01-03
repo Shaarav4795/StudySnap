@@ -8,7 +8,7 @@ final class HapticsManager {
 
     private let supportsHaptics = CHHapticEngine.capabilitiesForHardware().supportsHaptics
     private var engine: CHHapticEngine?
-    private let queue = DispatchQueue(label: "com.studysnap.haptics", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.learnhub.haptics", qos: .userInitiated)
 
     private init() { }
 

@@ -1,8 +1,8 @@
-# StudySnap
+# LearnHub
 
 ## The Ultimate AI-Powered Study Companion for iOS
 
-StudySnap is an intelligent study aid built with **SwiftUI** and **SwiftData** for iOS 26+. It leverages advanced AI to transform your study materials into interactive learning tools.
+LearnHub is an intelligent study aid built with **SwiftUI** and **SwiftData** for iOS 26+. It leverages advanced AI to transform your study materials into interactive learning tools.
 
 **Key Capabilities:**
 
@@ -81,14 +81,14 @@ Generate summaries, quizzes, and flashcards from your notes (paste, scan, or imp
 
 ```bash
 # 1) Clone
-git clone https://github.com/Shaarav4795/StudySnap.git
-cd StudySnap
+git clone https://github.com/Shaarav4795/LearnHub.git
+cd LearnHub
 
 # 2) Open in Xcode
 xed .
 ```
 
-In Xcode, select the `StudySnap` scheme and press **Cmd+R** to run on a simulator or device. The widget target (`StudySnapWidgets`) builds alongside the app.
+In Xcode, select the `LearnHub` scheme and press **Cmd+R** to run on a simulator or device. The widget target (`LearnHubWidgetsExtension`) builds alongside the app.
 
 ## Configure Groq (required for live AI, completely free)
 
@@ -109,12 +109,12 @@ In Xcode, select the `StudySnap` scheme and press **Cmd+R** to run on a simulato
    - **Flashcards:** swipe through concise Q/A cards.
    - **Tutor:** a smart AI tutor with context of your work to assist you
 5. Track progress with levels, XP, streaks, achievements, and theme switching from the profile.
-6. Add the StudySnap widget from the Home Screen to keep studying top of mind.
+6. Add the LearnHub widget from the Home Screen to keep studying top of mind.
 
 ## Development and testing
 
 - Dependencies: SwiftPM only (SwiftMath).
-- Run tests: select `StudySnap` and press **Cmd+U**.
+- Run tests: select `LearnHub` and press **Cmd+U**.
 - Reset badge counts and notifications are handled in-app; no extra setup needed.
 
 ## Repository hygiene
@@ -124,6 +124,6 @@ In Xcode, select the `StudySnap` scheme and press **Cmd+R** to run on a simulato
 
 ## Project structure (high level)
 
-- `StudySnap/` — main app sources (SwiftUI views, AI integration, data models, guides, theming)
-- `StudySnapWidgets/` — widget extension
-- `StudySnapTests/`, `StudySnapUITests/` — unit and UI tests
+- `LearnHub/` — main app sources (SwiftUI views, AI integration, data models, guides, theming)
+- `LearnHubWidgets/` — widget extension
+- `LearnHubTests/`, `LearnHubUITests/` — unit and UI tests

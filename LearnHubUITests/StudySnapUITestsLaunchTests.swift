@@ -1,13 +1,13 @@
 //
-//  StudySnapUITestsLaunchTests.swift
-//  StudySnapUITests
+//  LearnHubUITestsLaunchTests.swift
+//  LearnHubUITests
 //
 //  Created by Shaarav on 30/11/2025.
 //
 
 import XCTest
 
-final class StudySnapUITestsLaunchTests: XCTestCase {
+final class LearnHubUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

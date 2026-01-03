@@ -1128,7 +1128,7 @@ actor AIService {
             }
             
             // Console log what context is being sent
-            print("[StudySnap Tutor] Context sent to AI: [\(contextParts.joined(separator: ", "))] for study set: \(studySetTitle)")
+            print("[LearnHub Tutor] Context sent to AI: [\(contextParts.joined(separator: ", "))] for study set: \(studySetTitle)")
             
             return context
         }
@@ -1209,7 +1209,7 @@ actor AIService {
             augmentedMessages[lastUserIndex] = ChatTurn(role: "user", content: augmentedContent)
         }
         
-        print("[StudySnap Tutor] Sending request with format: \(format)")
+        print("[LearnHub Tutor] Sending request with format: \(format)")
         
         return try await performConversationalRequest(
             systemPrompt: systemPrompt,
@@ -1332,8 +1332,8 @@ actor AIService {
         context: TutorContext
     ) async throws -> String {
         let visionModel = await MainActor.run { ModelSettings.visionModel }
-        print("[StudySnap Vision] Uploading image, size: \(imageData.count) bytes")
-        print("[StudySnap Vision] Model: \(visionModel)")
+        print("[LearnHub Vision] Uploading image, size: \(imageData.count) bytes")
+        print("[LearnHub Vision] Model: \(visionModel)")
         
         // Build context string
         let contextString = context.buildContextString()
@@ -1479,7 +1479,7 @@ actor AIService {
         let base64Image = imageData.base64EncodedString()
         let imageURL = "data:image/jpeg;base64,\(base64Image)"
         
-        print("[StudySnap Vision] Base64 encoded, length: \(base64Image.count) characters")
+        print("[LearnHub Vision] Base64 encoded, length: \(base64Image.count) characters")
         
         // Build multimodal messages
         let systemMessage = GroqMultimodalRequest.MultimodalMessage(
@@ -1506,34 +1506,34 @@ actor AIService {
         
         await applyRateLimitDelay()
         
-        print("[StudySnap Vision] Sending request to Groq...")
+        print("[LearnHub Vision] Sending request to Groq...")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
-            print("[StudySnap Vision] Error: No HTTP response received")
+            print("[LearnHub Vision] Error: No HTTP response received")
             throw AIError.generationFailed
         }
         
-        print("[StudySnap Vision] Response status code: \(httpResponse.statusCode)")
+        print("[LearnHub Vision] Response status code: \(httpResponse.statusCode)")
         
         guard (200...299).contains(httpResponse.statusCode) else {
             var errorDetail = "Vision API status code: \(httpResponse.statusCode)"
             if let errorResponse = try? JSONDecoder().decode(GroqErrorResponse.self, from: data) {
                 errorDetail = "\(errorResponse.error.message) (Code: \(errorResponse.error.code ?? "\(httpResponse.statusCode)"))"
             } else if let errorText = String(data: data, encoding: .utf8) {
-                print("[StudySnap Vision] API Error: \(errorText)")
+                print("[LearnHub Vision] API Error: \(errorText)")
             }
             throw AIError.apiError(errorDetail)
         }
         
         let decodedResponse = try JSONDecoder().decode(GroqResponse.self, from: data)
         guard let content = decodedResponse.choices.first?.message.content else {
-            print("[StudySnap Vision] Error: No content in response")
+            print("[LearnHub Vision] Error: No content in response")
             throw AIError.invalidResponse
         }
         
-        print("[StudySnap Vision] Successfully received response")
+        print("[LearnHub Vision] Successfully received response")
         print("AI (Vision) response:\n\(content)\n--- end response ---")
         
         return content

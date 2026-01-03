@@ -1,6 +1,6 @@
 //
-//  StudySnapApp.swift
-//  StudySnap
+//  LearnHubApp.swift
+//  LearnHub
 //
 //  Created by Shaarav on 30/11/2025.
 //
@@ -11,7 +11,7 @@ import UserNotifications
 import UIKit
 
 @main
-struct StudySnapApp: App {
+struct LearnHubApp: App {
     static var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             StudyFolder.self,

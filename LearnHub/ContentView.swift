@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  StudySnap
+//  LearnHub
 //
 //  Created by Shaarav on 30/11/2025.
 //
@@ -181,7 +181,7 @@ struct ContentView: View {
     }
     
     private func handleDeepLink(_ url: URL) {
-        guard url.scheme == "studysnap" else { return }
+        guard url.scheme == "learnhub" else { return }
         
         if url.host == "flashcards", let components = URLComponents(url: url, resolvingAgainstBaseURL: true) {
             if let setIDString = components.queryItems?.first(where: { $0.name == "setID" })?.value,
@@ -513,7 +513,7 @@ struct ContentView: View {
             }
             .searchable(text: $searchText, isPresented: $isSearching, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search study sets")
             .animation(.linear(duration: 0.04), value: isSearching)
-            .navigationTitle("StudySnap")
+            .navigationTitle("LearnHub")
             .navigationDestination(for: StudySet.self) { set in
                 StudySetDetailView(studySet: set)
                     .toolbar(.hidden, for: .tabBar)

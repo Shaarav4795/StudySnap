@@ -1,6 +1,6 @@
 //
-//  StudySnapWidgets.swift
-//  StudySnapWidgets
+//  LearnHubWidgets.swift
+//  LearnHubWidgets
 //
 //  Created by Shaarav on 3/12/2025.
 //
@@ -47,7 +47,7 @@ struct WidgetData: Codable {
     )
     
     static func load() -> WidgetData {
-        guard let userDefaults = UserDefaults(suiteName: "group.com.shaarav4795.StudySnap"),
+        guard let userDefaults = UserDefaults(suiteName: "group.com.shaarav4795.LearnHub"),
               let data = userDefaults.data(forKey: "widgetData"),
               let widgetData = try? JSONDecoder().decode(WidgetData.self, from: data) else {
             return .placeholder
@@ -58,7 +58,7 @@ struct WidgetData: Codable {
 
 // MARK: - Timeline Entry
 
-struct StudySnapEntry: TimelineEntry {
+struct LearnHubEntry: TimelineEntry {
     let date: Date
     let widgetData: WidgetData
     var statsType: StatsType = .streak
@@ -67,18 +67,18 @@ struct StudySnapEntry: TimelineEntry {
 // MARK: - Progress Widget Provider (Medium)
 
 struct ProgressWidgetProvider: TimelineProvider {
-    func placeholder(in context: Context) -> StudySnapEntry {
-        StudySnapEntry(date: Date(), widgetData: .placeholder)
+    func placeholder(in context: Context) -> LearnHubEntry {
+        LearnHubEntry(date: Date(), widgetData: .placeholder)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (StudySnapEntry) -> ()) {
-        let entry = StudySnapEntry(date: Date(), widgetData: WidgetData.load())
+    func getSnapshot(in context: Context, completion: @escaping (LearnHubEntry) -> ()) {
+        let entry = LearnHubEntry(date: Date(), widgetData: WidgetData.load())
         completion(entry)
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<StudySnapEntry>) -> ()) {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<LearnHubEntry>) -> ()) {
         let currentDate = Date()
-        let entry = StudySnapEntry(date: currentDate, widgetData: WidgetData.load())
+        let entry = LearnHubEntry(date: currentDate, widgetData: WidgetData.load())
         
         // Refresh every 15 minutes
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
@@ -90,17 +90,17 @@ struct ProgressWidgetProvider: TimelineProvider {
 // MARK: - Stats Widget Provider (Small)
 
 struct StatsWidgetProvider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> StudySnapEntry {
-        StudySnapEntry(date: Date(), widgetData: .placeholder, statsType: .streak)
+    func placeholder(in context: Context) -> LearnHubEntry {
+        LearnHubEntry(date: Date(), widgetData: .placeholder, statsType: .streak)
     }
 
-    func snapshot(for configuration: StatsConfigurationIntent, in context: Context) async -> StudySnapEntry {
-        StudySnapEntry(date: Date(), widgetData: WidgetData.load(), statsType: configuration.statsType)
+    func snapshot(for configuration: StatsConfigurationIntent, in context: Context) async -> LearnHubEntry {
+        LearnHubEntry(date: Date(), widgetData: WidgetData.load(), statsType: configuration.statsType)
     }
 
-    func timeline(for configuration: StatsConfigurationIntent, in context: Context) async -> Timeline<StudySnapEntry> {
+    func timeline(for configuration: StatsConfigurationIntent, in context: Context) async -> Timeline<LearnHubEntry> {
         let currentDate = Date()
-        let entry = StudySnapEntry(date: currentDate, widgetData: WidgetData.load(), statsType: configuration.statsType)
+        let entry = LearnHubEntry(date: currentDate, widgetData: WidgetData.load(), statsType: configuration.statsType)
         
         // Refresh every 15 minutes
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
@@ -201,7 +201,7 @@ struct ProgressWidgetEntryView: View {
 // MARK: - Stats Widget View (Small)
 
 struct StatsWidgetEntryView: View {
-    var entry: StudySnapEntry
+    var entry: LearnHubEntry
 
     var body: some View {
         VStack(spacing: 8) {
@@ -234,14 +234,14 @@ struct StatsWidgetEntryView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .widgetURL(URL(string: "studysnap://stats?type=\(entry.statsType.rawValue)"))
+        .widgetURL(URL(string: "learnhub://stats?type=\(entry.statsType.rawValue)"))
     }
 }
 
 // MARK: - Progress Widget (Medium)
 
-struct StudySnapProgressWidget: Widget {
-    let kind: String = "StudySnapProgressWidget"
+struct LearnHubProgressWidget: Widget {
+    let kind: String = "LearnHubProgressWidget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: ProgressWidgetProvider()) { entry in
@@ -262,8 +262,8 @@ struct StudySnapProgressWidget: Widget {
 
 // MARK: - Stats Widget (Small)
 
-struct StudySnapStatsWidget: Widget {
-    let kind: String = "StudySnapStatsWidget"
+struct LearnHubStatsWidget: Widget {
+    let kind: String = "LearnHubStatsWidget"
 
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: StatsConfigurationIntent.self, provider: StatsWidgetProvider()) { entry in
@@ -285,15 +285,15 @@ struct StudySnapStatsWidget: Widget {
 // MARK: - Previews
 
 #Preview("Progress Widget", as: .systemMedium) {
-    StudySnapProgressWidget()
+    LearnHubProgressWidget()
 } timeline: {
-    StudySnapEntry(date: .now, widgetData: WidgetData(level: 5, totalXP: 450, xpProgress: 0.6, xpToNextLevel: 80, currentStreak: 7, coins: 250))
-    StudySnapEntry(date: .now, widgetData: WidgetData(level: 10, totalXP: 1200, xpProgress: 0.3, xpToNextLevel: 150, currentStreak: 14, coins: 500))
+    LearnHubEntry(date: .now, widgetData: WidgetData(level: 5, totalXP: 450, xpProgress: 0.6, xpToNextLevel: 80, currentStreak: 7, coins: 250))
+    LearnHubEntry(date: .now, widgetData: WidgetData(level: 10, totalXP: 1200, xpProgress: 0.3, xpToNextLevel: 150, currentStreak: 14, coins: 500))
 }
 
 #Preview("Stats Widget", as: .systemSmall) {
-    StudySnapStatsWidget()
+    LearnHubStatsWidget()
 } timeline: {
-    StudySnapEntry(date: .now, widgetData: WidgetData(level: 5, totalXP: 450, xpProgress: 0.6, xpToNextLevel: 80, currentStreak: 7, coins: 250))
-    StudySnapEntry(date: .now, widgetData: WidgetData(level: 1, totalXP: 0, xpProgress: 0.0, xpToNextLevel: 100, currentStreak: 0, coins: 100))
+    LearnHubEntry(date: .now, widgetData: WidgetData(level: 5, totalXP: 450, xpProgress: 0.6, xpToNextLevel: 80, currentStreak: 7, coins: 250))
+    LearnHubEntry(date: .now, widgetData: WidgetData(level: 1, totalXP: 0, xpProgress: 0.0, xpToNextLevel: 100, currentStreak: 0, coins: 100))
 }

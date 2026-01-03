@@ -150,7 +150,7 @@ struct GroqHelpView: View {
                             VStack(spacing: 12) {
                                 StepView(number: 1, title: "Create Account", description: "Sign up at console.groq.com using Google or GitHub.", icon: "person.badge.plus")
                                 StepView(number: 2, title: "Generate Key", description: "Go to API Keys and create a new API key.", icon: "key")
-                                StepView(number: 3, title: "Connect", description: "Copy the key and paste it into the field in StudySnap.", icon: "arrow.right.doc.on.clipboard")
+                                StepView(number: 3, title: "Connect", description: "Copy the key and paste it into the field in LearnHub.", icon: "arrow.right.doc.on.clipboard")
                             }
                             .padding()
                             .background(Color(uiColor: .secondarySystemGroupedBackground))
