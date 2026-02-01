@@ -24,7 +24,7 @@ final class NotificationManager {
         let settings = await center.notificationSettings()
         switch settings.authorizationStatus {
         case .notDetermined:
-            // Ask once, then stop pestering if the user declines
+            // Ask once; if declined, avoid repeated prompts.
             if defaults.bool(forKey: hasAskedKey) == false {
                 defaults.set(true, forKey: hasAskedKey)
                 let granted = await requestAuthorization()
@@ -64,7 +64,7 @@ final class NotificationManager {
             return calendar.isDate(last, inSameDayAs: now)
         }()
         
-        // Avoid nudging within three hours of a session
+        // Avoid nudging within three hours of a study session.
         let recencyBuffer: TimeInterval = 3 * 60 * 60
         let lastStudy = lastStudyDate
         
@@ -99,7 +99,7 @@ final class NotificationManager {
             )
         }
         
-        // A soft catch-up ping if the user has not studied by mid-afternoon
+        // Gentle catch-up ping if the user hasn't studied by mid-afternoon.
         if !studiedToday {
             let catchUpBase = calendar.date(bySettingHour: 15, minute: 15, second: 0, of: now) ?? now
             let catchUpDate = nextDate(from: catchUpBase, jitterMinutes: 15, now: now)
@@ -118,7 +118,7 @@ final class NotificationManager {
     
     private func requestAuthorization() async -> Bool {
         do {
-            // Don't request badge permission so the app won't show an icon badge automatically.
+            // Skip badge permission to avoid automatic app icon badges.
             return try await center.requestAuthorization(options: [.alert, .sound])
         } catch {
             return false

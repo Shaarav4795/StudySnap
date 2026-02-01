@@ -47,13 +47,13 @@ struct AchievementsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Summary Header
+                // Progress summary for earned vs remaining achievements.
                 achievementSummary
                 
-                // Category Filter
+                // Category filter pills.
                 categoryPicker
                 
-                // Achievement Grid
+                // Grid of achievement cards for the selected category.
                 achievementGrid
             }
             .padding()
@@ -63,7 +63,7 @@ struct AchievementsView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
     
-    // MARK: - Achievement Summary
+    // MARK: - Achievement summary
     
     private var achievementSummary: some View {
         HStack(spacing: 20) {
@@ -112,7 +112,7 @@ struct AchievementsView: View {
         .cornerRadius(16)
     }
     
-    // MARK: - Category Picker
+    // MARK: - Category picker
     
     private var categoryPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -132,7 +132,7 @@ struct AchievementsView: View {
         }
     }
     
-    // MARK: - Achievement Grid
+    // MARK: - Achievement grid
     
     private var achievementGrid: some View {
         LazyVGrid(columns: [
@@ -149,7 +149,7 @@ struct AchievementsView: View {
         }
     }
     
-    // MARK: - Helper Functions
+    // MARK: - Helper functions
     
     private func isUnlocked(_ type: AchievementType) -> Bool {
         profile.achievements.contains(where: { $0.type == type.rawValue })
@@ -178,7 +178,7 @@ struct AchievementsView: View {
     }
 }
 
-// MARK: - Supporting Views
+// MARK: - Supporting views
 
 struct CategoryPill: View {
     let title: String
@@ -211,7 +211,7 @@ struct AchievementCard: View {
     
     var body: some View {
         VStack(spacing: 12) {
-            // Icon
+            // Icon indicates unlocked vs locked state.
             ZStack {
                 Circle()
                     .fill(isUnlocked ? colorForType.opacity(0.2) : Color.gray.opacity(0.1))
@@ -228,21 +228,21 @@ struct AchievementCard: View {
                 }
             }
             
-            // Title
+            // Achievement title.
             Text(type.title)
                 .font(.subheadline.bold())
                 .foregroundColor(isUnlocked ? .primary : .secondary)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
             
-            // Description
+            // Short achievement description.
             Text(type.description)
                 .font(.caption2)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
             
-            // Progress Bar (if not unlocked)
+            // Progress bar for locked achievements.
             if !isUnlocked {
                 VStack(spacing: 4) {
                     GeometryReader { geometry in
@@ -264,7 +264,7 @@ struct AchievementCard: View {
                 }
             }
             
-            // Rewards
+            // Reward chips shown after unlock.
             if isUnlocked {
                 HStack(spacing: 8) {
                     HStack(spacing: 2) {

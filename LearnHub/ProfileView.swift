@@ -23,19 +23,19 @@ struct ProfileView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Profile Header
+                    // Primary identity card (avatar, username, level).
                     profileHeader
 
-                    // Level & XP Progress
+                    // Level progress and XP totals.
                     levelProgressCard
 
-                    // Streak Card (moved up)
+                    // Streak summary card.
                     streakCard
 
-                    // Stats Grid
+                    // Snapshot of core performance metrics.
                     statsGrid
 
-                    // Small credit text shown only when scrolled to bottom
+                    // Creator credit anchored to the end of the scroll.
                     Text("Created with ♡ by Shaarav4795")
                         .font(.footnote)
                         .foregroundColor(.secondary)
@@ -83,11 +83,11 @@ struct ProfileView: View {
         }
     }
     
-    // MARK: - Profile Header
+    // MARK: - Profile header
     
     private var profileHeader: some View {
         VStack(spacing: 16) {
-            // Avatar
+            // Avatar with themed gradient backing.
             ZStack {
                 Circle()
                     .fill(themeManager.primaryGradient)
@@ -102,7 +102,7 @@ struct ProfileView: View {
             }
             .shadow(color: themeManager.primaryColor.opacity(0.3), radius: 10, x: 0, y: 5)
             
-            // Username
+            // Username with inline edit action.
             HStack {
                 Text(profile.username)
                     .font(.title2.bold())
@@ -117,7 +117,7 @@ struct ProfileView: View {
                 }
             }
             
-            // Level Badge
+            // Current level badge.
             HStack(spacing: 8) {
                 Image(systemName: "star.fill")
                     .foregroundColor(.yellow)
@@ -132,7 +132,7 @@ struct ProfileView: View {
                     .fill(Color.yellow.opacity(0.2))
             )
             
-            // Coins Display
+            // Coin balance summary.
             HStack(spacing: 6) {
                 Image(systemName: "dollarsign.circle.fill")
                     .foregroundColor(.yellow)
@@ -152,7 +152,7 @@ struct ProfileView: View {
         .guideTarget(.profileHeader)
     }
     
-    // MARK: - Level Progress Card
+    // MARK: - Level progress card
     
     private var levelProgressCard: some View {
         VStack(spacing: 12) {
@@ -165,7 +165,7 @@ struct ProfileView: View {
                     .foregroundColor(.secondary)
             }
             
-            // Progress Bar
+            // Progress bar toward next level.
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 8)
@@ -194,7 +194,7 @@ struct ProfileView: View {
         .cornerRadius(16)
     }
     
-    // MARK: - Stats Grid
+    // MARK: - Stats grid
     
     private var statsGrid: some View {
         LazyVGrid(columns: [
@@ -245,7 +245,7 @@ struct ProfileView: View {
         }
     }
     
-    // MARK: - Streak Card
+    // MARK: - Streak card
     
     private var streakCard: some View {
         HStack(spacing: 20) {
@@ -285,7 +285,7 @@ struct ProfileView: View {
         .cornerRadius(16)
     }
     
-    // MARK: - Edit Username Sheet
+    // MARK: - Edit-username sheet
     
     private var editUsernameSheet: some View {
         NavigationStack {
@@ -294,7 +294,7 @@ struct ProfileView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 24) {
-                    // Header with icon
+                    // Sheet header with icon.
                     VStack(spacing: 16) {
                         ZStack {
                             Circle()
@@ -311,7 +311,7 @@ struct ProfileView: View {
                             .foregroundColor(.primary)
                     }
                     
-                    // Input field
+                    // Username input field.
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Username")
                             .font(.headline)
@@ -362,7 +362,7 @@ struct ProfileView: View {
     }
 }
 
-// MARK: - Supporting Views
+// MARK: - Supporting views
 
 struct StatCard: View {
     let icon: String

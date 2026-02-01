@@ -2,7 +2,7 @@ import AppIntents
 import WidgetKit
 import Foundation
 
-// MARK: - Study Set Entity
+// MARK: - Study-set entity
 
 struct StudySetEntity: AppEntity {
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "Study Set"
@@ -39,7 +39,7 @@ struct StudySetQuery: EntityQuery {
     }
 }
 
-// MARK: - Configuration Intent
+// MARK: - Widget configuration intent
 
 struct SelectStudySetIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Select Study Set"
@@ -49,7 +49,7 @@ struct SelectStudySetIntent: WidgetConfigurationIntent {
     var studySet: StudySetEntity?
 }
 
-// MARK: - Stats Configuration Intent
+// MARK: - Stats configuration intent
 
 enum StatsType: String, AppEnum {
     case streak
@@ -70,7 +70,7 @@ struct StatsConfigurationIntent: WidgetConfigurationIntent {
     var statsType: StatsType
 }
 
-// MARK: - Interaction Intents
+// MARK: - Interaction intents
 
 struct FlipFlashcardIntent: AppIntent {
     static var title: LocalizedStringResource = "Flip Card"
@@ -113,7 +113,7 @@ struct NextFlashcardIntent: AppIntent {
             let count = set.flashcards.count
             if count > 0 {
                 defaults?.set((current + 1) % count, forKey: key)
-                // Reset flip state
+                // Reset flip state when advancing to the next card.
                 defaults?.set(false, forKey: "flipState_\(setID)")
             }
         }

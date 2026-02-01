@@ -1,14 +1,9 @@
-//
-//  ContentView.swift
-//  LearnHub
-//
-//  Created by Shaarav on 30/11/2025.
-//
+// Root tab container and home screen composition for LearnHub.
 
 import SwiftUI
 import SwiftData
 
-// MARK: - Tab Enum
+// MARK: - App tab configuration
 enum AppTab: Int, CaseIterable {
     case shop = 0
     case achievements = 1
@@ -47,6 +42,8 @@ struct ContentView: View {
     @StateObject private var themeManager = ThemeManager.shared
     @EnvironmentObject private var guideManager: GuideManager
     @State private var isShowingInputSheet = false
+    @State private var inputMode: InputView.InputMode = .content
+    @State private var showStudySetSourceDialog = false
     @State private var isShowingCreateFolderSheet = false
     @State private var folderToEdit: StudyFolder? = nil
     @State private var searchText: String = ""
@@ -95,7 +92,7 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Shop Tab
+            // Tab: Shop storefront
             NavigationStack {
                 ShopView()
             }
@@ -104,7 +101,7 @@ struct ContentView: View {
             }
             .tag(AppTab.shop)
             
-            // Achievements Tab
+            // Tab: Achievements overview
             NavigationStack {
                 AchievementsView()
             }
@@ -113,14 +110,14 @@ struct ContentView: View {
             }
             .tag(AppTab.achievements)
             
-            // Home Tab (center, default)
+            // Tab: Home (default)
             homeView
                 .tabItem {
                     Label(AppTab.home.title, systemImage: AppTab.home.icon)
                 }
                 .tag(AppTab.home)
             
-            // Profile Tab
+            // Tab: Profile and stats
             NavigationStack {
                 ProfileView()
                     .environmentObject(guideManager)
@@ -130,7 +127,7 @@ struct ContentView: View {
             }
             .tag(AppTab.profile)
             
-            // Settings Tab
+            // Tab: Model settings and preferences
             NavigationStack {
                 ModelSettingsView()
                     .environmentObject(guideManager)
@@ -154,7 +151,7 @@ struct ContentView: View {
             gamificationManager.syncStudySets(studySets)
         }
         .overlay(alignment: .top) {
-            // Achievement notification overlay
+            // Transient banner when an achievement unlocks.
             if gamificationManager.showAchievementUnlocked && !isSearching, let achievement = gamificationManager.unlockedAchievement {
                 AchievementUnlockedView(achievement: achievement)
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -163,7 +160,7 @@ struct ContentView: View {
             }
         }
         .overlay(alignment: .top) {
-            // Level up notification
+            // Transient banner when the user levels up.
             if gamificationManager.showLevelUp && !isSearching {
                 LevelUpView(level: gamificationManager.newLevel)
                     .transition(.scale.combined(with: .opacity))
@@ -191,24 +188,25 @@ struct ContentView: View {
                 navigationPath.append(set)
             }
         } else if url.host == "stats" {
-            // Navigate to profile tab for stats
+            // Deep-link from widgets or notifications to the Profile tab.
             selectedTab = .profile
         }
     }
     
-    // MARK: - Home View
+    // MARK: - Home tab content
     private var homeView: some View {
         NavigationStack(path: $navigationPath) {
+            let isCreationDialogVisible = showStudySetSourceDialog
             ZStack {
                 Color(uiColor: .systemGroupedBackground)
                     .ignoresSafeArea()
                 
                 if studySets.isEmpty && studyFolders.isEmpty && searchText.isEmpty {
                     VStack(spacing: 16) {
-                        // Daily Mix Card
+                        // Daily Mix launcher
                         dailyMixCard
                         
-                        // Gamification Header Card (scrolls with content)
+                        // Gamification summary card
                         gamificationHeader
 
                         Spacer()
@@ -223,10 +221,10 @@ struct ContentView: View {
                     }
                 } else if filteredStudySets.isEmpty && filteredFolders.isEmpty {
                     VStack(spacing: 16) {
-                        // Daily Mix Card
+                        // Daily Mix launcher
                         dailyMixCard
                         
-                        // Keep the gamification header visible when searching
+                        // Show gamification summary even in empty search states.
                         gamificationHeader
 
                         Spacer()
@@ -241,7 +239,7 @@ struct ContentView: View {
                     }
                 } else {
                     List {
-                        // Daily Mix Card as first item
+                        // Pin Daily Mix at top of the list.
                         Section {
                             dailyMixCard
                                 .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 0, trailing: 0))
@@ -249,7 +247,7 @@ struct ContentView: View {
                         }
                         .listRowSeparator(.hidden)
                         
-                        // Gamification Header as second item in list
+                        // Pin the gamification summary below Daily Mix.
                         Section {
                             gamificationHeader
                                 .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
@@ -257,10 +255,10 @@ struct ContentView: View {
                         }
                         .listRowSeparator(.hidden)
                         
-                        // Folders Section
+                        // Folder section with optional expand/collapse.
                         if !filteredFolders.isEmpty {
                             Section {
-                                // Folders Header (scrolls with content)
+                                // Folder header doubles as expand/collapse control.
                                 Button(action: {
                                     withAnimation {
                                         isFoldersExpanded.toggle()
@@ -288,7 +286,7 @@ struct ContentView: View {
                                 .listRowSeparator(.hidden)
 
                                 if isFoldersExpanded {
-                                    // Adaptive grid that scales with screen size
+                                    // Adaptive grid sized to available width.
                                     let columns = [
                                         GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 14)
                                     ]
@@ -339,7 +337,7 @@ struct ContentView: View {
 
                         if !filteredStudySets.isEmpty {
                             Section {
-                                // Study Sets Header (only show if folders exist)
+                                // Show study-set header only when folders exist.
                                 if !filteredFolders.isEmpty {
                                     Button(action: {
                                         withAnimation {
@@ -395,7 +393,7 @@ struct ContentView: View {
                                             }
                                             
                                             HStack(alignment: .center, spacing: 8) {
-                                                // Custom date display to reduce spacing between icon and text
+                                                // Compact date layout to reduce icon-to-text spacing.
                                                 HStack(spacing: 4) {
                                                     Image(systemName: "calendar")
                                                         .font(.caption2)
@@ -407,7 +405,7 @@ struct ContentView: View {
 
                                                 Spacer()
 
-                                                // Compact mode badge on home list: tighter icon-text spacing, more outer padding
+                                                // Compact badge for study-set mode in list rows.
                                                 HStack(spacing: 4) {
                                                     Image(systemName: set.studySetMode == .topic ? "lightbulb.fill" : "doc.text.fill")
                                                         .font(.caption2)
@@ -464,7 +462,7 @@ struct ContentView: View {
                                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                         Button {
                                             HapticsManager.shared.playTap()
-                                            // Prepare rename sheet
+                                            // Capture current values before opening rename sheet.
                                             setToRename = set
                                             renameTitle = set.title
                                             renameIconId = set.iconId
@@ -495,7 +493,7 @@ struct ContentView: View {
                                             Label("Delete", systemImage: "trash")
                                         }
                                     }
-                                    // Make custom row tappable and readable by VoiceOver
+                                    // Improve tap target and VoiceOver summary for custom rows.
                                     .accessibilityElement(children: .combine)
                                     .accessibilityAddTraits(.isButton)
                                     .accessibilityLabel("Study set: \(set.title). Created on \(set.dateCreated, style: .date). Mode: \(set.studySetMode == .topic ? "Learning Topic" : "From Content")")
@@ -509,6 +507,48 @@ struct ContentView: View {
                     .listSectionSpacing(0)
                     .transaction { t in t.animation = nil }
                     .animation(nil, value: searchText)
+                }
+            }
+            .blur(radius: isCreationDialogVisible ? 1 : 0)
+            .allowsHitTesting(!isCreationDialogVisible)
+            .overlay {
+                if isCreationDialogVisible {
+                    ZStack {
+                        Color.black.opacity(0.25)
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    showStudySetSourceDialog = false
+                                }
+                            }
+                        
+                        StudySetSourcePopup(
+                            onSelectContent: {
+                                HapticsManager.shared.playTap()
+                                inputMode = .content
+                                isShowingInputSheet = true
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    showStudySetSourceDialog = false
+                                }
+                            },
+                            onSelectTopic: {
+                                HapticsManager.shared.playTap()
+                                inputMode = .topic
+                                isShowingInputSheet = true
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    showStudySetSourceDialog = false
+                                }
+                            },
+                            onDismiss: {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    showStudySetSourceDialog = false
+                                }
+                            }
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        .padding(.horizontal, 24)
+                        .transition(.scale.combined(with: .opacity))
+                    }
                 }
             }
             .searchable(text: $searchText, isPresented: $isSearching, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search study sets")
@@ -535,8 +575,10 @@ struct ContentView: View {
                     Menu {
                         Button {
                             HapticsManager.shared.playTap()
-                            isShowingInputSheet = true
                             guideManager.advanceAfterTappedCreate()
+                            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                showStudySetSourceDialog = true
+                            }
                         } label: {
                             Label("New Study Set", systemImage: "doc.badge.plus")
                         }
@@ -573,7 +615,7 @@ struct ContentView: View {
                 DailyMixView()
             }
             .sheet(isPresented: $isShowingInputSheet) {
-                InputView()
+                InputView(mode: inputMode)
                     .environmentObject(guideManager)
             }
             .sheet(isPresented: Binding(get: { setToRename != nil }, set: { if !$0 { setToRename = nil } })) {
@@ -584,7 +626,7 @@ struct ContentView: View {
                                 .ignoresSafeArea()
                             
                             VStack(spacing: 24) {
-                                // Header with icon
+                                // Rename sheet header with iconography.
                                 VStack(spacing: 16) {
                                     ZStack {
                                         Circle()
@@ -601,7 +643,7 @@ struct ContentView: View {
                                         .foregroundColor(.primary)
                                 }
                                 
-                                // Input field
+                                // Rename field for the study set title.
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("Title")
                                         .font(.headline)
@@ -616,7 +658,7 @@ struct ContentView: View {
                                 }
                                 .padding(.horizontal)
                                 
-                                // Icon Picker
+                                // Icon selector for the study set.
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("Icon")
                                         .font(.headline)
@@ -693,9 +735,9 @@ struct ContentView: View {
                         onSkip: { guideManager.skipGuide() },
                         onAdvance: nil
                     )
-                    .zIndex(200)  // Ensure guide overlay appears above all other content
+                    .zIndex(200)  // Keep guide overlay above lists and sheets.
                 }
-                .allowsHitTesting(!guideManager.isCollapsed)  // Allow interaction only when expanded
+                .allowsHitTesting(!guideManager.isCollapsed)  // Disable hits when the guide is collapsed.
             }
             .onChange(of: selectedTab) { oldValue, newValue in
                 if guideManager.currentStep == .configureModel && newValue == .settings {
@@ -708,13 +750,13 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - Daily Mix Card
+    // MARK: - Daily Mix launcher
     
     private var hasDailyMixContent: Bool {
         let totalQuestions = studySets.reduce(0) { $0 + $1.questions.count }
         let totalFlashcards = studySets.reduce(0) { $0 + $1.flashcards.count }
         
-        // Hide if already completed today
+        // Hide if the user already completed Daily Mix today.
         if gamificationManager.hasDailyMixCompletedToday(profile: profile) {
             return false
         }
@@ -730,7 +772,7 @@ struct ContentView: View {
                     isShowingDailyMix = true
                 } label: {
                     HStack(spacing: 14) {
-                        // Icon with solid background
+                        // Solid icon chip to emphasize the CTA.
                         ZStack {
                             Circle()
                                 .fill(themeManager.primaryColor)
@@ -777,11 +819,11 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - Gamification Header
+    // MARK: - Gamification summary header
     
     private var gamificationHeader: some View {
         HStack(spacing: 16) {
-            // Level & XP
+            // Level and XP progress summary.
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 4) {
                     Image(systemName: "star.fill")
@@ -791,7 +833,7 @@ struct ContentView: View {
                         .font(.subheadline.bold())
                 }
                 
-                // XP Progress Bar
+                // Visual indicator of progress toward next level.
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 4)
@@ -814,7 +856,7 @@ struct ContentView: View {
             Divider()
                 .frame(height: 40)
             
-            // Streak
+            // Current streak summary.
             VStack(spacing: 2) {
                 HStack(spacing: 4) {
                     Image(systemName: "flame.fill")
@@ -831,7 +873,7 @@ struct ContentView: View {
             Divider()
                 .frame(height: 40)
             
-            // Coins
+            // Current coin balance summary.
             VStack(spacing: 2) {
                 HStack(spacing: 4) {
                     Image(systemName: "dollarsign.circle.fill")
@@ -862,7 +904,7 @@ struct ContentView: View {
 
 }
 
-// MARK: - Folder Card
+// MARK: - Folder card
 
 private struct FolderCard: View {
     let folder: StudyFolder
@@ -875,7 +917,7 @@ private struct FolderCard: View {
             let spacing = width * 0.06
 
             VStack(spacing: spacing) {
-                // Icon
+                // Folder icon with themed background.
                 Circle()
                     .fill(themeManager.secondaryColor.opacity(0.9))
                     .overlay(
@@ -889,7 +931,7 @@ private struct FolderCard: View {
                             .foregroundColor(.white)
                     )
 
-                // Title and count
+                // Folder name and study-set count.
                 VStack(spacing: spacing * 0.7) {
                     Text(folder.name)
                         .font(.subheadline.bold())
@@ -929,6 +971,85 @@ private struct FolderCard: View {
             .shadow(color: themeManager.primaryColor.opacity(0.12), radius: 6, x: 0, y: 3)
         }
         .aspectRatio(1.3, contentMode: .fit)
+    }
+}
+
+// MARK: - Study-set source popup
+
+private struct StudySetSourcePopup: View {
+    let onSelectContent: () -> Void
+    let onSelectTopic: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Create a study set")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    onDismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            
+            Text("Choose how you want to start. Paste existing material or let AI teach you something new.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            VStack(spacing: 12) {
+                Button(action: onSelectContent) {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "doc.text")
+                            .font(.headline)
+                            .padding(.top, 2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("From Content")
+                                .font(.headline)
+                            Text("Paste notes, scan with the camera, or import a PDF to generate questions and flashcards.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.accentColor.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                
+                Button(action: onSelectTopic) {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "lightbulb")
+                            .font(.headline)
+                            .padding(.top, 2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Learn a Topic")
+                                .font(.headline)
+                            Text("Tell AI what you want to learn. Get a guided summary, practice questions, and flashcards.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: 420)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18), radius: 18, y: 6)
     }
 }
 

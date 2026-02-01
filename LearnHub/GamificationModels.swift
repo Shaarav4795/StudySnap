@@ -1,40 +1,40 @@
 import Foundation
 import SwiftData
 
-// MARK: - Achievement Definitions
+// MARK: - Achievement definitions
 
 enum AchievementType: String, Codable, CaseIterable {
-    // Questions Correct Milestones
+    // Question-correct milestones.
     case questions5 = "questions_5"
     case questions10 = "questions_10"
     case questions50 = "questions_50"
     case questions100 = "questions_100"
     case questions500 = "questions_500"
     
-    // Streak Milestones
+    // Streak milestones.
     case streak1 = "streak_1"
     case streak7 = "streak_7"
     case streak14 = "streak_14"
     case streak31 = "streak_31"
     case streak365 = "streak_365"
     
-    // Study Set Milestones
+    // Study-set milestones.
     case studySets1 = "study_sets_1"
     case studySets5 = "study_sets_5"
     case studySets10 = "study_sets_10"
     case studySets25 = "study_sets_25"
     
-    // Flashcard Milestones
+    // Flashcard milestones.
     case flashcards25 = "flashcards_25"
     case flashcards100 = "flashcards_100"
     case flashcards500 = "flashcards_500"
     
-    // Perfect Scores
+    // Perfect-quiz milestones.
     case perfectQuiz1 = "perfect_quiz_1"
     case perfectQuiz5 = "perfect_quiz_5"
     case perfectQuiz10 = "perfect_quiz_10"
     
-    // Level Milestones
+    // Level milestones.
     case level5 = "level_5"
     case level10 = "level_10"
     case level25 = "level_25"
@@ -216,7 +216,7 @@ enum AchievementType: String, Codable, CaseIterable {
     }
 }
 
-// MARK: - SwiftData Models
+// MARK: - SwiftData models
 
 @Model
 final class UserProfile {
@@ -244,7 +244,7 @@ final class UserProfile {
         self.id = UUID()
         self.username = username
         self.totalXP = 0
-        self.coins = 100 // Starting coins
+        self.coins = 100 // Starting coin balance.
         self.currentStreak = 0
         self.longestStreak = 0
         self.lastStudyDate = nil
@@ -259,24 +259,22 @@ final class UserProfile {
         self.createdAt = Date()
     }
     
-    // MARK: - Level Calculations
+    // MARK: - Level calculations
     
-    // Base XP for level 1->2, scales by 1.1x each level
+    // Base XP for level 1→2, scales by 1.1x per level.
     private static let baseXP: Double = 100
     private static let scaleFactor: Double = 1.1
     
-    // Calculate cumulative XP needed to reach a given level
+    // Cumulative XP required to reach a given level.
     private static func cumulativeXP(forLevel level: Int) -> Int {
         guard level > 1 else { return 0 }
-        // Sum of geometric series: baseXP * (1 + 1.25 + 1.25^2 + ... + 1.25^(level-2))
-        // = baseXP * (1.25^(level-1) - 1) / (1.25 - 1)
+        // Geometric series sum for the XP curve.
         let sum = baseXP * (pow(scaleFactor, Double(level - 1)) - 1) / (scaleFactor - 1)
         return Int(sum)
     }
     
     var level: Int {
-        // Find level based on total XP using scaling formula
-        // Binary search for efficiency
+        // Compute level from total XP using a binary search.
         var low = 1
         var high = 100
         while low < high {
@@ -291,12 +289,12 @@ final class UserProfile {
     }
     
     var xpForCurrentLevel: Int {
-        // XP threshold to reach current level
+        // XP threshold for the current level.
         return UserProfile.cumulativeXP(forLevel: level)
     }
     
     var xpForNextLevel: Int {
-        // XP threshold to reach next level
+        // XP threshold for the next level.
         return UserProfile.cumulativeXP(forLevel: level + 1)
     }
     
@@ -315,7 +313,7 @@ final class UserProfile {
 @Model
 final class Achievement {
     var id: UUID
-    var type: String // AchievementType.rawValue
+    var type: String // `AchievementType.rawValue`
     var unlockedAt: Date
     var claimed: Bool
     
@@ -350,7 +348,7 @@ final class UnlockedItem {
     }
 }
 
-// MARK: - Avatar & Theme Definitions
+// MARK: - Avatar and theme definitions
 
 struct AvatarItem: Identifiable, Hashable {
     let id: String
@@ -407,27 +405,27 @@ struct ThemeItem: Identifiable, Hashable {
     }
 }
 
-// MARK: - XP Rewards Configuration
+// MARK: - XP rewards configuration
 
 struct XPRewards {
-    // Increased slightly to account for higher XP-per-level scaling
+    // Tuned to match the higher per-level XP curve.
     static let questionCorrect = 15
     static let quizCompleted = 40
-    static let perfectQuiz = 75 // Bonus for perfect score
+    static let perfectQuiz = 75 // Bonus for a perfect quiz.
     static let flashcardStudied = 8
     static let flashcardMastered = 20
     static let studySetCreated = 45
     static let summaryRead = 15
     static let dailyLoginBonus = 30
-    static let streakBonus: Int = 8 // Per day of streak
+    static let streakBonus: Int = 8 // Per day of streak.
     
-    // Daily Mix rewards (balanced - not too high)
+    // Daily Mix rewards are intentionally modest.
     static let dailyMixBase = 25
     static let dailyMixQuestionCorrect = 8
     static let dailyMixFlashcard = 5
     
     static func streakMultiplier(for streak: Int) -> Double {
-        // Bonus multiplier based on streak
+        // Streak multiplier boosts XP as streaks grow.
         switch streak {
         case 0...6: return 1.0
         case 7...13: return 1.1
@@ -438,17 +436,17 @@ struct XPRewards {
     }
 }
 
-// MARK: - Coin Rewards Configuration
+// MARK: - Coin rewards configuration
 
 struct CoinRewards {
-    // Slightly higher coin rewards to keep pace with XP changes
+    // Coin rewards track the XP economy changes.
     static let quizCompleted = 8
     static let perfectQuiz = 25
     static let studySetCreated = 15
     static let dailyLogin = 8
-    static let streakBonus = 10 // Per day of streak (on certain milestones)
+    static let streakBonus = 10 // Per day of streak (on milestones).
     
-    // Daily Mix rewards (balanced)
+    // Daily Mix coin rewards.
     static let dailyMixBase = 10
     static let dailyMixQuestionCorrect = 3
     static let dailyMixFlashcard = 2

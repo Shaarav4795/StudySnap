@@ -1,9 +1,4 @@
-//
-//  LearnHubWidgetsBundle.swift
-//  LearnHubWidgets
-//
-//  Created by Shaarav on 3/12/2025.
-//
+// Widget bundle entry point for LearnHub widgets.
 
 import WidgetKit
 import SwiftUI

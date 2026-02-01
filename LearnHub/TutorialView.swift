@@ -43,7 +43,7 @@ struct TutorialView: View {
             .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .always))
             .animation(.easeInOut, value: currentPage)
             
-            // Close button
+            // Dismiss the tutorial and start the guide flow.
             VStack {
                 HStack {
                     Spacer()
@@ -65,7 +65,7 @@ struct TutorialView: View {
     }
 }
 
-// MARK: - Pages
+// MARK: - Tutorial pages
 
 struct WelcomePage: View {
     @EnvironmentObject private var themeManager: ThemeManager
@@ -168,7 +168,7 @@ struct CreateSetPage: View {
                     .padding(.horizontal)
                 
                 VStack(spacing: 24) {
-                    // Content Mode
+                    // Mode: From Content
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
                             Image(systemName: "doc.text.fill")
@@ -213,7 +213,7 @@ struct CreateSetPage: View {
                     .cornerRadius(16)
                     .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
                     
-                    // Topic Mode
+                    // Mode: Learn Topic
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
                             Image(systemName: "lightbulb.fill")
@@ -246,7 +246,7 @@ struct CreateSetPage: View {
                     .cornerRadius(16)
                     .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
                     
-                    // Settings Section
+                    // Configuration settings preview
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
                             Image(systemName: "slider.horizontal.3")
@@ -323,7 +323,7 @@ struct TutorialFlashcardPage: View {
                 .foregroundColor(.secondary)
             
             ZStack {
-                // Card
+                // Flashcard demo card
                 ZStack {
                     RoundedRectangle(cornerRadius: 20)
                         .fill(isMastered ? Color.green.opacity(0.1) : Color(uiColor: .secondarySystemGroupedBackground))
@@ -380,7 +380,7 @@ struct TutorialFlashcardPage: View {
                     }
                 }
                 
-                // Hand hint
+                // Tap gesture hint
                 if showHand {
                     Image(systemName: "hand.tap.fill")
                         .font(.system(size: 50))
@@ -396,7 +396,7 @@ struct TutorialFlashcardPage: View {
                     HapticsManager.shared.playTap()
                     withAnimation {
                         isMastered = true
-                        isFlipped = false // Flip back to show front with mastered state
+                        isFlipped = false // Reset to front so the mastered state is visible.
                     }
                 }) {
                     Label("I Know This!", systemImage: "checkmark.circle.fill")
@@ -444,7 +444,7 @@ struct TutorialQuizPage: View {
                     .foregroundColor(.secondary)
                 
                 VStack(alignment: .leading, spacing: 20) {
-                    // Question Card
+                    // Demo question card
                     Text(question)
                         .font(.title3.bold())
                         .multilineTextAlignment(.center)
@@ -454,7 +454,7 @@ struct TutorialQuizPage: View {
                         .cornerRadius(16)
                         .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
                     
-                    // Answers
+                    // Answer choices
                     VStack(spacing: 12) {
                         ForEach(Array(answers.enumerated()), id: \.element) { index, answer in
                             Button(action: {
@@ -466,7 +466,7 @@ struct TutorialQuizPage: View {
                                 }
                             }) {
                                 HStack(spacing: 15) {
-                                    // Letter Circle
+                                    // Option label chip
                                     ZStack {
                                         Circle()
                                             .fill(circleColor(for: answer))
@@ -508,7 +508,7 @@ struct TutorialQuizPage: View {
                         }
                     }
                     
-                    // Explanation Box
+                    // Explanation panel
                     if showExplanation {
                         VStack(alignment: .leading, spacing: 8) {
                             Label("Explanation", systemImage: "info.circle.fill")
@@ -716,7 +716,7 @@ struct NavigationPage: View {
                     .padding(.horizontal)
                 
                 VStack(spacing: 24) {
-                    // Home
+                    // Home tab overview
                     HStack(spacing: 16) {
                         Image(systemName: "books.vertical.fill")
                             .font(.title)
@@ -739,7 +739,7 @@ struct NavigationPage: View {
                     .cornerRadius(16)
                     .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
                     
-                    // Create
+                    // Create action walkthrough
                     HStack(spacing: 16) {
                         Image(systemName: "plus")
                             .font(.title)
@@ -762,7 +762,7 @@ struct NavigationPage: View {
                     .cornerRadius(16)
                     .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
                     
-                    // Profile
+                    // Profile and shop overview
                     HStack(spacing: 16) {
                         Image(systemName: "person.circle.fill")
                             .font(.title)

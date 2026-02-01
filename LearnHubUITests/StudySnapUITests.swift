@@ -1,39 +1,32 @@
-//
-//  LearnHubUITests.swift
-//  LearnHubUITests
-//
-//  Created by Shaarav on 30/11/2025.
-//
+// UI test scaffold for LearnHub flows.
 
 import XCTest
 
 final class LearnHubUITests: XCTestCase {
 
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
+        // Stop immediately on failure to reduce cascading errors.
         continueAfterFailure = false
 
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
+        // Configure the initial UI state (orientation, permissions, seed data) here.
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        // Reset any state that could affect subsequent tests.
     }
 
     @MainActor
     func testExample() throws {
-        // UI tests must launch the application that they test.
+        // Launch the app under test.
         let app = XCUIApplication()
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        // Add assertions that validate expected UI behavior.
     }
 
     @MainActor
     func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
+        // Measure cold-start launch performance.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()
         }

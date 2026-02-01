@@ -1,16 +1,11 @@
-//
-//  DailyMixView.swift
-//  LearnHub
-//
-//  Created by Shaarav on 28/12/2025.
-//
+// Daily Mix flow: a short, deterministic daily session of questions + flashcards.
 
 import SwiftUI
 import SwiftData
 
-// MARK: - Seeded Random Number Generator
+// MARK: - Seeded random number generator
 
-/// A deterministic random number generator that produces the same sequence for a given seed
+/// A deterministic RNG that yields the same sequence for the same seed.
 struct SeededRandomNumberGenerator: RandomNumberGenerator {
     private var state: UInt64
     
@@ -19,7 +14,7 @@ struct SeededRandomNumberGenerator: RandomNumberGenerator {
     }
     
     mutating func next() -> UInt64 {
-        // Simple xorshift algorithm for deterministic randomness
+        // Xorshift keeps the generator fast and deterministic.
         state ^= state << 13
         state ^= state >> 7
         state ^= state << 17
@@ -35,18 +30,18 @@ struct DailyMixView: View {
     @StateObject private var gamificationManager = GamificationManager.shared
     @StateObject private var themeManager = ThemeManager.shared
     
-    // Session state
+    // Session phase and content for the Daily Mix run.
     @State private var phase: DailyMixPhase = .intro
     @State private var mixQuestions: [Question] = []
     @State private var mixFlashcards: [Flashcard] = []
     
-    // Quiz state (reusing QuizView patterns)
+    // Quiz state mirrors `QuizView` to keep scoring and UI consistent.
     @State private var currentQuestionIndex = 0
     @State private var questionsCorrect = 0
     @State private var isAnswerVisible = false
     @State private var selectedAnswer: String?
     
-    // Flashcard state (reusing FlashcardsView patterns)
+    // Flashcard state mirrors `FlashcardsView` for consistency.
     @State private var currentFlashcardIndex = 0
     @State private var flashcardsStudied = 0
     @State private var flashcardsMastered = 0
@@ -109,13 +104,13 @@ struct DailyMixView: View {
         }
     }
     
-    // MARK: - Intro View
+    // MARK: - Intro view
     
     private var introView: some View {
         VStack(spacing: 24) {
             Spacer()
             
-            // Motivational Header
+            // Primary message and hero icon.
             VStack(spacing: 16) {
                 ZStack {
                     Circle()
@@ -142,7 +137,7 @@ struct DailyMixView: View {
                     .padding(.horizontal, 24)
             }
             
-            // Stats Preview
+            // Preview of the fixed question/flashcard counts.
             if !isAlreadyCompleted {
                 HStack(spacing: 30) {
                     VStack(spacing: 8) {
@@ -178,7 +173,7 @@ struct DailyMixView: View {
                 .cornerRadius(16)
             }
             
-            // Rewards Preview
+            // Preview of possible XP/coin rewards.
             if !isAlreadyCompleted {
                 VStack(spacing: 12) {
                     Text("Potential Rewards")
@@ -210,7 +205,7 @@ struct DailyMixView: View {
                 )
             }
             
-            // Streak Reminder
+            // Reminder to keep a streak active.
             if profile.currentStreak > 0 && !isAlreadyCompleted {
                 HStack(spacing: 8) {
                     Image(systemName: "flame.fill")
@@ -227,7 +222,7 @@ struct DailyMixView: View {
             
             Spacer()
             
-            // Action Buttons
+            // Primary CTA based on availability/completion.
             VStack(spacing: 12) {
                 if !isAlreadyCompleted && !mixQuestions.isEmpty && !mixFlashcards.isEmpty {
                     Button(action: {
@@ -250,7 +245,7 @@ struct DailyMixView: View {
                 } else if isAlreadyCompleted {
                     Button(action: {
                         HapticsManager.shared.playTap()
-                        // Allow practice run without XP/coins
+                        // Allow replay without awarding rewards.
                         withAnimation {
                             phase = .questions
                         }
@@ -267,7 +262,7 @@ struct DailyMixView: View {
                         .cornerRadius(16)
                     }
                 } else {
-                    // Not enough content
+                    // Inform the user when they lack enough content to run Daily Mix.
                     VStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.title)
@@ -286,7 +281,7 @@ struct DailyMixView: View {
         .padding()
     }
     
-    // MARK: - Questions Phase View
+    // MARK: - Questions phase
     
     private var questionsPhaseView: some View {
         VStack(spacing: 0) {
@@ -294,7 +289,7 @@ struct DailyMixView: View {
                 let question = mixQuestions[currentQuestionIndex]
                 
                 VStack(spacing: 20) {
-                    // Progress Header
+                    // Progress header for current question and score.
                     HStack {
                         Text("Question \(currentQuestionIndex + 1) of \(mixQuestions.count)")
                             .font(.headline)
@@ -316,7 +311,7 @@ struct DailyMixView: View {
                     GeometryReader { proxy in
                         ScrollView {
                             VStack(spacing: 20) {
-                            // Question Card
+                            // Main question card.
                             VStack {
                                 MathTextView(question.prompt, fontSize: 20)
                                     .fontWeight(.semibold)
@@ -331,7 +326,7 @@ struct DailyMixView: View {
                             )
                             .padding(.horizontal)
                             
-                            // Options
+                            // Answer options with selectable states.
                             if let allOptions = question.options, !allOptions.isEmpty {
                                 let options = allOptions.filter { option in
                                     !((option.hasPrefix("Option ") || option.hasPrefix("option ")) && option.count < 10 && option.last?.isNumber == true)
@@ -390,7 +385,7 @@ struct DailyMixView: View {
                                 }
                                 .padding(.horizontal)
                                 
-                                // Explanation
+                                // Explanation shown after answering.
                                 if isAnswerVisible, let explanation = question.explanation, !explanation.isEmpty {
                                     VStack(alignment: .leading, spacing: 8) {
                                         Text("Explanation")
@@ -417,7 +412,7 @@ struct DailyMixView: View {
                     }
                 }
                 
-                // Fixed Footer
+                // Fixed footer for next/continue actions.
                 if isAnswerVisible {
                     VStack {
                         Button(action: {
@@ -440,12 +435,12 @@ struct DailyMixView: View {
         }
     }
     
-    // MARK: - Flashcards Phase View
+    // MARK: - Flashcards phase
     
     private var flashcardsPhaseView: some View {
         VStack(spacing: 0) {
             if currentFlashcardIndex < mixFlashcards.count {
-                // Progress Stats Bar
+                // Progress stats for studied/mastered cards.
                 HStack(spacing: 16) {
                     HStack(spacing: 6) {
                         Image(systemName: "eye.fill")
@@ -478,7 +473,7 @@ struct DailyMixView: View {
                 .padding(.horizontal)
                 .padding(.top, 8)
                 
-                // Flashcard TabView
+                // Swipeable flashcard deck.
                 TabView(selection: $currentFlashcardIndex) {
                     ForEach(mixFlashcards.indices, id: \.self) { index in
                         DailyMixFlashcardView(
@@ -496,7 +491,7 @@ struct DailyMixView: View {
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
                 .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .always))
                 
-                // Bottom Bar
+                // Bottom bar with position and finish CTA.
                 HStack {
                     HStack(spacing: 4) {
                         Image(systemName: "rectangle.stack")
@@ -531,13 +526,13 @@ struct DailyMixView: View {
         }
     }
     
-    // MARK: - Completion View
+    // MARK: - Completion view
     
     private var completionView: some View {
         VStack(spacing: 24) {
             Spacer()
             
-            // Celebration
+            // Celebration icon and title.
             ZStack {
                 Circle()
                     .fill(themeManager.primaryGradient)
@@ -557,7 +552,7 @@ struct DailyMixView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
             
-            // Results Summary
+            // Summary of question and flashcard performance.
             VStack(spacing: 16) {
                 HStack(spacing: 40) {
                     VStack(spacing: 4) {
@@ -592,7 +587,7 @@ struct DailyMixView: View {
             .background(Color(uiColor: .secondarySystemGroupedBackground))
             .cornerRadius(16)
             
-            // Rewards (only if not already completed today)
+            // Reward breakdown, only on first completion today.
             if !isAlreadyCompleted {
                 HStack(spacing: 20) {
                     VStack(spacing: 4) {
@@ -628,7 +623,7 @@ struct DailyMixView: View {
                     .cornerRadius(12)
                 }
                 
-                // Streak Update
+                // Streak reinforcement message.
                 HStack(spacing: 8) {
                     Image(systemName: "flame.fill")
                         .foregroundColor(.orange)
@@ -666,10 +661,10 @@ struct DailyMixView: View {
         .padding()
     }
     
-    // MARK: - Helper Functions
+    // MARK: - Helper functions
     
     private func generateDailyMix() {
-        // Collect all questions and flashcards from all study sets
+        // Gather all questions and flashcards across study sets.
         var allQuestions: [Question] = []
         var allFlashcards: [Flashcard] = []
         
@@ -678,13 +673,13 @@ struct DailyMixView: View {
             allFlashcards.append(contentsOf: set.flashcards)
         }
         
-        // Use date-based seed for consistent daily selection
+        // Seed by start-of-day to keep selection stable per day.
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let seed = UInt64(today.timeIntervalSince1970)
         var generator = SeededRandomNumberGenerator(seed: seed)
         
-        // Sort by ID first for consistent ordering, then shuffle with seeded generator
+        // Sort for stability, then shuffle deterministically.
         let sortedQuestions = allQuestions.sorted { $0.id.uuidString < $1.id.uuidString }
         let sortedFlashcards = allFlashcards.sorted { $0.id.uuidString < $1.id.uuidString }
         
@@ -706,7 +701,7 @@ struct DailyMixView: View {
             isAnswerVisible = false
             selectedAnswer = nil
         } else {
-            // Move to flashcards phase
+            // Transition to the flashcards phase after the last question.
             withAnimation {
                 phase = .flashcards
             }
@@ -736,7 +731,7 @@ struct DailyMixView: View {
         }
         hasRecordedCompletion = true
         
-        // Only award XP/coins if not already completed today
+        // Award rewards only once per day.
         if !isAlreadyCompleted {
             gamificationManager.recordDailyMixCompletion(
                 questionsCorrect: questionsCorrect,
@@ -751,7 +746,7 @@ struct DailyMixView: View {
         }
     }
     
-    // MARK: - Calculations
+    // MARK: - Reward calculations
     
     private func calculateMaxXP() -> Int {
         let base = XPRewards.dailyMixBase
@@ -790,7 +785,7 @@ struct DailyMixView: View {
         }
     }
     
-    // MARK: - Option Styling (matching QuizView)
+    // MARK: - Option styling (mirrors QuizView)
     
     private func optionCircleColor(for option: String, correctAnswer: String) -> Color {
         guard isAnswerVisible else { return Color.accentColor.opacity(0.1) }
@@ -820,7 +815,7 @@ struct DailyMixView: View {
     }
 }
 
-// MARK: - Daily Mix Flashcard View (reusing FlashcardView pattern)
+// MARK: - Daily Mix flashcard view (mirrors FlashcardView)
 
 private struct DailyMixFlashcardView: View {
     let card: Flashcard
@@ -869,7 +864,7 @@ private struct DailyMixFlashcardView: View {
             .accessibilityHint(isFlipped ? "Swipe or double-tap to go back to the question" : "Double-tap to flip and hear the answer")
             .accessibilityAddTraits(.isButton)
             
-            // Mark as mastered button
+            // Mastery action becomes available after flipping.
             if isFlipped && !isMastered {
                 Button(action: {
                     HapticsManager.shared.playTap()

@@ -4,7 +4,7 @@ import Foundation
 struct MathTextView: View {
     let text: String
     let fontSize: CGFloat
-    /// When true, render all non-math text segments in bold
+    /// When true, render all non-math segments in bold for emphasis.
     let forceBold: Bool
     @Environment(\.multilineTextAlignment) var textAlignment
     
@@ -23,7 +23,7 @@ struct MathTextView: View {
     }
     
     var body: some View {
-        // Split by newlines first to preserve paragraph structure
+        // Split by newlines to preserve paragraph structure.
         VStack(alignment: alignment, spacing: 8) {
             ForEach(splitByNewlines(text), id: \.self) { line in
                 if #available(iOS 16.0, *) {
@@ -41,8 +41,7 @@ struct MathTextView: View {
                         }
                     }
                 } else {
-                    // Fallback for older iOS versions (though project seems to target new iOS)
-                    // Simple wrapping not fully supported here, falling back to horizontal scroll or simple text
+                    // Fallback for older iOS versions: use a horizontal scroll layout.
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 0) {
                             ForEach(parseMath(line)) { segment in
@@ -75,7 +74,7 @@ struct MathTextView: View {
     }
     
     private func splitByNewlines(_ text: String) -> [String] {
-        // Filter out empty lines to avoid empty views
+        // Remove empty lines to avoid rendering empty rows.
         return text.components(separatedBy: .newlines).filter { !$0.isEmpty }
     }
     
@@ -85,15 +84,15 @@ struct MathTextView: View {
         
         for (index, component) in components.enumerated() {
             if index % 2 == 1 {
-                // Math part (between $...$)
+                // Math segment between $...$ delimiters.
                 if !component.isEmpty {
                     segments.append(Segment(content: component, isMath: true))
                 }
             } else {
-                // Text part - Parse Markdown using AttributedString
+                // Text segment parsed as Markdown using `AttributedString`.
                 if !component.isEmpty {
                     do {
-                        // We need to handle the case where the string might be just whitespace
+                        // Skip segments that are only whitespace.
                         if component.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                              continue 
                         }
@@ -105,7 +104,7 @@ struct MathTextView: View {
                             let isBold = run.inlinePresentationIntent?.contains(.stronglyEmphasized) ?? false
                             let isItalic = run.inlinePresentationIntent?.contains(.emphasized) ?? false
                             
-                            // Split run text into words
+                            // Split run text into words for simple flow layout.
                             let words = runText.components(separatedBy: .whitespaces)
                             for word in words {
                                 if !word.isEmpty {
@@ -114,7 +113,7 @@ struct MathTextView: View {
                             }
                         }
                     } catch {
-                        // Fallback if markdown parsing fails
+                        // Fallback to plain text tokens if Markdown parsing fails.
                         let words = component.components(separatedBy: .whitespaces)
                         for word in words {
                             if !word.isEmpty {
@@ -156,7 +155,7 @@ struct FlowLayout: Layout {
         var lineHeight: CGFloat = 0
         var points: [CGPoint] = []
         
-        // Store items for the current line to center-align them vertically later
+        // Store items for the current line to center-align vertically.
         struct LineItem {
             let index: Int
             let size: CGSize
@@ -190,25 +189,25 @@ struct FlowLayout: Layout {
         for (index, subview) in subviews.enumerated() {
             let size = subview.sizeThatFits(.unspecified)
             
-            // Check if we need to wrap to the next line
+            // Wrap to a new line when the current line overflows.
             if currentX + size.width > maxWidth && !currentLineItems.isEmpty {
-                // Finalize positions for the current line
+                // Finalize positions for the current line.
                 finalizeLine(items: currentLineItems, currentY: currentY, lineHeight: lineHeight)
                 
-                // Reset for new line
+                // Reset state for the next line.
                 currentX = 0
                 currentY += lineHeight + lineSpacing
                 lineHeight = 0
                 currentLineItems = []
             }
             
-            // Add item to current line
+            // Add item to the active line.
             currentLineItems.append(LineItem(index: index, size: size, x: currentX))
             currentX += size.width + spacing
             lineHeight = max(lineHeight, size.height)
         }
         
-        // Finalize the last line
+        // Finalize the last line.
         finalizeLine(items: currentLineItems, currentY: currentY, lineHeight: lineHeight)
         
         return (CGSize(width: maxWidth == .infinity ? currentX : maxWidth, height: currentY + lineHeight), points)

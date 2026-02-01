@@ -9,7 +9,7 @@ struct CreateFolderView: View {
     @State private var folderName: String = ""
     @State private var selectedIconId: String = "folder"
     
-    // If provided, we are in editing mode
+    // If provided, the sheet edits an existing folder.
     var folderToEdit: StudyFolder?
     
     var body: some View {
@@ -19,7 +19,7 @@ struct CreateFolderView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 24) {
-                    // Header with icon
+                    // Sheet header with context-specific icon.
                     VStack(spacing: 16) {
                         ZStack {
                             Circle()
@@ -36,7 +36,7 @@ struct CreateFolderView: View {
                             .foregroundColor(.primary)
                     }
                     
-                    // Input field
+                    // Folder name input.
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Name")
                             .font(.headline)
@@ -51,7 +51,7 @@ struct CreateFolderView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Icon Picker
+                    // Icon picker for the folder.
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Icon")
                             .font(.headline)

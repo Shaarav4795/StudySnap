@@ -16,7 +16,7 @@ struct MoveToFolderView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 24) {
-                    // Header with icon
+                    // Sheet header for moving a study set.
                     VStack(spacing: 16) {
                         ZStack {
                             Circle()

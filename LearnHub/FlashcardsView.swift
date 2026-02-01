@@ -45,7 +45,7 @@ struct FlashcardsView: View {
                 } else if showSessionComplete {
                 sessionCompleteView
             } else {
-                // Progress Stats Bar
+                // Session progress summary (studied vs mastered).
                 HStack(spacing: 16) {
                     HStack(spacing: 6) {
                         Image(systemName: "eye.fill")
@@ -78,7 +78,7 @@ struct FlashcardsView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 12)
 
-                // Generate More button visible in the tab
+                // Action to generate additional flashcards for this set.
                 HStack {
                     Button {
                         HapticsManager.shared.playTap()
@@ -114,9 +114,9 @@ struct FlashcardsView: View {
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
                 .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .always))
                 
-                // Bottom Bar
+                // Bottom bar with position and session CTA.
                 HStack {
-                    // Card Counter
+                    // Current card index and total count.
                     HStack(spacing: 4) {
                         Image(systemName: "rectangle.stack")
                             .font(.caption)
@@ -232,7 +232,7 @@ struct FlashcardsView: View {
                     }
                 }
                 
-                // XP Earned
+                // XP summary for the completed session.
                 HStack(spacing: 8) {
                     Image(systemName: "star.fill")
                         .foregroundColor(.blue)
@@ -261,7 +261,7 @@ struct FlashcardsView: View {
         guard !masteredCardIds.contains(cardId) else { return }
         masteredCardIds.insert(cardId)
         cardsMastered += 1
-        // Also mark as studied if not already
+        // Ensure mastered cards count as studied.
         if !studiedCardIds.contains(cardId) {
             studiedCardIds.insert(cardId)
             cardsStudied += 1
@@ -324,7 +324,7 @@ struct FlashcardsView: View {
     }
 }
 
-// MARK: - Generate More Popup
+// MARK: - Generate-more sheet
 
 private struct GenerateMorePopup: View {
     let title: String
@@ -464,7 +464,7 @@ struct FlashcardView: View {
                 }
             }
             
-            // Mark as mastered button (only after flipping, if not already mastered)
+            // Mastery action appears only after the card is flipped.
             if isFlipped && !isMastered {
                 Button(action: {
                     HapticsManager.shared.playTap()

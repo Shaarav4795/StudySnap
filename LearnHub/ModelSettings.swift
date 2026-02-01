@@ -3,7 +3,7 @@ import Foundation
 import FoundationModels
 #endif
 
-/// User-configurable model preference and BYOK storage.
+/// User-configurable model preference and BYOK key storage.
 enum AIModelPreference: String, CaseIterable, Identifiable {
     case automatic
     case groqOnly
@@ -40,7 +40,7 @@ enum ModelSettings {
     static func preference() async -> AIModelPreference {
         await MainActor.run {
             let raw = UserDefaults.standard.string(forKey: Keys.preference) ?? AIModelPreference.automatic.rawValue
-            // Migration: if old value was "openRouterOnly" or "GroqOnly", map to "groqOnly"
+            // Migration: map legacy values to the current `groqOnly` option.
             if raw == "openRouterOnly" || raw == "GroqOnly" { return .groqOnly }
             return AIModelPreference(rawValue: raw) ?? .automatic
         }
@@ -80,7 +80,7 @@ enum ModelSettings {
     nonisolated(unsafe) static var appleIntelligenceAvailable: Bool {
         #if canImport(FoundationModels)
         if #available(iOS 26.0, macOS 26.0, *) {
-            // Apple’s recommended check: query the system language model before using it.
+            // Apple recommends checking the system model availability before use.
             let model = SystemLanguageModel.default
             switch model.availability {
             case .available:

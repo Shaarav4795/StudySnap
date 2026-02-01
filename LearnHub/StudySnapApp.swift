@@ -1,9 +1,4 @@
-//
-//  LearnHubApp.swift
-//  LearnHub
-//
-//  Created by Shaarav on 30/11/2025.
-//
+// App entry point and shared SwiftData container setup.
 
 import SwiftUI
 import SwiftData
@@ -39,11 +34,9 @@ struct LearnHubApp: App {
 
     init() {
         loadRocketSimConnect()
-        // Ensure we don't show an app icon badge: clear any existing badge and
-        // register our notification delegate so we can suppress badges when
-        // notifications arrive.
+        // Disable app icon badges: clear existing badge and set a delegate to suppress badges.
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
-        // Use modern API to set badge count (iOS 17+)
+        // Use the modern badge API (iOS 17+).
         UNUserNotificationCenter.current().setBadgeCount(0) { error in
             if let error = error {
                 print("Failed to clear badge count: \(error)")
@@ -100,15 +93,15 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationDelegate()
     private override init() { }
 
-    // Present notifications as banners/list with sound, but do not set badges.
+    // Present notifications with sound and no badge updates.
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .list, .sound])
-        // Ensure the app icon badge is cleared whenever a notification is shown.
+        // Clear the app icon badge whenever a notification is shown.
         UNUserNotificationCenter.current().setBadgeCount(0) { _ in }
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        // Clear any badge when the user interacts with the notification.
+        // Clear any badge when the user interacts with a notification.
         UNUserNotificationCenter.current().setBadgeCount(0) { _ in }
         completionHandler()
     }

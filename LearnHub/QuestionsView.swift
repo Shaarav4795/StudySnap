@@ -23,6 +23,7 @@ struct QuestionsView: View {
         let isOverlayPresented = showGenerateMoreSheet
         ZStack {
             List {
+                
                 Section {
                     Button(action: {
                         HapticsManager.shared.playTap()
@@ -34,7 +35,9 @@ struct QuestionsView: View {
                     }
                     .listRowBackground(themeManager.primaryColor.opacity(0.1))
                     .guideTarget(.questionsStartQuiz)
+                }
 
+                Section {
                     Button(action: {
                         HapticsManager.shared.playTap()
                         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
@@ -64,6 +67,7 @@ struct QuestionsView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .listSectionSpacing(8)
             .navigationTitle("Study Questions")
             .blur(radius: isOverlayPresented ? 1 : 0)
             .allowsHitTesting(!isOverlayPresented)
@@ -115,7 +119,7 @@ struct QuestionsView: View {
             }
         }
         .onChange(of: isShowingQuiz) { _, newValue in
-            // Advance when quiz sheet closes to avoid double overlays
+            // When the quiz sheet closes, advance the guide step and refresh questions.
             if newValue == false, guideManager.currentStep == .exploreQuiz {
                 guideManager.advanceAfterVisitedQuiz()
             }
@@ -163,7 +167,7 @@ struct QuestionsView: View {
     }
 }
 
-// MARK: - Generate More Popup
+// MARK: - Generate-more sheet
 
 private struct GenerateMorePopup: View {
     let title: String

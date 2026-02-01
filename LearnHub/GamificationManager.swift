@@ -5,7 +5,7 @@ import Combine
 import WidgetKit
 import UserNotifications
 
-// MARK: - Widget Data Structure (Shared)
+// MARK: - Widget data structures (shared with extension)
 
 struct WidgetFlashcard: Codable, Identifiable {
     var id: UUID
@@ -43,7 +43,7 @@ struct WidgetData: Codable {
     )
 }
 
-// MARK: - Gamification Manager
+// MARK: - Gamification manager
 
 final class GamificationManager: ObservableObject {
     static let shared = GamificationManager()
@@ -59,7 +59,7 @@ final class GamificationManager: ObservableObject {
     
     private init() {}
     
-    // MARK: - Widget Data Sync
+    // MARK: - Widget data sync
     
     func syncStudySets(_ sets: [StudySet]) {
         let widgetSets = sets.map { set in
@@ -73,7 +73,7 @@ final class GamificationManager: ObservableObject {
             )
         }
         
-        // Load existing data to preserve other fields
+        // Load existing widget data so we can preserve non-study-set fields.
         var widgetData: WidgetData
         if let userDefaults = UserDefaults(suiteName: "group.com.shaarav4795.LearnHub"),
            let data = userDefaults.data(forKey: "widgetData"),
@@ -81,14 +81,14 @@ final class GamificationManager: ObservableObject {
             widgetData = existing
             widgetData.studySets = widgetSets
             
-            // Update cards to review count
+            // Update the derived "cards to review" count.
             let cardsToReview = widgetSets.reduce(0) { count, set in
                 count + set.flashcards.filter { !$0.isMastered }.count
             }
             widgetData.cardsToReview = cardsToReview
             
         } else {
-            // Fallback if no data exists (shouldn't happen if profile exists)
+            // Fallback if no widget data exists yet.
             widgetData = WidgetData.placeholder
             widgetData.studySets = widgetSets
         }
@@ -103,7 +103,7 @@ final class GamificationManager: ObservableObject {
     }
     
     func updateWidgetData(from profile: UserProfile, studySets: [StudySet]? = nil) {
-        // Load existing to preserve sets if not provided
+        // Load existing sets when none are provided.
         var currentSets: [WidgetStudySet] = []
         if let userDefaults = UserDefaults(suiteName: "group.com.shaarav4795.LearnHub"),
            let data = userDefaults.data(forKey: "widgetData"),
@@ -148,11 +148,11 @@ final class GamificationManager: ObservableObject {
             userDefaults.synchronize()
         }
         
-        // Reload widgets
+        // Trigger a widget timeline reload.
         WidgetCenter.shared.reloadAllTimelines()
     }
     
-    // MARK: - User Profile Management
+    // MARK: - User profile management
     
     @MainActor
     func getOrCreateProfile(context: ModelContext) -> UserProfile {
@@ -169,7 +169,7 @@ final class GamificationManager: ObservableObject {
         return newProfile
     }
     
-    // MARK: - XP & Coins Management
+    // MARK: - XP and coin management
     
     @MainActor
     func addXP(_ amount: Int, to profile: UserProfile, context: ModelContext) {
@@ -179,16 +179,16 @@ final class GamificationManager: ObservableObject {
         
         profile.totalXP += actualXP
         
-        // Check for level up
+        // Determine whether a level-up occurred.
         let newLevelValue = profile.level
         if newLevelValue > previousLevel {
             self.newLevel = newLevelValue
             self.showLevelUp = true
             
-            // Check level achievements
+            // Evaluate level-based achievements.
             checkLevelAchievements(profile: profile, context: context)
             
-            // Auto-dismiss level up notification after delay
+            // Auto-dismiss the level-up banner after a short delay.
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 self.showLevelUp = false
             }
@@ -200,7 +200,7 @@ final class GamificationManager: ObservableObject {
         try? context.save()
         updateWidgetData(from: profile)
         
-        // Auto-hide after delay
+        // Auto-hide the XP banner after a short delay.
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             self.showXPGained = false
         }
@@ -228,7 +228,7 @@ final class GamificationManager: ObservableObject {
         return true
     }
     
-    // MARK: - Streak Management
+    // MARK: - Streak management
     
     @MainActor
     func updateStreak(for profile: UserProfile, context: ModelContext) {
@@ -240,29 +240,29 @@ final class GamificationManager: ObservableObject {
             let daysDifference = calendar.dateComponents([.day], from: lastStudyDay, to: today).day ?? 0
             
             if daysDifference == 0 {
-                // Already studied today, no change
+                // Already studied today; do not change the streak.
                 return
             } else if daysDifference == 1 {
-                // Consecutive day - increase streak
+                // Consecutive day: increment streak and update longest.
                 profile.currentStreak += 1
                 if profile.currentStreak > profile.longestStreak {
                     profile.longestStreak = profile.currentStreak
                 }
                 
-                // Daily login bonus
+                // Daily login bonus for maintaining a streak.
                 addXP(XPRewards.dailyLoginBonus + (XPRewards.streakBonus * profile.currentStreak), to: profile, context: context)
                 addCoins(CoinRewards.dailyLogin, to: profile, context: context)
                 
-                // Check streak achievements
+                // Evaluate streak achievements.
                 checkStreakAchievements(profile: profile, context: context)
             } else {
-                // Streak broken
+                // Streak broken: reset to day one.
                 profile.currentStreak = 1
                 addXP(XPRewards.dailyLoginBonus, to: profile, context: context)
                 addCoins(CoinRewards.dailyLogin, to: profile, context: context)
             }
         } else {
-            // First study session ever
+            // First-ever study session initializes the streak.
             profile.currentStreak = 1
             addXP(XPRewards.dailyLoginBonus, to: profile, context: context)
             addCoins(CoinRewards.dailyLogin, to: profile, context: context)
@@ -273,7 +273,7 @@ final class GamificationManager: ObservableObject {
         try? context.save()
         updateWidgetData(from: profile)
 
-        // Refresh local reminders so we do not ping users right after they already studied
+        // Refresh reminders to avoid nudging immediately after study.
         Task {
             await NotificationManager.shared.refreshStudyReminders(
                 lastStudyDate: profile.lastStudyDate,
@@ -282,7 +282,7 @@ final class GamificationManager: ObservableObject {
         }
     }
     
-    // MARK: - Quiz Completion
+    // MARK: - Quiz completion
     
     @MainActor
     func recordQuizCompletion(
@@ -291,7 +291,7 @@ final class GamificationManager: ObservableObject {
         profile: UserProfile,
         context: ModelContext
     ) {
-        // Update stats
+        // Update quiz counters.
         profile.totalQuestionsCorrect += score
         profile.totalQuizzesTaken += 1
         
@@ -300,7 +300,7 @@ final class GamificationManager: ObservableObject {
             profile.perfectQuizzes += 1
         }
         
-        // Calculate XP
+        // Calculate XP earned from this quiz.
         var xp = XPRewards.quizCompleted
         xp += score * XPRewards.questionCorrect
         if isPerfect {
@@ -309,26 +309,26 @@ final class GamificationManager: ObservableObject {
         
         addXP(xp, to: profile, context: context)
         
-        // Calculate coins
+        // Calculate coins earned from this quiz.
         var coins = CoinRewards.quizCompleted
         if isPerfect {
             coins += CoinRewards.perfectQuiz
         }
         addCoins(coins, to: profile, context: context)
         
-        // Update streak
+        // Update the study streak for today.
         updateStreak(for: profile, context: context)
         
-        // Check achievements
+        // Evaluate related achievements.
         checkQuestionAchievements(profile: profile, context: context)
         checkPerfectQuizAchievements(profile: profile, context: context)
         
         try? context.save()
     }
     
-    // MARK: - Daily Mix Completion
+    // MARK: - Daily Mix completion
     
-    /// Check if Daily Mix was already completed today
+    /// Returns true when Daily Mix has already been completed today.
     func hasDailyMixCompletedToday(profile: UserProfile) -> Bool {
         guard let lastMixDate = profile.lastDailyMixDate else { return false }
         return Calendar.current.isDateInToday(lastMixDate)
@@ -341,31 +341,31 @@ final class GamificationManager: ObservableObject {
         profile: UserProfile,
         context: ModelContext
     ) {
-        // Prevent double rewards on same day
+        // Prevent duplicate rewards on the same day.
         guard !hasDailyMixCompletedToday(profile: profile) else { return }
         
-        // Calculate XP
+        // Calculate XP earned from Daily Mix.
         var xp = XPRewards.dailyMixBase
         xp += questionsCorrect * XPRewards.dailyMixQuestionCorrect
         xp += flashcardsStudied * XPRewards.dailyMixFlashcard
         
         addXP(xp, to: profile, context: context)
         
-        // Calculate coins
+        // Calculate coins earned from Daily Mix.
         let coins = CoinRewards.dailyMixBase + (questionsCorrect * CoinRewards.dailyMixQuestionCorrect) + (flashcardsStudied * CoinRewards.dailyMixFlashcard)
         addCoins(coins, to: profile, context: context)
         
-        // Update streak (Daily Mix counts as study activity)
+        // Daily Mix counts as study activity, so update the streak.
         updateStreak(for: profile, context: context)
         
-        // Mark as completed today
+        // Record completion date to block repeat rewards.
         profile.lastDailyMixDate = Date()
         
         try? context.save()
         updateWidgetData(from: profile)
     }
     
-    // MARK: - Flashcard Completion
+    // MARK: - Flashcard completion
     
     @MainActor
     func recordFlashcardStudied(
@@ -381,16 +381,16 @@ final class GamificationManager: ObservableObject {
         
         addXP(xp, to: profile, context: context)
         
-        // Update streak
+        // Update the study streak for today.
         updateStreak(for: profile, context: context)
         
-        // Check achievements
+        // Evaluate flashcard achievements.
         checkFlashcardAchievements(profile: profile, context: context)
         
         try? context.save()
     }
     
-    // MARK: - Study Set Creation
+    // MARK: - Study-set creation
     
     @MainActor
     func recordStudySetCreated(profile: UserProfile, context: ModelContext) {
@@ -399,16 +399,16 @@ final class GamificationManager: ObservableObject {
         addXP(XPRewards.studySetCreated, to: profile, context: context)
         addCoins(CoinRewards.studySetCreated, to: profile, context: context)
         
-        // Update streak
+        // Update the study streak for today.
         updateStreak(for: profile, context: context)
         
-        // Check achievements
+        // Evaluate study-set achievements.
         checkStudySetAchievements(profile: profile, context: context)
         
         try? context.save()
     }
     
-    // MARK: - Achievement Checking
+    // MARK: - Achievement checks
     
     @MainActor
     private func checkQuestionAchievements(profile: UserProfile, context: ModelContext) {
@@ -506,27 +506,27 @@ final class GamificationManager: ObservableObject {
         }
     }
     
-    // MARK: - Achievement Unlocking
+    // MARK: - Achievement unlocking
     
     @MainActor
     private func unlockAchievement(_ type: AchievementType, for profile: UserProfile, context: ModelContext) {
-        // Check if already unlocked
+        // Skip if the achievement is already unlocked.
         if profile.achievements.contains(where: { $0.type == type.rawValue }) {
             return
         }
         
-        // Create and save achievement
+        // Create and persist the unlocked achievement.
         let achievement = Achievement(type: type)
         achievement.userProfile = profile
         context.insert(achievement)
         
-        // Award XP and coins
+        // Award XP and coins immediately.
         profile.totalXP += type.xpReward
         profile.coins += type.coinReward
         
         try? context.save()
         
-        // Show notification
+        // Show the achievement banner.
         self.unlockedAchievement = type
         self.showAchievementUnlocked = true
         
@@ -535,22 +535,22 @@ final class GamificationManager: ObservableObject {
         }
     }
     
-    // MARK: - Shop Functions
+    // MARK: - Shop functions
     
     @MainActor
     func purchaseAvatar(_ avatar: AvatarItem, for profile: UserProfile, context: ModelContext) -> Bool {
-        // Check if already owned
+        // Prevent purchasing duplicates.
         if profile.unlockedItems.contains(where: { $0.itemId == avatar.id && $0.itemType == "avatar" }) {
             return false
         }
         
-        // Check level requirement
+        // Enforce level requirement.
         guard profile.level >= avatar.requiredLevel else { return false }
         
-        // Check coins
+        // Ensure sufficient coin balance.
         guard spendCoins(avatar.cost, from: profile, context: context) else { return false }
         
-        // Unlock item
+        // Record the purchase in unlocked items.
         let item = UnlockedItem(itemId: avatar.id, itemType: "avatar")
         item.userProfile = profile
         context.insert(item)
@@ -561,18 +561,18 @@ final class GamificationManager: ObservableObject {
     
     @MainActor
     func purchaseTheme(_ theme: ThemeItem, for profile: UserProfile, context: ModelContext) -> Bool {
-        // Check if already owned
+        // Prevent purchasing duplicates.
         if profile.unlockedItems.contains(where: { $0.itemId == theme.id && $0.itemType == "theme" }) {
             return false
         }
         
-        // Check level requirement
+        // Enforce level requirement.
         guard profile.level >= theme.requiredLevel else { return false }
         
-        // Check coins
+        // Ensure sufficient coin balance.
         guard spendCoins(theme.cost, from: profile, context: context) else { return false }
         
-        // Unlock item
+        // Record the purchase in unlocked items.
         let item = UnlockedItem(itemId: theme.id, itemType: "theme")
         item.userProfile = profile
         context.insert(item)
@@ -583,7 +583,7 @@ final class GamificationManager: ObservableObject {
     
     @MainActor
     func selectAvatar(_ avatarId: String, for profile: UserProfile, context: ModelContext) -> Bool {
-        // Check if owned (default is always owned)
+        // Verify ownership; default avatar is always owned.
         let isOwned = avatarId == "default_avatar" ||
             profile.unlockedItems.contains(where: { $0.itemId == avatarId && $0.itemType == "avatar" })
         
@@ -596,7 +596,7 @@ final class GamificationManager: ObservableObject {
     
     @MainActor
     func selectTheme(_ themeId: String, for profile: UserProfile, context: ModelContext) -> Bool {
-        // Check if owned (default is always owned)
+        // Verify ownership; default theme is always owned.
         let isOwned = themeId == "default_theme" ||
             profile.unlockedItems.contains(where: { $0.itemId == themeId && $0.itemType == "theme" })
         
@@ -605,7 +605,7 @@ final class GamificationManager: ObservableObject {
         profile.selectedThemeId = themeId
         try? context.save()
         
-        // Update the theme manager
+        // Apply the new theme immediately.
         ThemeManager.shared.updateTheme(for: themeId)
         
         return true
@@ -618,7 +618,7 @@ final class GamificationManager: ObservableObject {
     }
 }
 
-// MARK: - Notification Views
+// MARK: - Reward and notification views
 
 struct AchievementUnlockedView: View {
     let achievement: AchievementType

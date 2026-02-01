@@ -65,7 +65,7 @@ struct QuizView: View {
                                 .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                         )
                         
-                        // XP and Coins Rewards Display
+                        // Reward breakdown for XP and coins.
                         HStack(spacing: 20) {
                             VStack(spacing: 4) {
                                 HStack(spacing: 4) {
@@ -100,7 +100,7 @@ struct QuizView: View {
                             .cornerRadius(12)
                         }
                         
-                        // Perfect Score Bonus
+                        // Bonus callout for perfect scores.
                         if score == questions.count && questions.count > 0 {
                             HStack(spacing: 8) {
                                 Image(systemName: "sparkles")
@@ -125,7 +125,7 @@ struct QuizView: View {
                     .padding()
                 } else if !questions.isEmpty {
                     VStack(spacing: 20) {
-                        // Header
+                        // Header with position and remaining count.
                         HStack {
                             Text("Question \(currentQuestionIndex + 1)")
                                 .font(.headline)
@@ -143,7 +143,7 @@ struct QuizView: View {
                         
                         ScrollView {
                             VStack(spacing: 20) {
-                                // Question Card
+                                // Primary question card.
                                 VStack {
                                     MathTextView(questions[currentQuestionIndex].prompt, fontSize: 20)
                                         .fontWeight(.semibold)
@@ -160,9 +160,9 @@ struct QuizView: View {
                                 )
                                 .padding()
                                 
-                                // Options
+                                // Answer options list.
                                 if let allOptions = questions[currentQuestionIndex].options, !allOptions.isEmpty {
-                                    // Filter out placeholder options like "Option 4"
+                                    // Remove placeholder options like "Option 4".
                                     let options = allOptions.filter { option in
                                         !((option.hasPrefix("Option ") || option.hasPrefix("option ")) && option.count < 10 && option.last?.isNumber == true)
                                     }
@@ -244,7 +244,7 @@ struct QuizView: View {
                                         }
                                     }
                                 } else {
-                                    // Fallback for questions without options (legacy support)
+                                    // Legacy fallback when no options are available.
                                     if isAnswerVisible {
                                         VStack(spacing: 16) {
                                             Text(questions[currentQuestionIndex].answer)
@@ -263,7 +263,7 @@ struct QuizView: View {
                             .padding(.bottom, 20)
                         }
                         
-                        // Fixed Footer
+                        // Fixed footer for next/answer actions.
                         VStack {
                             if let options = questions[currentQuestionIndex].options, !options.isEmpty {
                                 if isAnswerVisible {

@@ -1,9 +1,4 @@
-//
-//  LearnHubTests.swift
-//  LearnHubTests
-//
-//  Created by Shaarav on 30/11/2025.
-//
+// Basic unit-test entry point for LearnHub.
 
 import Testing
 @testable import LearnHub
@@ -11,7 +6,7 @@ import Testing
 struct LearnHubTests {
 
     @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+        // Add focused tests for models, AI parsing, and gamification rules.
     }
 
 }

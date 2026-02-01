@@ -116,7 +116,7 @@ struct GroqHelpView: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        // Header
+                        // Hero header for the Groq help sheet.
                         VStack(spacing: 16) {
                             ZStack {
                                 Circle()
@@ -140,7 +140,7 @@ struct GroqHelpView: View {
                         }
                         .padding(.top, 20)
                         
-                        // Instructions
+                        // Step-by-step instructions for getting a key.
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Instructions")
                                 .font(.headline)
@@ -158,7 +158,7 @@ struct GroqHelpView: View {
                             .padding(.horizontal)
                         }
                         
-                        // No Payment Info
+                        // Note about the free tier and pricing.
                         HStack(alignment: .top, spacing: 16) {
                             Image(systemName: "creditcard.fill")
                                 .font(.title2)
@@ -176,7 +176,7 @@ struct GroqHelpView: View {
                         .cornerRadius(16)
                         .padding(.horizontal)
                         
-                        // Link Button
+                        // Primary link to the Groq console.
                         Link(destination: URL(string: "https://console.groq.com/keys")!) {
                             HStack {
                                 Text("Open Groq Console")

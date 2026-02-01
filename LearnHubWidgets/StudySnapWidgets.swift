@@ -1,15 +1,10 @@
-//
-//  LearnHubWidgets.swift
-//  LearnHubWidgets
-//
-//  Created by Shaarav on 3/12/2025.
-//
+// Widget timelines and views for LearnHub.
 
 import WidgetKit
 import SwiftUI
 import AppIntents
 
-// MARK: - Shared Data Model for Widgets
+// MARK: - Shared widget data model
 
 struct WidgetFlashcard: Codable, Identifiable {
     var id: UUID
@@ -56,7 +51,7 @@ struct WidgetData: Codable {
     }
 }
 
-// MARK: - Timeline Entry
+// MARK: - Timeline entry
 
 struct LearnHubEntry: TimelineEntry {
     let date: Date
@@ -64,7 +59,7 @@ struct LearnHubEntry: TimelineEntry {
     var statsType: StatsType = .streak
 }
 
-// MARK: - Progress Widget Provider (Medium)
+// MARK: - Progress widget provider (medium)
 
 struct ProgressWidgetProvider: TimelineProvider {
     func placeholder(in context: Context) -> LearnHubEntry {
@@ -80,14 +75,14 @@ struct ProgressWidgetProvider: TimelineProvider {
         let currentDate = Date()
         let entry = LearnHubEntry(date: currentDate, widgetData: WidgetData.load())
         
-        // Refresh every 15 minutes
+        // Refresh every 15 minutes.
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         completion(timeline)
     }
 }
 
-// MARK: - Stats Widget Provider (Small)
+// MARK: - Stats widget provider (small)
 
 struct StatsWidgetProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> LearnHubEntry {
@@ -102,13 +97,13 @@ struct StatsWidgetProvider: AppIntentTimelineProvider {
         let currentDate = Date()
         let entry = LearnHubEntry(date: currentDate, widgetData: WidgetData.load(), statsType: configuration.statsType)
         
-        // Refresh every 15 minutes
+        // Refresh every 15 minutes.
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: currentDate)!
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
 }
 
-// MARK: - Progress Widget View (Medium)
+// MARK: - Progress widget view (medium)
 
 struct ProgressWidgetEntryView: View {
     var entry: ProgressWidgetProvider.Entry
@@ -116,7 +111,7 @@ struct ProgressWidgetEntryView: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            // Level & XP Section
+            // Level and XP summary.
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 6) {
                     Image(systemName: "star.fill")
@@ -127,7 +122,7 @@ struct ProgressWidgetEntryView: View {
                         .foregroundColor(.primary)
                 }
                 
-                // XP Progress Bar
+                // XP progress bar.
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 6)
@@ -153,12 +148,12 @@ struct ProgressWidgetEntryView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             
-            // Divider
+            // Divider between sections.
             Rectangle()
                 .fill(Color.gray.opacity(0.3))
                 .frame(width: 1, height: 55)
             
-            // Streak Section
+            // Streak summary.
             VStack(spacing: 4) {
                 HStack(spacing: 6) {
                     Image(systemName: "flame.fill")
@@ -173,12 +168,12 @@ struct ProgressWidgetEntryView: View {
                     .foregroundColor(.secondary)
             }
             
-            // Divider
+            // Divider between sections.
             Rectangle()
                 .fill(Color.gray.opacity(0.3))
                 .frame(width: 1, height: 55)
             
-            // Coins Section
+            // Coin balance summary.
             VStack(spacing: 4) {
                 HStack(spacing: 6) {
                     Image(systemName: "dollarsign.circle.fill")
@@ -198,7 +193,7 @@ struct ProgressWidgetEntryView: View {
     }
 }
 
-// MARK: - Stats Widget View (Small)
+// MARK: - Stats widget view (small)
 
 struct StatsWidgetEntryView: View {
     var entry: LearnHubEntry
@@ -238,7 +233,7 @@ struct StatsWidgetEntryView: View {
     }
 }
 
-// MARK: - Progress Widget (Medium)
+// MARK: - Progress widget (medium)
 
 struct LearnHubProgressWidget: Widget {
     let kind: String = "LearnHubProgressWidget"
@@ -260,7 +255,7 @@ struct LearnHubProgressWidget: Widget {
     }
 }
 
-// MARK: - Stats Widget (Small)
+// MARK: - Stats widget (small)
 
 struct LearnHubStatsWidget: Widget {
     let kind: String = "LearnHubStatsWidget"

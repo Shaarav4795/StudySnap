@@ -14,7 +14,7 @@ struct InputView: View {
     @AppStorage(ModelSettings.Keys.preference) private var modelPreferenceRaw: String = AIModelPreference.automatic.rawValue
     @AppStorage(ModelSettings.Keys.groqApiKey) private var storedGroqKey: String = ""
     
-    // Mode selection
+    // Study-set creation modes.
     enum InputMode: String, CaseIterable, Identifiable {
         case content = "From Content"
         case topic = "Learn Topic"
@@ -36,10 +36,15 @@ struct InputView: View {
         }
     }
     
-    @State private var selectedMode: InputMode = .content
+    @State private var selectedMode: InputMode
     @State private var inputText: String = ""
     @State private var topicDescription: String = ""
     @State private var title: String = ""
+    
+    init(mode: InputMode = .content) {
+        _selectedMode = State(initialValue: mode)
+    }
+    
     @State private var selectedIconId: String = "book"
     @State private var isIconPickerExpanded: Bool = false
     @State private var selectedFolder: StudyFolder? = nil
@@ -62,7 +67,7 @@ struct InputView: View {
         var id: Int { rawValue }
     }
     
-    // Configuration
+    // Generation settings.
     @State private var questionCount: Double = 5
     @State private var flashcardCount: Double = 10
     @State private var summaryStyle: AIService.SummaryStyle = .paragraph
@@ -74,7 +79,6 @@ struct InputView: View {
     var body: some View {
         NavigationStack {
             Form {
-                modeSelectionSection
                 detailsSection
                 
                 if selectedMode == .content {
@@ -245,7 +249,7 @@ struct InputView: View {
 
                 let runtimeNotice = await service.popFallbackNotice()
 
-                // Record study set creation for gamification
+                // Track study-set creation for XP/achievements.
                 gamificationManager.recordStudySetCreated(profile: profile, context: modelContext)
 
                 await MainActor.run {
@@ -265,39 +269,14 @@ struct InputView: View {
         }
     }
     
-    // MARK: - Sections
-    
-    private var modeSelectionSection: some View {
-        Section {
-            Picker("Mode", selection: $selectedMode) {
-                ForEach(InputMode.allCases) { mode in
-                    Label(mode.rawValue, systemImage: mode.icon).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: selectedMode) { _, _ in
-                HapticsManager.shared.playTap()
-            }
-            
-            Text(selectedMode.description)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.top, 4)
-        } header: {
-            Text("Study Mode")
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundColor(.secondary)
-        }
-    }
+    // MARK: - Form sections
     
     private var detailsSection: some View {
         Section {
             TextField(selectedMode == .content ? "Title (e.g., Biology Chapter 1)" : "Title (e.g., Learn Calculus)", text: $title)
                 .font(.headline)
             
-            // Icon Picker
+            // Icon picker for the study set.
             DisclosureGroup(isExpanded: $isIconPickerExpanded) {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 5), spacing: 12) {
                     ForEach(StudySetIcon.allIcons) { icon in
@@ -334,11 +313,11 @@ struct InputView: View {
                 }
             }
             
-            // Folder Picker
+            // Optional folder assignment.
             if !studyFolders.isEmpty {
                 DisclosureGroup(isExpanded: $isFolderPickerExpanded) {
                     VStack(spacing: 8) {
-                        // None option
+                        // Clear folder selection.
                         Button(action: {
                             HapticsManager.shared.playTap()
                             selectedFolder = nil
@@ -416,7 +395,7 @@ struct InputView: View {
         Section {
             VStack(spacing: 15) {
                 HStack(spacing: 14) {
-                    // Scan button - card style
+                    // Card-style action to scan paper notes.
                     Button(action: {
                         HapticsManager.shared.playTap()
                         activeSheet = .scanner
@@ -453,7 +432,7 @@ struct InputView: View {
                     .accessibilityLabel("Scan documents")
                     .accessibilityHint("Open camera scanner to capture pages")
 
-                    // Upload button - card style
+                    // Card-style action to import a document.
                     Button(action: {
                         HapticsManager.shared.playTap()
                         activeSheet = .filePicker
@@ -492,7 +471,7 @@ struct InputView: View {
                 }
                 
                 let editorPadding = EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12)
-                // Use a UITextView-backed representable for pixel-perfect placeholder alignment
+                // Use a UITextView-backed editor for consistent placeholder alignment.
                 PlaceholderTextView(
                     text: $inputText,
                     placeholder: "Type or paste your notes here...\nOr import above",
@@ -677,7 +656,7 @@ struct InputView: View {
     }
 }
 
-// UITextView-backed SwiftUI representable with proper placeholder alignment
+// UITextView-backed editor for accurate placeholder positioning.
 private struct PlaceholderTextView: UIViewRepresentable {
     @Binding var text: String
     var placeholder: String
@@ -692,7 +671,7 @@ private struct PlaceholderTextView: UIViewRepresentable {
         tv.textContainerInset = UIEdgeInsets(top: padding.top, left: padding.leading, bottom: padding.bottom, right: padding.trailing)
         tv.textContainer.lineFragmentPadding = 0
 
-        // placeholder label
+        // Placeholder label layered inside the text view.
         let label = UILabel()
         label.text = placeholder
         label.numberOfLines = 0
@@ -701,7 +680,7 @@ private struct PlaceholderTextView: UIViewRepresentable {
         label.translatesAutoresizingMaskIntoConstraints = false
         tv.addSubview(label)
 
-        // constraints to align label with text container insets
+        // Align placeholder to the text container insets.
         NSLayoutConstraint.activate([
             label.leadingAnchor.constraint(equalTo: tv.leadingAnchor, constant: padding.leading + 2),
             label.trailingAnchor.constraint(equalTo: tv.trailingAnchor, constant: -padding.trailing - 2),

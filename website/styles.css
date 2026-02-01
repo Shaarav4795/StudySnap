@@ -56,7 +56,7 @@ body {
     padding: 0 24px;
 }
 
-/* Background Effects */
+/* Ambient background glow */
 .background-glow {
     position: fixed;
     top: -20%;
@@ -69,7 +69,7 @@ body {
     pointer-events: none;
 }
 
-/* Header */
+/* Fixed header and nav */
 header {
     position: fixed;
     top: 0;
@@ -118,7 +118,7 @@ nav {
     color: var(--text-primary);
 }
 
-/* Buttons */
+/* Primary/secondary button styles */
 .btn-primary {
     background: var(--primary-color);
     color: white !important;
@@ -157,7 +157,7 @@ nav {
     font-size: 1.1rem;
 }
 
-/* Hero */
+/* Hero layout and typography */
 .hero {
     padding: 160px 0 100px;
     position: relative;
@@ -208,7 +208,7 @@ nav {
     gap: 16px;
 }
 
-/* Phone Mockup */
+/* Phone mockup illustration */
 .phone-mockup {
     width: 300px;
     height: 600px;
@@ -350,7 +350,7 @@ nav {
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
-/* Features */
+/* Feature grid section */
 .features {
     padding: 100px 0;
 }
@@ -414,7 +414,7 @@ nav {
     line-height: 1.6;
 }
 
-/* CTA */
+/* Call-to-action section */
 .cta {
     padding: 100px 0;
     text-align: center;
@@ -454,7 +454,7 @@ nav {
     margin-bottom: 40px;
 }
 
-/* Installation Section */
+/* Installation steps section */
 .install {
     padding: 100px 0;
     background: rgba(255, 255, 255, 0.02);
@@ -540,7 +540,7 @@ nav {
     background: rgba(255, 255, 255, 0.3);
 }
 
-/* Animations */
+/* Page entrance and hover animations */
 .hero-content {
     animation: fadeIn 1s ease-out;
 }
@@ -565,7 +565,7 @@ nav {
     animation: pulse 2s infinite;
 }
 
-/* Footer */
+/* Footer layout and links */
 footer {
     padding: 60px 0;
     border-top: 1px solid var(--border-color);
@@ -598,7 +598,7 @@ footer .socials a:hover {
     color: var(--text-primary);
 }
 
-/* Responsive */
+/* Responsive breakpoints */
 @media (max-width: 968px) {
     .hero .container {
         grid-template-columns: 1fr;

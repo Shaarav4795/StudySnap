@@ -1,9 +1,4 @@
-//
-//  LearnHubWidgetsControl.swift
-//  LearnHubWidgets
-//
-//  Created by Shaarav on 3/12/2025.
-//
+// Control widget used as a sample toggle for timer-style intents.
 
 import AppIntents
 import SwiftUI
@@ -35,7 +30,7 @@ extension LearnHubWidgetsControl {
         }
 
         func currentValue() async throws -> Bool {
-            let isRunning = true // Check if the timer is running
+            let isRunning = true // Replace with real timer state.
             return isRunning
         }
     }
@@ -48,7 +43,7 @@ struct StartTimerIntent: SetValueIntent {
     var value: Bool
 
     func perform() async throws -> some IntentResult {
-        // Start / stop the timer based on `value`.
+        // Start or stop the timer based on `value`.
         return .result()
     }
 }

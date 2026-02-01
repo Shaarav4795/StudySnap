@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Guide Targeting
+// MARK: - Guide targeting
 
 enum GuideTarget: Hashable {
     case homeCreate
@@ -28,7 +28,7 @@ extension View {
     }
 }
 
-// MARK: - Overlay Renderer
+// MARK: - Overlay renderer
 
 struct GuideOverlayLayer: View {
     @ObservedObject var guideManager: GuideManager
@@ -87,7 +87,7 @@ struct GuideOverlayLayer: View {
                         .transition(.scale(scale: 0.95).combined(with: .opacity))
                 }
             } else {
-                // No highlight available; show callout only (e.g., when asking to switch tabs)
+                // When no target rect exists (e.g., switching tabs), show the callout alone.
                 if !guideManager.isCollapsed {
                     callout
                         .background(
@@ -252,7 +252,7 @@ struct GuideOverlayLayer: View {
     }
 
     private func calloutPosition(around rect: CGRect?, in container: CGSize, step: GuideManager.Step) -> CGPoint {
-        // If no rect (e.g., instructing to tap a tab), place above tab bar
+        // Without a rect, anchor the callout above the tab bar.
         let padding: CGFloat = 16
         let calloutWidth: CGFloat = 300
         let calloutHeight: CGFloat = 160
@@ -283,7 +283,7 @@ struct GuideOverlayLayer: View {
     }
 }
 
-// MARK: - Highlight Shapes
+// MARK: - Highlight shapes
 
 private struct HighlightShape: Shape {
     let rect: CGRect

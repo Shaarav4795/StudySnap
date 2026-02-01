@@ -1,9 +1,9 @@
 import SwiftUI
 import Combine
 
-// MARK: - App Onboarding Guide
+// MARK: - Onboarding guide state machine
 
-/// Drives the post-tutorial in-product guide that teaches core flows.
+/// Coordinates the post-tutorial guide steps across the app.
 final class GuideManager: ObservableObject {
     static let shared = GuideManager()
 
@@ -27,7 +27,7 @@ final class GuideManager: ObservableObject {
     var isActive: Bool { currentStep != nil }
 
     func startIfNeededAfterTutorial() {
-        // For testing, always restart guide after tutorial finishes
+        // Reset progress so the guide restarts after the tutorial.
         hasCompletedGuide = false
         isCollapsed = false
         currentStep = .configureModel
@@ -76,7 +76,7 @@ final class GuideManager: ObservableObject {
     }
 
     func advanceAfterOpenedProfile() {
-        // No longer used since profile is a separate tab
+        // Kept for backward compatibility; profile is now a separate tab.
     }
 
     func finishGamification() {
@@ -95,7 +95,7 @@ final class GuideManager: ObservableObject {
     }
 }
 
-// MARK: - Guide UI Helpers
+// MARK: - Guide UI helpers
 
 struct GuideCallout: View {
     let title: String

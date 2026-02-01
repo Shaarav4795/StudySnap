@@ -35,7 +35,7 @@ struct FlashcardProvider: AppIntentTimelineProvider {
     private func getEntry(for configuration: SelectStudySetIntent) async -> FlashcardEntry {
         let data = WidgetData.load()
         
-        // If no set selected, try to pick the first one
+        // If no set is selected, fall back to the first available set.
         let setID = configuration.studySet?.id ?? data.studySets.first?.id
         
         guard let targetID = setID,
@@ -77,7 +77,7 @@ struct FlashcardWidgetEntryView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let set = entry.studySet, let card = entry.currentCard {
-                // Header
+                // Header with set title and position.
                 HStack {
                     Label(set.title, systemImage: set.icon.isEmpty ? "book.fill" : set.icon)
                         .font(.caption.bold())
@@ -92,7 +92,7 @@ struct FlashcardWidgetEntryView: View {
                 }
                 .padding(.bottom, 10)
                 
-                // Card Area
+                // Main flashcard surface (tap to flip).
                 Button(intent: FlipFlashcardIntent(setID: set.id)) {
                     ZStack {
                         RoundedRectangle(cornerRadius: 20)
@@ -122,7 +122,7 @@ struct FlashcardWidgetEntryView: View {
                 .buttonStyle(.plain)
                 .frame(maxHeight: .infinity)
                 
-                // Footer / Next Button
+                // Footer action to advance to the next card.
                 HStack {
                     Spacer()
                     Button(intent: NextFlashcardIntent(setID: set.id)) {
@@ -143,7 +143,7 @@ struct FlashcardWidgetEntryView: View {
                 .padding(.top, 10)
                 
             } else {
-                // Empty State
+                // Empty state when no study set is configured.
                 VStack(spacing: 12) {
                     Image(systemName: "rectangle.on.rectangle.angled")
                         .font(.largeTitle)

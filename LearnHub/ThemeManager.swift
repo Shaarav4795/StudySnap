@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import Combine
 
-// MARK: - Theme Manager
+// MARK: - Theme manager
 
 class ThemeManager: ObservableObject {
     static let shared = ThemeManager()
@@ -16,7 +16,7 @@ class ThemeManager: ObservableObject {
     @MainActor
     func updateTheme(for themeId: String) {
         guard let theme = ThemeItem.theme(for: themeId) else {
-            // Default theme
+            // Fallback to the default theme when an ID is unknown.
             primaryColor = .blue
             secondaryColor = .cyan
             gradientColors = [.blue, .cyan]
@@ -56,7 +56,7 @@ class ThemeManager: ObservableObject {
         }
     }
     
-    // Convenience computed properties for gradients
+    // Convenience gradients derived from the current theme colors.
     var primaryGradient: LinearGradient {
         LinearGradient(
             colors: gradientColors,
@@ -74,7 +74,7 @@ class ThemeManager: ObservableObject {
     }
 }
 
-// MARK: - Theme-Aware View Modifier
+// MARK: - Theme-aware view modifier
 
 struct ThemedAccent: ViewModifier {
     @ObservedObject var themeManager = ThemeManager.shared

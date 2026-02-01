@@ -2,7 +2,7 @@ import Foundation
 import CoreHaptics
 import UIKit
 
-/// Centralized Core Haptics helper so we can keep taps consistent and lightweight.
+/// Centralized haptics helper to keep feedback consistent and low-latency.
 final class HapticsManager {
     static let shared = HapticsManager()
 
@@ -75,7 +75,7 @@ final class HapticsManager {
         }
     }
 
-    // MARK: - Private
+    // MARK: - Private helpers
 
     private func ensureEngine() throws {
         if engine == nil {
