@@ -1,5 +1,8 @@
 import SwiftUI
 import SwiftData
+import Shimmer
+import SwiftUIIntrospect
+import ConfettiSwiftUI
 
 struct QuestionsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -13,6 +16,7 @@ struct QuestionsView: View {
     @State private var additionalQuestionCount: Double = 5
     @State private var relativeDifficulty: AIService.RelativeDifficulty = .same
     @State private var generationError: String?
+    @State private var quizConfettiCounter = 0
     
     init(studySet: StudySet) {
         self.studySet = studySet
@@ -34,6 +38,7 @@ struct QuestionsView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                     }
                     .listRowBackground(themeManager.primaryColor.opacity(0.1))
+                    .buttonStyle(PressScaleButtonStyle())
                     .guideTarget(.questionsStartQuiz)
                 }
 
@@ -49,6 +54,7 @@ struct QuestionsView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                     }
                     .listRowBackground(themeManager.primaryColor.opacity(0.1))
+                    .buttonStyle(PressScaleButtonStyle())
                 }
             
                 ForEach(questions) { question in
@@ -68,6 +74,10 @@ struct QuestionsView: View {
             }
             .listStyle(.insetGrouped)
             .listSectionSpacing(8)
+            .introspect(.scrollView, on: .iOS(.v17, .v18)) { scrollView in
+                scrollView.keyboardDismissMode = .interactive
+                scrollView.delaysContentTouches = false
+            }
             .navigationTitle("Study Questions")
             .blur(radius: isOverlayPresented ? 1 : 0)
             .allowsHitTesting(!isOverlayPresented)
@@ -125,8 +135,10 @@ struct QuestionsView: View {
             }
             if newValue == false {
                 questions = studySet.questions
+                quizConfettiCounter += 1
             }
         }
+        .confettiCannon(counter: $quizConfettiCounter)
     }
 
     private func generateMoreQuestions() {
@@ -240,8 +252,10 @@ private struct GenerateMorePopup: View {
                 .background(themeColor)
                 .foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .shimmering(active: isGenerating)
             }
             .buttonStyle(.plain)
+            .buttonStyle(PressScaleButtonStyle())
             .disabled(isGenerating)
         }
         .padding(20)

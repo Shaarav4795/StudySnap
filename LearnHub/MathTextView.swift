@@ -91,6 +91,13 @@ struct MathTextView: View {
             } else {
                 // Text segment parsed as Markdown using `AttributedString`.
                 if !component.isEmpty {
+                    if !containsMarkdownSyntax(component) {
+                        let words = component.components(separatedBy: .whitespacesAndNewlines)
+                        for word in words where !word.isEmpty {
+                            segments.append(Segment(content: word, isMath: false))
+                        }
+                        continue
+                    }
                     do {
                         // Skip segments that are only whitespace.
                         if component.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -126,6 +133,10 @@ struct MathTextView: View {
         }
         
         return segments
+    }
+
+    private func containsMarkdownSyntax(_ value: String) -> Bool {
+        value.contains("*") || value.contains("_") || value.contains("#") || value.contains("`") || value.contains("[") || value.contains("]")
     }
 }
 

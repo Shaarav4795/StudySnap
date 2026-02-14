@@ -45,8 +45,7 @@ struct CreateFolderView: View {
                         TextField("Folder Name", text: $folderName)
                             .font(.body)
                             .padding()
-                            .background(Color(uiColor: .secondarySystemGroupedBackground))
-                            .cornerRadius(12)
+                            .glassCard(cornerRadius: 12, strokeOpacity: 0.2)
                             .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
                     }
                     .padding(.horizontal)
@@ -76,6 +75,7 @@ struct CreateFolderView: View {
                                     }
                                 }
                                 .buttonStyle(.plain)
+                                .buttonStyle(PressScaleButtonStyle())
                             }
                         }
                     }

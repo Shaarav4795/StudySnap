@@ -1,4 +1,5 @@
 import SwiftUI
+import ConfettiSwiftUI
 
 struct TutorialView: View {
     @Environment(\.dismiss) private var dismiss
@@ -58,6 +59,7 @@ struct TutorialView: View {
                             .foregroundColor(.secondary)
                             .padding()
                     }
+                    .buttonStyle(PressScaleButtonStyle())
                 }
                 Spacer()
             }
@@ -795,6 +797,8 @@ struct NavigationPage: View {
 struct SummaryPage: View {
     var onFinish: () -> Void
     @EnvironmentObject private var themeManager: ThemeManager
+    @State private var confettiCounter = 0
+    @State private var playLottie = true
     
     var body: some View {
         VStack(spacing: 30) {
@@ -804,9 +808,12 @@ struct SummaryPage: View {
                 Circle()
                     .fill(Color.green.opacity(0.1))
                     .frame(width: 150, height: 150)
-                
+
+                CelebrationLottieView(animationName: "celebration", play: playLottie)
+                    .frame(width: 120, height: 120)
+
                 Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 80))
+                    .font(.system(size: 68))
                     .foregroundColor(.green)
             }
             
@@ -819,7 +826,10 @@ struct SummaryPage: View {
             
             Button(action: {
                 HapticsManager.shared.playTap()
-                onFinish()
+                confettiCounter += 1
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                    onFinish()
+                }
             }) {
                 Text("Get Started")
                     .font(.headline)
@@ -830,12 +840,17 @@ struct SummaryPage: View {
                     .cornerRadius(16)
                     .shadow(color: themeManager.primaryColor.opacity(0.3), radius: 10, x: 0, y: 5)
             }
+            .buttonStyle(PressScaleButtonStyle())
             .padding(.horizontal, 40)
             .padding(.top, 20)
             
             Spacer()
         }
         .padding()
+        .confettiCannon(counter: $confettiCounter)
+        .onAppear {
+            playLottie = true
+        }
     }
 }
 

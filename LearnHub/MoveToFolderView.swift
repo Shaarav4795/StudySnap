@@ -72,11 +72,11 @@ struct MoveToFolderView: View {
                                             }
                                         }
                                         .padding()
-                                        .background(Color(uiColor: .secondarySystemGroupedBackground))
-                                        .cornerRadius(12)
+                                        .glassCard(cornerRadius: 12, strokeOpacity: 0.2)
                                         .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
                                     }
                                     .buttonStyle(.plain)
+                                    .buttonStyle(PressScaleButtonStyle())
                                 }
                             }
                             .padding(.horizontal)

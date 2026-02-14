@@ -153,8 +153,7 @@ struct GroqHelpView: View {
                                 StepView(number: 3, title: "Connect", description: "Copy the key and paste it into the field in LearnHub.", icon: "arrow.right.doc.on.clipboard")
                             }
                             .padding()
-                            .background(Color(uiColor: .secondarySystemGroupedBackground))
-                            .cornerRadius(16)
+                            .glassCard(cornerRadius: 16, strokeOpacity: 0.22)
                             .padding(.horizontal)
                         }
                         
@@ -172,8 +171,7 @@ struct GroqHelpView: View {
                             }
                         }
                         .padding()
-                        .background(Color(uiColor: .secondarySystemGroupedBackground))
-                        .cornerRadius(16)
+                        .glassCard(cornerRadius: 16, strokeOpacity: 0.22)
                         .padding(.horizontal)
                         
                         // Primary link to the Groq console.
@@ -191,6 +189,7 @@ struct GroqHelpView: View {
                         }
                         .padding(.horizontal)
                         .padding(.bottom, 20)
+                        .buttonStyle(PressScaleButtonStyle())
                     }
                 }
             }

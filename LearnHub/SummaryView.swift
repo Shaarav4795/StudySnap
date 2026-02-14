@@ -3,11 +3,18 @@ import SwiftUI
 struct SummaryView: View {
     let summary: String
     var isGuide: Bool = false
+    private let parsedItems: [SummaryItem]?
     
     enum SummaryItem: Hashable {
         case bullet(String)
         case text(String)
         case header(String, Int)
+    }
+
+    init(summary: String, isGuide: Bool = false) {
+        self.summary = summary
+        self.isGuide = isGuide
+        self.parsedItems = Self.isBulletPoints(summary) ? Self.parseBulletPoints(summary) : nil
     }
     
     var body: some View {
@@ -24,8 +31,7 @@ struct SummaryView: View {
                 
                 // Removed AI-generated caption per user request
                 
-                if isBulletPoints(summary) {
-                    let items = parseBulletPoints(summary)
+                if let items = parsedItems {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(items, id: \.self) { item in
                             switch item {
@@ -50,20 +56,20 @@ struct SummaryView: View {
                         }
                     }
                     .padding()
-                    .background(Color(UIColor.secondarySystemBackground))
-                    .cornerRadius(12)
+                    .glassCard(cornerRadius: 12, strokeOpacity: 0.2)
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 } else {
                     MathTextView(summary, fontSize: 17)
                         .padding()
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(12)
+                        .glassCard(cornerRadius: 12, strokeOpacity: 0.2)
+                        .transition(.opacity)
                 }
             }
             .padding()
         }
     }
     
-    private func isBulletPoints(_ text: String) -> Bool {
+    private static func isBulletPoints(_ text: String) -> Bool {
         let rawLines = text.components(separatedBy: .newlines)
         let nonEmptyLines = rawLines.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
         guard nonEmptyLines.count >= 2 else { return false }
@@ -81,7 +87,7 @@ struct SummaryView: View {
         return markerCount >= 1
     }
     
-    private func parseBulletPoints(_ text: String) -> [SummaryItem] {
+    private static func parseBulletPoints(_ text: String) -> [SummaryItem] {
         let lines = text.components(separatedBy: .newlines)
         var results: [SummaryItem] = []
 

@@ -11,6 +11,10 @@
 		A667E32E2EDFDE77000A6C88 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A667E3102EDFDD12000A6C88 /* WidgetKit.framework */; };
 		A667E32F2EDFDE77000A6C88 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A667E3122EDFDD13000A6C88 /* SwiftUI.framework */; };
 		A667E33C2EDFDE78000A6C88 /* LearnHubWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A667E32D2EDFDE77000A6C88 /* LearnHubWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B1A100012F20000100A1A1A1 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = B1A200012F20000100A1A1A1 /* Lottie */; };
+		B1A100022F20000100A1A1A1 /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = B1A200022F20000100A1A1A1 /* ConfettiSwiftUI */; };
+		B1A100032F20000100A1A1A1 /* Shimmer in Frameworks */ = {isa = PBXBuildFile; productRef = B1A200032F20000100A1A1A1 /* Shimmer */; };
+		B1A100042F20000100A1A1A1 /* SwiftUIIntrospect in Frameworks */ = {isa = PBXBuildFile; productRef = B1A200042F20000100A1A1A1 /* SwiftUIIntrospect */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -136,6 +140,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				A646593E2F0931E9002C6793 /* SwiftMath in Frameworks */,
+				B1A100012F20000100A1A1A1 /* Lottie in Frameworks */,
+				B1A100022F20000100A1A1A1 /* ConfettiSwiftUI in Frameworks */,
+				B1A100032F20000100A1A1A1 /* Shimmer in Frameworks */,
+				B1A100042F20000100A1A1A1 /* SwiftUIIntrospect in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -235,6 +243,10 @@
 			name = LearnHub;
 			packageProductDependencies = (
 				A646593D2F0931E9002C6793 /* SwiftMath */,
+				B1A200012F20000100A1A1A1 /* Lottie */,
+				B1A200022F20000100A1A1A1 /* ConfettiSwiftUI */,
+				B1A200032F20000100A1A1A1 /* Shimmer */,
+				B1A200042F20000100A1A1A1 /* SwiftUIIntrospect */,
 			);
 			productName = LearnHub;
 			productType = "com.apple.product-type.application";
@@ -322,6 +334,10 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A646593C2F0931E9002C6793 /* XCRemoteSwiftPackageReference "SwiftMath" */,
+				B1A300012F20000100A1A1A1 /* XCRemoteSwiftPackageReference "lottie-ios" */,
+				B1A300022F20000100A1A1A1 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */,
+				B1A300032F20000100A1A1A1 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */,
+				B1A300042F20000100A1A1A1 /* XCRemoteSwiftPackageReference "swiftui-introspect" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A69EE2CD2EDBD0AC00C6ED06 /* Products */;
@@ -823,6 +839,38 @@
 				minimumVersion = 1.7.3;
 			};
 		};
+		B1A300012F20000100A1A1A1 /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.0;
+			};
+		};
+		B1A300022F20000100A1A1A1 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/simibac/ConfettiSwiftUI.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		B1A300032F20000100A1A1A1 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/markiv/SwiftUI-Shimmer.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+		B1A300042F20000100A1A1A1 /* XCRemoteSwiftPackageReference "swiftui-introspect" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/siteline/swiftui-introspect.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -830,6 +878,26 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A646593C2F0931E9002C6793 /* XCRemoteSwiftPackageReference "SwiftMath" */;
 			productName = SwiftMath;
+		};
+		B1A200012F20000100A1A1A1 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B1A300012F20000100A1A1A1 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
+		};
+		B1A200022F20000100A1A1A1 /* ConfettiSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B1A300022F20000100A1A1A1 /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */;
+			productName = ConfettiSwiftUI;
+		};
+		B1A200032F20000100A1A1A1 /* Shimmer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B1A300032F20000100A1A1A1 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */;
+			productName = Shimmer;
+		};
+		B1A200042F20000100A1A1A1 /* SwiftUIIntrospect */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B1A300042F20000100A1A1A1 /* XCRemoteSwiftPackageReference "swiftui-introspect" */;
+			productName = SwiftUIIntrospect;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

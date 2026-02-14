@@ -56,8 +56,30 @@ final class GamificationManager: ObservableObject {
     @Published var newLevel: Int = 0
     @Published var showCoinsEarned: Bool = false
     @Published var coinsEarned: Int = 0
+
+    private enum PracticeKeys {
+        static let wrongQuestionIDs = "dailyMix.wrongQuestionIDs"
+    }
     
     private init() {}
+
+    // MARK: - Practice memory
+
+    func recordQuestionResult(questionID: UUID, wasCorrect: Bool) {
+        var ids = Set(fetchIncorrectQuestionIDs())
+        if wasCorrect {
+            ids.remove(questionID)
+        } else {
+            ids.insert(questionID)
+        }
+        let payload = ids.map(\.uuidString)
+        UserDefaults.standard.set(payload, forKey: PracticeKeys.wrongQuestionIDs)
+    }
+
+    func fetchIncorrectQuestionIDs() -> Set<UUID> {
+        let raw = UserDefaults.standard.stringArray(forKey: PracticeKeys.wrongQuestionIDs) ?? []
+        return Set(raw.compactMap(UUID.init(uuidString:)))
+    }
     
     // MARK: - Widget data sync
     
@@ -417,7 +439,8 @@ final class GamificationManager: ObservableObject {
             (10, .questions10),
             (50, .questions50),
             (100, .questions100),
-            (500, .questions500)
+            (500, .questions500),
+            (1000, .questions1000)
         ]
         
         for (threshold, achievement) in milestones {
@@ -434,6 +457,7 @@ final class GamificationManager: ObservableObject {
             (7, .streak7),
             (14, .streak14),
             (31, .streak31),
+            (100, .streak100),
             (365, .streak365)
         ]
         
@@ -450,7 +474,8 @@ final class GamificationManager: ObservableObject {
             (1, .studySets1),
             (5, .studySets5),
             (10, .studySets10),
-            (25, .studySets25)
+            (25, .studySets25),
+            (50, .studySets50)
         ]
         
         for (threshold, achievement) in milestones {
@@ -465,7 +490,8 @@ final class GamificationManager: ObservableObject {
         let milestones: [(Int, AchievementType)] = [
             (25, .flashcards25),
             (100, .flashcards100),
-            (500, .flashcards500)
+            (500, .flashcards500),
+            (1000, .flashcards1000)
         ]
         
         for (threshold, achievement) in milestones {
@@ -480,7 +506,8 @@ final class GamificationManager: ObservableObject {
         let milestones: [(Int, AchievementType)] = [
             (1, .perfectQuiz1),
             (5, .perfectQuiz5),
-            (10, .perfectQuiz10)
+            (10, .perfectQuiz10),
+            (25, .perfectQuiz25)
         ]
         
         for (threshold, achievement) in milestones {
@@ -496,7 +523,8 @@ final class GamificationManager: ObservableObject {
             (5, .level5),
             (10, .level10),
             (25, .level25),
-            (50, .level50)
+            (50, .level50),
+            (75, .level75)
         ]
         
         for (threshold, achievement) in milestones {

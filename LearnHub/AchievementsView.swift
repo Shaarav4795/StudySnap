@@ -29,17 +29,17 @@ struct AchievementsView: View {
             case .all:
                 return AchievementType.allCases
             case .questions:
-                return [.questions5, .questions10, .questions50, .questions100, .questions500]
+                return [.questions5, .questions10, .questions50, .questions100, .questions500, .questions1000]
             case .streaks:
-                return [.streak1, .streak7, .streak14, .streak31, .streak365]
+                return [.streak1, .streak7, .streak14, .streak31, .streak100, .streak365]
             case .studySets:
-                return [.studySets1, .studySets5, .studySets10, .studySets25]
+                return [.studySets1, .studySets5, .studySets10, .studySets25, .studySets50]
             case .flashcards:
-                return [.flashcards25, .flashcards100, .flashcards500]
+                return [.flashcards25, .flashcards100, .flashcards500, .flashcards1000]
             case .perfection:
-                return [.perfectQuiz1, .perfectQuiz5, .perfectQuiz10]
+                return [.perfectQuiz1, .perfectQuiz5, .perfectQuiz10, .perfectQuiz25]
             case .levels:
-                return [.level5, .level10, .level25, .level50]
+                return [.level5, .level10, .level25, .level50, .level75]
             }
         }
     }
@@ -108,8 +108,7 @@ struct AchievementsView: View {
             .frame(maxWidth: .infinity)
         }
         .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .glassCard(cornerRadius: 16, strokeOpacity: 0.22)
     }
     
     // MARK: - Category picker
@@ -160,17 +159,17 @@ struct AchievementsView: View {
         let requirement = type.requirement
         
         switch type {
-        case .questions5, .questions10, .questions50, .questions100, .questions500:
+        case .questions5, .questions10, .questions50, .questions100, .questions500, .questions1000:
             current = profile.totalQuestionsCorrect
-        case .streak1, .streak7, .streak14, .streak31, .streak365:
+        case .streak1, .streak7, .streak14, .streak31, .streak100, .streak365:
             current = max(profile.currentStreak, profile.longestStreak)
-        case .studySets1, .studySets5, .studySets10, .studySets25:
+        case .studySets1, .studySets5, .studySets10, .studySets25, .studySets50:
             current = profile.totalStudySets
-        case .flashcards25, .flashcards100, .flashcards500:
+        case .flashcards25, .flashcards100, .flashcards500, .flashcards1000:
             current = profile.totalFlashcardsStudied
-        case .perfectQuiz1, .perfectQuiz5, .perfectQuiz10:
+        case .perfectQuiz1, .perfectQuiz5, .perfectQuiz10, .perfectQuiz25:
             current = profile.perfectQuizzes
-        case .level5, .level10, .level25, .level50:
+        case .level5, .level10, .level25, .level50, .level75:
             current = profile.level
         }
         
@@ -201,6 +200,7 @@ struct CategoryPill: View {
                 )
         }
         .buttonStyle(.plain)
+        .buttonStyle(PressScaleButtonStyle())
     }
 }
 
@@ -289,8 +289,7 @@ struct AchievementCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .glassCard(cornerRadius: 16, strokeOpacity: 0.22)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .stroke(isUnlocked ? colorForType.opacity(0.5) : Color.clear, lineWidth: 2)

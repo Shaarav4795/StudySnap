@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Shimmer
 
 struct FlashcardsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -26,6 +27,7 @@ struct FlashcardsView: View {
     init(studySet: StudySet) {
         self.studySet = studySet
         _flashcards = State(initialValue: studySet.flashcards)
+        _masteredCardIds = State(initialValue: Set(studySet.flashcards.filter(\.isMastered).map(\.id)))
     }
     
     private var profile: UserProfile {
@@ -261,11 +263,16 @@ struct FlashcardsView: View {
         guard !masteredCardIds.contains(cardId) else { return }
         masteredCardIds.insert(cardId)
         cardsMastered += 1
+        if let idx = flashcards.firstIndex(where: { $0.id == cardId }) {
+            flashcards[idx].isMastered = true
+        }
         // Ensure mastered cards count as studied.
         if !studiedCardIds.contains(cardId) {
             studiedCardIds.insert(cardId)
             cardsStudied += 1
         }
+        try? modelContext.save()
+        gamificationManager.syncStudySets([studySet])
     }
     
     private func finishSession() {
@@ -340,8 +347,12 @@ private struct GenerateMorePopup: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text(title)
-                    .font(.headline)
+                HStack(spacing: 10) {
+                    CelebrationLottieView(animationName: "celebration", play: true)
+                        .frame(width: 24, height: 24)
+                    Text(title)
+                        .font(.headline)
+                }
                 Spacer()
                 Button {
                     onDismiss()
@@ -381,6 +392,7 @@ private struct GenerateMorePopup: View {
                     HapticsManager.shared.playTap()
                 }
             }
+            .buttonStyle(PressScaleButtonStyle())
             
             Button(action: onGenerate) {
                 HStack {
@@ -397,15 +409,21 @@ private struct GenerateMorePopup: View {
                 .background(themeColor)
                 .foregroundColor(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .shimmering(active: isGenerating)
             }
             .buttonStyle(.plain)
+            .buttonStyle(PressScaleButtonStyle())
             .disabled(isGenerating)
         }
         .padding(20)
         .frame(maxWidth: 360)
         .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: Color.black.opacity(0.18), radius: 18, y: 6)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(themeColor.opacity(0.22), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.16), radius: 18, y: 6)
     }
 }
 
@@ -417,13 +435,18 @@ struct FlashcardView: View {
     var onMastered: (() -> Void)?
     
     @State private var isFlipped = false
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         VStack(spacing: 16) {
             ZStack {
                 RoundedRectangle(cornerRadius: 20)
                     .fill(Color(UIColor.systemBackground))
-                    .shadow(radius: 5)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(colorScheme == .dark ? Color.white.opacity(0.18) : Color.black.opacity(0.08), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.08), radius: 5)
                 
                 VStack {
                     if isFlipped {

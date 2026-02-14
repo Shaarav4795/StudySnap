@@ -137,14 +137,42 @@ final class Flashcard {
     var front: String
     var back: String
     var isMastered: Bool
+    var reviewDueDate: Date?
+    var reviewIntervalDays: Double = 0
+    var reviewStability: Double = 0
+    var reviewDifficulty: Double = 5
+    var reviewRepetitions: Int = 0
     
     var studySet: StudySet?
     
-    init(front: String, back: String, isMastered: Bool = false) {
+    init(
+        front: String,
+        back: String,
+        isMastered: Bool = false,
+        reviewDueDate: Date? = nil,
+        reviewIntervalDays: Double = 0,
+        reviewStability: Double = 0,
+        reviewDifficulty: Double = 5,
+        reviewRepetitions: Int = 0
+    ) {
         self.id = UUID()
         self.front = front
         self.back = back
         self.isMastered = isMastered
+        self.reviewDueDate = reviewDueDate
+        self.reviewIntervalDays = reviewIntervalDays
+        self.reviewStability = reviewStability
+        self.reviewDifficulty = reviewDifficulty
+        self.reviewRepetitions = reviewRepetitions
+    }
+
+    var isNewForReview: Bool {
+        reviewDueDate == nil && reviewRepetitions == 0
+    }
+
+    var isDueForReview: Bool {
+        guard let reviewDueDate else { return false }
+        return reviewDueDate <= Date()
     }
 }
 
@@ -155,15 +183,44 @@ final class Question {
     var answer: String
     var options: [String]? // For multiple choice if needed later
     var explanation: String?
+    var reviewDueDate: Date?
+    var reviewIntervalDays: Double = 0
+    var reviewStability: Double = 0
+    var reviewDifficulty: Double = 5
+    var reviewRepetitions: Int = 0
     
     var studySet: StudySet?
     
-    init(prompt: String, answer: String, options: [String]? = nil, explanation: String? = nil) {
+    init(
+        prompt: String,
+        answer: String,
+        options: [String]? = nil,
+        explanation: String? = nil,
+        reviewDueDate: Date? = nil,
+        reviewIntervalDays: Double = 0,
+        reviewStability: Double = 0,
+        reviewDifficulty: Double = 5,
+        reviewRepetitions: Int = 0
+    ) {
         self.id = UUID()
         self.prompt = prompt
         self.answer = answer
         self.options = options
         self.explanation = explanation
+        self.reviewDueDate = reviewDueDate
+        self.reviewIntervalDays = reviewIntervalDays
+        self.reviewStability = reviewStability
+        self.reviewDifficulty = reviewDifficulty
+        self.reviewRepetitions = reviewRepetitions
+    }
+
+    var isNewForReview: Bool {
+        reviewDueDate == nil && reviewRepetitions == 0
+    }
+
+    var isDueForReview: Bool {
+        guard let reviewDueDate else { return false }
+        return reviewDueDate <= Date()
     }
 }
 

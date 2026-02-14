@@ -10,12 +10,14 @@ enum AchievementType: String, Codable, CaseIterable {
     case questions50 = "questions_50"
     case questions100 = "questions_100"
     case questions500 = "questions_500"
+    case questions1000 = "questions_1000"
     
     // Streak milestones.
     case streak1 = "streak_1"
     case streak7 = "streak_7"
     case streak14 = "streak_14"
     case streak31 = "streak_31"
+    case streak100 = "streak_100"
     case streak365 = "streak_365"
     
     // Study-set milestones.
@@ -23,22 +25,26 @@ enum AchievementType: String, Codable, CaseIterable {
     case studySets5 = "study_sets_5"
     case studySets10 = "study_sets_10"
     case studySets25 = "study_sets_25"
+    case studySets50 = "study_sets_50"
     
     // Flashcard milestones.
     case flashcards25 = "flashcards_25"
     case flashcards100 = "flashcards_100"
     case flashcards500 = "flashcards_500"
+    case flashcards1000 = "flashcards_1000"
     
     // Perfect-quiz milestones.
     case perfectQuiz1 = "perfect_quiz_1"
     case perfectQuiz5 = "perfect_quiz_5"
     case perfectQuiz10 = "perfect_quiz_10"
+    case perfectQuiz25 = "perfect_quiz_25"
     
     // Level milestones.
     case level5 = "level_5"
     case level10 = "level_10"
     case level25 = "level_25"
     case level50 = "level_50"
+    case level75 = "level_75"
     
     var title: String {
         switch self {
@@ -47,25 +53,31 @@ enum AchievementType: String, Codable, CaseIterable {
         case .questions50: return "Quiz Enthusiast"
         case .questions100: return "Quiz Master"
         case .questions500: return "Quiz Legend"
+        case .questions1000: return "Quiz Immortal"
         case .streak1: return "Day One"
         case .streak7: return "Week Warrior"
         case .streak14: return "Two Week Triumph"
         case .streak31: return "Monthly Master"
+        case .streak100: return "Century Streak"
         case .streak365: return "Year of Learning"
         case .studySets1: return "Study Starter"
         case .studySets5: return "Knowledge Seeker"
         case .studySets10: return "Study Scholar"
         case .studySets25: return "Study Champion"
+        case .studySets50: return "Library Builder"
         case .flashcards25: return "Card Collector"
         case .flashcards100: return "Flash Master"
         case .flashcards500: return "Memory King"
+        case .flashcards1000: return "Memory Titan"
         case .perfectQuiz1: return "Perfect Score"
         case .perfectQuiz5: return "Precision Player"
         case .perfectQuiz10: return "Flawless Scholar"
+        case .perfectQuiz25: return "Perfectionist"
         case .level5: return "Rising Star"
         case .level10: return "Dedicated Learner"
         case .level25: return "Knowledge Expert"
         case .level50: return "Ultimate Scholar"
+        case .level75: return "Ascended Scholar"
         }
     }
     
@@ -76,41 +88,47 @@ enum AchievementType: String, Codable, CaseIterable {
         case .questions50: return "Answer 50 questions correctly"
         case .questions100: return "Answer 100 questions correctly"
         case .questions500: return "Answer 500 questions correctly"
+        case .questions1000: return "Answer 1000 questions correctly"
         case .streak1: return "Study for 1 day"
         case .streak7: return "Maintain a 7-day study streak"
         case .streak14: return "Maintain a 14-day study streak"
         case .streak31: return "Maintain a 31-day study streak"
+        case .streak100: return "Maintain a 100-day study streak"
         case .streak365: return "Maintain a 365-day study streak"
         case .studySets1: return "Create your first study set"
         case .studySets5: return "Create 5 study sets"
         case .studySets10: return "Create 10 study sets"
         case .studySets25: return "Create 25 study sets"
+        case .studySets50: return "Create 50 study sets"
         case .flashcards25: return "Study 25 flashcards"
         case .flashcards100: return "Study 100 flashcards"
         case .flashcards500: return "Study 500 flashcards"
+        case .flashcards1000: return "Study 1000 flashcards"
         case .perfectQuiz1: return "Get a perfect score on a quiz"
         case .perfectQuiz5: return "Get 5 perfect quiz scores"
         case .perfectQuiz10: return "Get 10 perfect quiz scores"
+        case .perfectQuiz25: return "Get 25 perfect quiz scores"
         case .level5: return "Reach level 5"
         case .level10: return "Reach level 10"
         case .level25: return "Reach level 25"
         case .level50: return "Reach level 50"
+        case .level75: return "Reach level 75"
         }
     }
     
     var icon: String {
         switch self {
-        case .questions5, .questions10, .questions50, .questions100, .questions500:
+        case .questions5, .questions10, .questions50, .questions100, .questions500, .questions1000:
             return "checkmark.circle.fill"
-        case .streak1, .streak7, .streak14, .streak31, .streak365:
+        case .streak1, .streak7, .streak14, .streak31, .streak100, .streak365:
             return "flame.fill"
-        case .studySets1, .studySets5, .studySets10, .studySets25:
+        case .studySets1, .studySets5, .studySets10, .studySets25, .studySets50:
             return "book.fill"
-        case .flashcards25, .flashcards100, .flashcards500:
+        case .flashcards25, .flashcards100, .flashcards500, .flashcards1000:
             return "rectangle.stack.fill"
-        case .perfectQuiz1, .perfectQuiz5, .perfectQuiz10:
+        case .perfectQuiz1, .perfectQuiz5, .perfectQuiz10, .perfectQuiz25:
             return "star.fill"
-        case .level5, .level10, .level25, .level50:
+        case .level5, .level10, .level25, .level50, .level75:
             return "trophy.fill"
         }
     }
@@ -118,13 +136,13 @@ enum AchievementType: String, Codable, CaseIterable {
     var color: String {
         switch self {
         case .questions5, .questions10: return "green"
-        case .questions50, .questions100, .questions500: return "blue"
+        case .questions50, .questions100, .questions500, .questions1000: return "blue"
         case .streak1, .streak7: return "orange"
-        case .streak14, .streak31, .streak365: return "red"
-        case .studySets1, .studySets5, .studySets10, .studySets25: return "purple"
-        case .flashcards25, .flashcards100, .flashcards500: return "cyan"
-        case .perfectQuiz1, .perfectQuiz5, .perfectQuiz10: return "yellow"
-        case .level5, .level10, .level25, .level50: return "gold"
+        case .streak14, .streak31, .streak100, .streak365: return "red"
+        case .studySets1, .studySets5, .studySets10, .studySets25, .studySets50: return "purple"
+        case .flashcards25, .flashcards100, .flashcards500, .flashcards1000: return "cyan"
+        case .perfectQuiz1, .perfectQuiz5, .perfectQuiz10, .perfectQuiz25: return "yellow"
+        case .level5, .level10, .level25, .level50, .level75: return "gold"
         }
     }
     
@@ -135,25 +153,31 @@ enum AchievementType: String, Codable, CaseIterable {
         case .questions50: return 50
         case .questions100: return 100
         case .questions500: return 500
+        case .questions1000: return 1000
         case .streak1: return 1
         case .streak7: return 7
         case .streak14: return 14
         case .streak31: return 31
+        case .streak100: return 100
         case .streak365: return 365
         case .studySets1: return 1
         case .studySets5: return 5
         case .studySets10: return 10
         case .studySets25: return 25
+        case .studySets50: return 50
         case .flashcards25: return 25
         case .flashcards100: return 100
         case .flashcards500: return 500
+        case .flashcards1000: return 1000
         case .perfectQuiz1: return 1
         case .perfectQuiz5: return 5
         case .perfectQuiz10: return 10
+        case .perfectQuiz25: return 25
         case .level5: return 5
         case .level10: return 10
         case .level25: return 25
         case .level50: return 50
+        case .level75: return 75
         }
     }
     
@@ -164,25 +188,31 @@ enum AchievementType: String, Codable, CaseIterable {
         case .questions50: return 250
         case .questions100: return 500
         case .questions500: return 1000
+        case .questions1000: return 1800
         case .streak1: return 25
         case .streak7: return 200
         case .streak14: return 400
         case .streak31: return 800
+        case .streak100: return 1800
         case .streak365: return 5000
         case .studySets1: return 50
         case .studySets5: return 150
         case .studySets10: return 300
         case .studySets25: return 750
+        case .studySets50: return 1400
         case .flashcards25: return 75
         case .flashcards100: return 200
         case .flashcards500: return 500
+        case .flashcards1000: return 1000
         case .perfectQuiz1: return 100
         case .perfectQuiz5: return 300
         case .perfectQuiz10: return 600
+        case .perfectQuiz25: return 1500
         case .level5: return 250
         case .level10: return 500
         case .level25: return 1000
         case .level50: return 2500
+        case .level75: return 4000
         }
     }
     
@@ -193,25 +223,31 @@ enum AchievementType: String, Codable, CaseIterable {
         case .questions50: return 50
         case .questions100: return 100
         case .questions500: return 250
+        case .questions1000: return 450
         case .streak1: return 5
         case .streak7: return 50
         case .streak14: return 100
         case .streak31: return 200
+        case .streak100: return 400
         case .streak365: return 1000
         case .studySets1: return 10
         case .studySets5: return 30
         case .studySets10: return 60
         case .studySets25: return 150
+        case .studySets50: return 300
         case .flashcards25: return 15
         case .flashcards100: return 40
         case .flashcards500: return 100
+        case .flashcards1000: return 220
         case .perfectQuiz1: return 25
         case .perfectQuiz5: return 75
         case .perfectQuiz10: return 150
+        case .perfectQuiz25: return 350
         case .level5: return 50
         case .level10: return 100
         case .level25: return 250
         case .level50: return 500
+        case .level75: return 800
         }
     }
 }

@@ -153,6 +153,21 @@ struct GuideOverlayLayer: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Guide Progress")
+                        .font(.caption.bold())
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text(stepLabel(for: step))
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+
+                ProgressView(value: progressValue(for: step))
+                    .tint(accent)
+            }
             
             HStack(spacing: 12) {
                 if let onAdvance {
@@ -169,17 +184,32 @@ struct GuideOverlayLayer: View {
                     .tint(accent)
                     .clipShape(Capsule())
                 }
-                
+
                 Button(action: {
                     HapticsManager.shared.playTap()
-                    onSkip()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
+                        guideManager.collapse()
+                    }
                 }) {
-                    Text("Skip tutorial")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    Text("Later")
+                        .font(.subheadline.bold())
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
                 }
+                .buttonStyle(.bordered)
+                .tint(accent)
+                .clipShape(Capsule())
             }
             .padding(.top, 4)
+
+            Button(action: {
+                HapticsManager.shared.playTap()
+                onSkip()
+            }) {
+                Text("Skip tutorial")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
         }
         .padding(20)
     }
@@ -198,12 +228,25 @@ struct GuideOverlayLayer: View {
 
     private func stepLabel(for step: GuideManager.Step) -> String {
         switch step {
-        case .configureModel: return "Step 1 of 6"
-        case .createFirstSet: return "Step 2 of 6"
-        case .tuneOptions, .generateSet: return "Step 3 of 6"
-        case .openSet: return "Step 4 of 6"
-        case .exploreQuiz: return "Step 5 of 6"
-        case .exploreFlashcards, .exploreGamification: return "Step 6 of 6"
+        case .configureModel: return "1 of 7"
+        case .createFirstSet: return "2 of 7"
+        case .tuneOptions, .generateSet: return "3 of 7"
+        case .openSet: return "4 of 7"
+        case .exploreQuiz: return "5 of 7"
+        case .exploreFlashcards: return "6 of 7"
+        case .exploreGamification: return "7 of 7"
+        }
+    }
+
+    private func progressValue(for step: GuideManager.Step) -> Double {
+        switch step {
+        case .configureModel: return 1.0 / 7.0
+        case .createFirstSet: return 2.0 / 7.0
+        case .tuneOptions, .generateSet: return 3.0 / 7.0
+        case .openSet: return 4.0 / 7.0
+        case .exploreQuiz: return 5.0 / 7.0
+        case .exploreFlashcards: return 6.0 / 7.0
+        case .exploreGamification: return 1.0
         }
     }
 
@@ -255,11 +298,11 @@ struct GuideOverlayLayer: View {
         // Without a rect, anchor the callout above the tab bar.
         let padding: CGFloat = 16
         let calloutWidth: CGFloat = 300
-        let calloutHeight: CGFloat = 160
+        let calloutHeight: CGFloat = 210
 
         if rect == nil {
             let tabBarHeight = geometry.safeAreaInsets.bottom + 49
-            let y = container.height - tabBarHeight - calloutHeight/1.6
+            let y = max(calloutHeight / 2 + padding, container.height - tabBarHeight - calloutHeight / 1.6)
             return CGPoint(x: container.width / 2, y: y)
         }
 
@@ -277,7 +320,10 @@ struct GuideOverlayLayer: View {
         }
 
         let useBottom = bottomY + calloutHeight/2 < container.height - padding
-        let y: CGFloat = useBottom ? bottomY : topY
+        let unclampedY: CGFloat = useBottom ? bottomY : topY
+        let minY = calloutHeight / 2 + padding
+        let maxY = container.height - calloutHeight / 2 - padding
+        let y = min(max(unclampedY, minY), maxY)
         let x = min(max(rect.midX, calloutWidth/2 + padding), container.width - calloutWidth/2 - padding)
         return CGPoint(x: x, y: y)
     }

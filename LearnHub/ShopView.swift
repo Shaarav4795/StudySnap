@@ -1,5 +1,8 @@
 import SwiftUI
 import SwiftData
+import Shimmer
+import ConfettiSwiftUI
+import SwiftUIIntrospect
 
 struct ShopView: View {
     @Environment(\.modelContext) private var modelContext
@@ -12,6 +15,9 @@ struct ShopView: View {
     @State private var pendingPurchase: (() -> Void)?
     @State private var selectedItemName = ""
     @State private var selectedItemCost = 0
+    @State private var purchaseConfettiCounter = 0
+    @State private var isProcessingPurchase = false
+    @State private var isCatalogBooting = true
     
     private var profile: UserProfile {
         if let existing = profiles.first {
@@ -36,17 +42,35 @@ struct ShopView: View {
                 
                 // Content
                 ScrollView {
-                    switch selectedTab {
-                    case .avatars:
-                        avatarsGrid
-                    case .themes:
-                        themesGrid
+                    if isCatalogBooting {
+                        ShopSkeletonView(tab: selectedTab)
+                            .padding()
+                    } else {
+                        switch selectedTab {
+                        case .avatars:
+                            avatarsGrid
+                        case .themes:
+                            themesGrid
+                        }
                     }
+                }
+                .introspect(.scrollView, on: .iOS(.v17, .v18)) { scrollView in
+                    scrollView.keyboardDismissMode = .interactive
+                    scrollView.delaysContentTouches = false
                 }
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Shop")
             .navigationBarTitleDisplayMode(.inline)
+            .confettiCannon(counter: $purchaseConfettiCounter, num: 28, rainHeight: 720)
+            .onAppear {
+                guard isCatalogBooting else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        isCatalogBooting = false
+                    }
+                }
+            }
             
             if showPurchaseAlert {
                 Color.black.opacity(0.4)
@@ -62,13 +86,21 @@ struct ShopView: View {
                 PurchaseConfirmationView(
                     itemName: selectedItemName,
                     itemCost: selectedItemCost,
+                    isProcessing: isProcessingPurchase,
                     onConfirm: {
-                        pendingPurchase?()
-                        withAnimation {
-                            showPurchaseAlert = false
+                        guard isProcessingPurchase == false else { return }
+                        isProcessingPurchase = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                            pendingPurchase?()
+                            purchaseConfettiCounter += 1
+                            isProcessingPurchase = false
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                showPurchaseAlert = false
+                            }
                         }
                     },
                     onCancel: {
+                        isProcessingPurchase = false
                         withAnimation {
                             showPurchaseAlert = false
                         }
@@ -115,7 +147,19 @@ struct ShopView: View {
             }
         }
         .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .background(
+            LinearGradient(
+                colors: [Color.accentColor.opacity(0.14), Color.accentColor.opacity(0.05)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(alignment: .trailing) {
+            CelebrationLottieView(animationName: "celebration", play: true)
+                .frame(width: 42, height: 42)
+                .opacity(0.22)
+                .padding(.trailing, 8)
+        }
     }
     
     // MARK: - Tab Picker
@@ -137,10 +181,8 @@ struct ShopView: View {
     
     private var avatarsGrid: some View {
         LazyVGrid(columns: [
-            GridItem(.flexible()),
-            GridItem(.flexible()),
-            GridItem(.flexible())
-        ], spacing: 16) {
+            GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 14)
+        ], spacing: 14) {
             ForEach(AvatarItem.allAvatars) { avatar in
                 AvatarShopCard(
                     avatar: avatar,
@@ -173,9 +215,8 @@ struct ShopView: View {
     
     private var themesGrid: some View {
         LazyVGrid(columns: [
-            GridItem(.flexible()),
             GridItem(.flexible())
-        ], spacing: 16) {
+        ], spacing: 14) {
             ForEach(ThemeItem.allThemes) { theme in
                 ThemeShopCard(
                     theme: theme,
@@ -217,7 +258,7 @@ struct AvatarShopCard: View {
     let onPurchase: () -> Void
     
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 12) {
             // Avatar Image
             ZStack {
                 Circle()
@@ -226,7 +267,7 @@ struct AvatarShopCard: View {
                         LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing) :
                         LinearGradient(colors: [Color.gray.opacity(0.2), Color.gray.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing)
                     )
-                    .frame(width: 70, height: 70)
+                    .frame(width: 78, height: 78)
                 
                 if isLocked && !isOwned {
                     Image(systemName: "lock.fill")
@@ -243,7 +284,7 @@ struct AvatarShopCard: View {
                 if isSelected {
                     Circle()
                         .stroke(Color.green, lineWidth: 3)
-                        .frame(width: 76, height: 76)
+                        .frame(width: 84, height: 84)
                 }
             }
             
@@ -274,6 +315,7 @@ struct AvatarShopCard: View {
                     .padding(.vertical, 4)
                     .background(Color.blue.opacity(0.2))
                     .cornerRadius(8)
+                    .buttonStyle(PressScaleButtonStyle())
                 }
             } else if isLocked {
                 Text("Lvl \(avatar.requiredLevel)")
@@ -301,15 +343,19 @@ struct AvatarShopCard: View {
                     .cornerRadius(8)
                 }
                 .disabled(!canAfford)
+                .buttonStyle(PressScaleButtonStyle())
             }
         }
-        .padding()
+        .padding(.vertical, 14)
+        .padding(.horizontal, 12)
         .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .stroke(isSelected ? Color.green : Color.clear, lineWidth: 2)
         )
+        .shadow(color: .black.opacity(0.06), radius: 5, y: 2)
+        .scaleEffect(isSelected ? 1.02 : 1)
     }
 }
 
@@ -333,11 +379,12 @@ struct ThemeShopCard: View {
         }
         .padding()
         .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .stroke(isSelected ? Color.green : Color.clear, lineWidth: 2)
         )
+        .shadow(color: .black.opacity(0.06), radius: 5, y: 2)
     }
     
     // MARK: - Subviews
@@ -434,6 +481,7 @@ struct ThemeShopCard: View {
             .padding(.vertical, 6)
             .background(Color.blue.opacity(0.2))
             .cornerRadius(8)
+            .buttonStyle(PressScaleButtonStyle())
         }
     }
     
@@ -465,6 +513,7 @@ struct ThemeShopCard: View {
             .cornerRadius(8)
         }
         .disabled(!canAfford)
+        .buttonStyle(PressScaleButtonStyle())
     }
     
     // MARK: - Helpers
@@ -505,6 +554,7 @@ struct ThemeShopCard: View {
 struct PurchaseConfirmationView: View {
     let itemName: String
     let itemCost: Int
+    let isProcessing: Bool
     let onConfirm: () -> Void
     let onCancel: () -> Void
     @ObservedObject private var themeManager = ThemeManager.shared
@@ -512,15 +562,19 @@ struct PurchaseConfirmationView: View {
     var body: some View {
         VStack(spacing: 20) {
             // Icon/Image
-            Circle()
-                .fill(themeManager.primaryGradient)
-                .frame(width: 60, height: 60)
-                .overlay(
-                    Image(systemName: "cart.fill")
-                        .font(.title)
-                        .foregroundColor(.white)
-                )
-                .shadow(color: themeManager.primaryColor.opacity(0.3), radius: 10, x: 0, y: 5)
+            ZStack {
+                Circle()
+                    .fill(themeManager.primaryGradient)
+                    .frame(width: 60, height: 60)
+                    .shadow(color: themeManager.primaryColor.opacity(0.3), radius: 10, x: 0, y: 5)
+
+                CelebrationLottieView(animationName: "celebration", play: true)
+                    .frame(width: 52, height: 52)
+
+                Image(systemName: "cart.fill")
+                    .font(.title)
+                    .foregroundColor(.white)
+            }
             
             VStack(spacing: 8) {
                 Text("Confirm Purchase")
@@ -562,27 +616,58 @@ struct PurchaseConfirmationView: View {
                         .background(Color(uiColor: .secondarySystemBackground))
                         .cornerRadius(12)
                 }
+                .buttonStyle(PressScaleButtonStyle())
+                .disabled(isProcessing)
                 
                 Button(action: {
                     HapticsManager.shared.playTap()
                     onConfirm()
                 }) {
-                    Text("Buy Now")
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(themeManager.primaryGradient)
-                        .cornerRadius(12)
-                        .shadow(color: themeManager.primaryColor.opacity(0.3), radius: 5, x: 0, y: 3)
+                    HStack(spacing: 8) {
+                        if isProcessing {
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                                .tint(.white)
+                        }
+                        Text(isProcessing ? "Processing..." : "Buy Now")
+                            .fontWeight(.bold)
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(themeManager.primaryGradient)
+                    .cornerRadius(12)
+                    .shadow(color: themeManager.primaryColor.opacity(0.3), radius: 5, x: 0, y: 3)
+                    .shimmering(active: isProcessing)
                 }
+                .buttonStyle(PressScaleButtonStyle())
+                .disabled(isProcessing)
             }
             .padding(.top, 10)
         }
         .padding(24)
-        .background(Color(uiColor: .systemBackground))
-        .cornerRadius(24)
-        .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)
+        .background(Color(.systemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(themeManager.primaryColor.opacity(0.22), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.16), radius: 18, y: 6)
         .padding(.horizontal, 40)
+    }
+}
+
+private struct ShopSkeletonView: View {
+    let tab: ShopView.ShopTab
+
+    var body: some View {
+        LazyVGrid(columns: tab == .avatars ? [GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 14)] : [GridItem(.flexible())], spacing: 14) {
+            ForEach(0..<6, id: \.self) { _ in
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(.secondarySystemGroupedBackground))
+                    .frame(height: tab == .avatars ? 190 : 208)
+            }
+        }
+        .shimmering()
     }
 }

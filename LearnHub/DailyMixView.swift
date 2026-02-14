@@ -2,6 +2,7 @@
 
 import SwiftUI
 import SwiftData
+import ConfettiSwiftUI
 
 // MARK: - Seeded random number generator
 
@@ -49,6 +50,8 @@ struct DailyMixView: View {
     @State private var masteredCardIds: Set<UUID> = []
     
     @State private var hasRecordedCompletion = false
+    @State private var isPreparingMix = true
+    @State private var completionConfettiCounter = 0
     
     private var profile: UserProfile {
         if let existing = profiles.first {
@@ -66,6 +69,20 @@ struct DailyMixView: View {
         case questions
         case flashcards
         case complete
+    }
+
+    private enum ReviewRating {
+        case again
+        case good
+        case easy
+    }
+
+    private struct ReviewScheduleState {
+        var dueDate: Date
+        var intervalDays: Double
+        var stability: Double
+        var difficulty: Double
+        var repetitions: Int
     }
     
     var body: some View {
@@ -100,8 +117,22 @@ struct DailyMixView: View {
             }
         }
         .onAppear {
-            generateDailyMix()
+            isPreparingMix = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                generateDailyMix()
+                isPreparingMix = false
+            }
         }
+        .overlay {
+            if isPreparingMix {
+                AppLoadingOverlay(
+                    title: "Preparing Daily Mix",
+                    subtitle: "Selecting today’s questions and flashcards...",
+                    animationName: "loading"
+                )
+            }
+        }
+        .confettiCannon(counter: $completionConfettiCounter)
     }
     
     // MARK: - Intro view
@@ -129,7 +160,7 @@ struct DailyMixView: View {
                 
                 Text(isAlreadyCompleted
                      ? "Amazing work! Come back tomorrow for a fresh mix."
-                     : "Complete 5 questions and 5 flashcards to keep your streak alive!")
+                     : "Review due items first, then practice a few new ones to keep your streak alive!")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -149,7 +180,7 @@ struct DailyMixView: View {
                                 .font(.title)
                                 .foregroundColor(.blue)
                         }
-                        Text("5 Questions")
+                        Text("\(mixQuestions.count) Questions")
                             .font(.caption.bold())
                             .foregroundColor(.primary)
                     }
@@ -163,14 +194,13 @@ struct DailyMixView: View {
                                 .font(.title)
                                 .foregroundColor(.orange)
                         }
-                        Text("5 Flashcards")
+                        Text("\(mixFlashcards.count) Flashcards")
                             .font(.caption.bold())
                             .foregroundColor(.primary)
                     }
                 }
                 .padding()
-                .background(Color(uiColor: .secondarySystemGroupedBackground))
-                .cornerRadius(16)
+                .glassCard(cornerRadius: 16, strokeOpacity: 0.24)
             }
             
             // Preview of possible XP/coin rewards.
@@ -199,10 +229,7 @@ struct DailyMixView: View {
                     }
                 }
                 .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(themeManager.primaryColor.opacity(0.1))
-                )
+                .glassCard(cornerRadius: 12, strokeOpacity: 0.22)
             }
             
             // Reminder to keep a streak active.
@@ -242,6 +269,7 @@ struct DailyMixView: View {
                         .background(themeManager.primaryColor)
                         .cornerRadius(16)
                     }
+                    .buttonStyle(PressScaleButtonStyle())
                 } else if isAlreadyCompleted {
                     Button(action: {
                         HapticsManager.shared.playTap()
@@ -261,6 +289,7 @@ struct DailyMixView: View {
                         .background(themeManager.primaryColor)
                         .cornerRadius(16)
                     }
+                    .buttonStyle(PressScaleButtonStyle())
                 } else {
                     // Inform the user when they lack enough content to run Daily Mix.
                     VStack(spacing: 8) {
@@ -324,13 +353,12 @@ struct DailyMixView: View {
                                     .fill(Color(uiColor: .secondarySystemGroupedBackground))
                                     .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
                             )
+                            .glassCard(cornerRadius: 20, strokeOpacity: 0.2)
                             .padding(.horizontal)
                             
                             // Answer options with selectable states.
                             if let allOptions = question.options, !allOptions.isEmpty {
-                                let options = allOptions.filter { option in
-                                    !((option.hasPrefix("Option ") || option.hasPrefix("option ")) && option.count < 10 && option.last?.isNumber == true)
-                                }
+                                let options = sanitizedOptions(from: allOptions)
                                 
                                 VStack(spacing: 16) {
                                     ForEach(Array(options.enumerated()), id: \.element) { index, option in
@@ -384,25 +412,32 @@ struct DailyMixView: View {
                                     }
                                 }
                                 .padding(.horizontal)
-                                
-                                // Explanation shown after answering.
-                                if isAnswerVisible, let explanation = question.explanation, !explanation.isEmpty {
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("Explanation")
-                                            .font(.headline)
-                                            .foregroundColor(.secondary)
-                                        
-                                        MathTextView(explanation, fontSize: 16)
-                                            .foregroundColor(.primary)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                    }
-                                    .padding()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(Color(uiColor: .secondarySystemGroupedBackground))
-                                    .cornerRadius(12)
-                                    .padding(.horizontal)
-                                    .transition(.opacity)
+                            } else if isAnswerVisible {
+                                VStack(spacing: 16) {
+                                    MathTextView(question.answer, fontSize: 17)
+                                        .foregroundColor(.primary)
+                                        .padding()
+                                        .frame(maxWidth: .infinity)
+                                        .glassCard(cornerRadius: 12, strokeOpacity: 0.22)
                                 }
+                                .padding(.horizontal)
+                            }
+
+                            if isAnswerVisible, let explanation = question.explanation, !explanation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Explanation")
+                                        .font(.headline)
+                                        .foregroundColor(.secondary)
+
+                                    MathTextView(explanation, fontSize: 16)
+                                        .foregroundColor(.primary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .glassCard(cornerRadius: 12, strokeOpacity: 0.22)
+                                .padding(.horizontal)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
                             }
                         }
                         .padding(.bottom, 100)
@@ -427,6 +462,7 @@ struct DailyMixView: View {
                                 .background(themeManager.primaryColor)
                                 .cornerRadius(16)
                         }
+                            .buttonStyle(PressScaleButtonStyle())
                     }
                     .padding()
                     .background(Color(uiColor: .systemGroupedBackground))
@@ -519,6 +555,7 @@ struct DailyMixView: View {
                             .background(themeManager.primaryColor)
                             .cornerRadius(12)
                         }
+                        .buttonStyle(PressScaleButtonStyle())
                     }
                 }
                 .padding()
@@ -541,6 +578,9 @@ struct DailyMixView: View {
                 Image(systemName: "trophy.fill")
                     .font(.system(size: 50))
                     .foregroundColor(.white)
+
+                CelebrationLottieView(animationName: "celebration", play: phase == .complete)
+                    .frame(width: 82, height: 82)
             }
             
             Text("Daily Mix Complete!")
@@ -584,8 +624,7 @@ struct DailyMixView: View {
                 }
             }
             .padding()
-            .background(Color(uiColor: .secondarySystemGroupedBackground))
-            .cornerRadius(16)
+            .glassCard(cornerRadius: 16, strokeOpacity: 0.24)
             
             // Reward breakdown, only on first completion today.
             if !isAlreadyCompleted {
@@ -605,6 +644,7 @@ struct DailyMixView: View {
                     .padding()
                     .background(Color.blue.opacity(0.1))
                     .cornerRadius(12)
+                    .glassCard(cornerRadius: 12, strokeOpacity: 0.2)
                     
                     VStack(spacing: 4) {
                         HStack(spacing: 4) {
@@ -621,6 +661,7 @@ struct DailyMixView: View {
                     .padding()
                     .background(Color.yellow.opacity(0.1))
                     .cornerRadius(12)
+                    .glassCard(cornerRadius: 12, strokeOpacity: 0.2)
                 }
                 
                 // Streak reinforcement message.
@@ -636,7 +677,7 @@ struct DailyMixView: View {
                 .background(Color.orange.opacity(0.15))
                 .cornerRadius(20)
             } else {
-                Text("Practice complete — no rewards for repeats!")
+                Text("Practice complete!")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -655,6 +696,7 @@ struct DailyMixView: View {
                     .background(themeManager.primaryColor)
                     .cornerRadius(16)
             }
+                    .buttonStyle(PressScaleButtonStyle())
             .padding(.horizontal)
             .padding(.bottom, 30)
         }
@@ -664,33 +706,99 @@ struct DailyMixView: View {
     // MARK: - Helper functions
     
     private func generateDailyMix() {
-        // Gather all questions and flashcards across study sets.
         var allQuestions: [Question] = []
         var allFlashcards: [Flashcard] = []
-        
+
         for set in studySets {
             allQuestions.append(contentsOf: set.questions)
             allFlashcards.append(contentsOf: set.flashcards)
         }
-        
-        // Seed by start-of-day to keep selection stable per day.
+
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let seed = UInt64(today.timeIntervalSince1970)
         var generator = SeededRandomNumberGenerator(seed: seed)
-        
-        // Sort for stability, then shuffle deterministically.
-        let sortedQuestions = allQuestions.sorted { $0.id.uuidString < $1.id.uuidString }
-        let sortedFlashcards = allFlashcards.sorted { $0.id.uuidString < $1.id.uuidString }
-        
-        mixQuestions = Array(sortedQuestions.shuffled(using: &generator).prefix(5))
-        mixFlashcards = Array(sortedFlashcards.shuffled(using: &generator).prefix(5))
+
+        let wrongQuestionIDs = gamificationManager.fetchIncorrectQuestionIDs()
+        let questionTarget = min(5, allQuestions.count)
+        let dueQuestions = allQuestions
+            .filter { $0.isDueForReview || wrongQuestionIDs.contains($0.id) }
+            .sorted { lhs, rhs in
+                let lhsDue = lhs.reviewDueDate ?? .distantPast
+                let rhsDue = rhs.reviewDueDate ?? .distantPast
+                if lhsDue != rhsDue { return lhsDue < rhsDue }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+        let newQuestions = allQuestions
+            .filter { $0.isNewForReview && !wrongQuestionIDs.contains($0.id) }
+            .sorted { $0.id.uuidString < $1.id.uuidString }
+            .shuffled(using: &generator)
+        let fallbackQuestions = allQuestions
+            .filter { !$0.isDueForReview && !$0.isNewForReview && !wrongQuestionIDs.contains($0.id) }
+            .sorted { lhs, rhs in
+                let lhsDue = lhs.reviewDueDate ?? .distantFuture
+                let rhsDue = rhs.reviewDueDate ?? .distantFuture
+                if lhsDue != rhsDue { return lhsDue < rhsDue }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+        mixQuestions = selectDailyItems(
+            dueItems: dueQuestions,
+            newItems: newQuestions,
+            fallbackItems: fallbackQuestions,
+            target: questionTarget,
+            maxNewItems: 2,
+            generator: &generator
+        )
+
+        let flashcardTarget = min(5, allFlashcards.count)
+        let dueFlashcards = allFlashcards
+            .filter { $0.isDueForReview }
+            .sorted { lhs, rhs in
+                let lhsDue = lhs.reviewDueDate ?? .distantPast
+                let rhsDue = rhs.reviewDueDate ?? .distantPast
+                if lhsDue != rhsDue { return lhsDue < rhsDue }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+        let newFlashcards = allFlashcards
+            .filter { $0.isNewForReview }
+            .sorted { $0.id.uuidString < $1.id.uuidString }
+            .shuffled(using: &generator)
+        let fallbackFlashcards = allFlashcards
+            .filter { !$0.isDueForReview && !$0.isNewForReview }
+            .sorted { lhs, rhs in
+                let lhsDue = lhs.reviewDueDate ?? .distantFuture
+                let rhsDue = rhs.reviewDueDate ?? .distantFuture
+                if lhsDue != rhsDue { return lhsDue < rhsDue }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+        mixFlashcards = selectDailyItems(
+            dueItems: dueFlashcards,
+            newItems: newFlashcards,
+            fallbackItems: fallbackFlashcards,
+            target: flashcardTarget,
+            maxNewItems: 2,
+            generator: &generator
+        )
+
+        // Ensure stale wrong-question entries are cleaned once a question is no longer due and not in today's mix.
+        let selectedQuestionIDs = Set(mixQuestions.map(\.id))
+        for question in allQuestions where !selectedQuestionIDs.contains(question.id) && !question.isDueForReview {
+            gamificationManager.recordQuestionResult(questionID: question.id, wasCorrect: true)
+        }
     }
     
     private func checkAnswer(_ option: String, correctAnswer: String) {
         selectedAnswer = option
         isAnswerVisible = true
-        if option == correctAnswer {
+        let isCorrect = option == correctAnswer
+        let question = mixQuestions[currentQuestionIndex]
+        gamificationManager.recordQuestionResult(
+            questionID: question.id,
+            wasCorrect: isCorrect
+        )
+        applyReview(to: question, rating: isCorrect ? .good : .again)
+        try? modelContext.save()
+        if isCorrect {
             questionsCorrect += 1
         }
     }
@@ -712,15 +820,149 @@ struct DailyMixView: View {
         guard !studiedCardIds.contains(cardId) else { return }
         studiedCardIds.insert(cardId)
         flashcardsStudied += 1
+        if let idx = mixFlashcards.firstIndex(where: { $0.id == cardId }) {
+            applyReview(to: mixFlashcards[idx], rating: .good)
+            try? modelContext.save()
+        }
     }
     
     private func markMastered(_ cardId: UUID) {
         guard !masteredCardIds.contains(cardId) else { return }
         masteredCardIds.insert(cardId)
         flashcardsMastered += 1
+        if let idx = mixFlashcards.firstIndex(where: { $0.id == cardId }) {
+            mixFlashcards[idx].isMastered = true
+            applyReview(to: mixFlashcards[idx], rating: .easy)
+        }
         if !studiedCardIds.contains(cardId) {
             studiedCardIds.insert(cardId)
             flashcardsStudied += 1
+        }
+        try? modelContext.save()
+        gamificationManager.syncStudySets(studySets)
+    }
+
+    private func selectDailyItems<T>(
+        dueItems: [T],
+        newItems: [T],
+        fallbackItems: [T],
+        target: Int,
+        maxNewItems: Int,
+        generator: inout SeededRandomNumberGenerator
+    ) -> [T] {
+        guard target > 0 else { return [] }
+
+        var selected = Array(dueItems.prefix(target))
+        let remaining = target - selected.count
+        guard remaining > 0 else { return selected }
+
+        var shuffledNewItems = newItems
+        shuffledNewItems.shuffle(using: &generator)
+        let newCount = min(remaining, maxNewItems)
+        selected.append(contentsOf: shuffledNewItems.prefix(newCount))
+
+        let fallbackRemaining = target - selected.count
+        if fallbackRemaining > 0 {
+            selected.append(contentsOf: fallbackItems.prefix(fallbackRemaining))
+        }
+
+        return selected
+    }
+
+    private func applyReview(to question: Question, rating: ReviewRating) {
+        let updated = nextReviewState(
+            currentDifficulty: question.reviewDifficulty,
+            currentStability: question.reviewStability,
+            currentRepetitions: question.reviewRepetitions,
+            rating: rating
+        )
+        question.reviewDifficulty = updated.difficulty
+        question.reviewStability = updated.stability
+        question.reviewIntervalDays = updated.intervalDays
+        question.reviewRepetitions = updated.repetitions
+        question.reviewDueDate = updated.dueDate
+    }
+
+    private func applyReview(to flashcard: Flashcard, rating: ReviewRating) {
+        let updated = nextReviewState(
+            currentDifficulty: flashcard.reviewDifficulty,
+            currentStability: flashcard.reviewStability,
+            currentRepetitions: flashcard.reviewRepetitions,
+            rating: rating
+        )
+        flashcard.reviewDifficulty = updated.difficulty
+        flashcard.reviewStability = updated.stability
+        flashcard.reviewIntervalDays = updated.intervalDays
+        flashcard.reviewRepetitions = updated.repetitions
+        flashcard.reviewDueDate = updated.dueDate
+    }
+
+    private func nextReviewState(
+        currentDifficulty: Double,
+        currentStability: Double,
+        currentRepetitions: Int,
+        rating: ReviewRating
+    ) -> ReviewScheduleState {
+        let now = Date()
+        var difficulty = min(10, max(1, currentDifficulty > 0 ? currentDifficulty : 5))
+        var stability = max(0, currentStability)
+        var repetitions = max(0, currentRepetitions)
+
+        switch rating {
+        case .again:
+            difficulty = min(10, difficulty + 0.8)
+            stability = max(0.3, stability * 0.55)
+            repetitions = 0
+            let intervalDays = 0.02 // ~30 minutes
+            return ReviewScheduleState(
+                dueDate: now.addingTimeInterval(intervalDays * 86_400),
+                intervalDays: intervalDays,
+                stability: stability,
+                difficulty: difficulty,
+                repetitions: repetitions
+            )
+
+        case .good:
+            difficulty = max(1, difficulty - 0.18)
+            stability = max(1, stability + (11 - difficulty) * 0.45 + Double(repetitions) * 0.2)
+            repetitions += 1
+            let intervalDays: Double
+            if repetitions <= 1 {
+                intervalDays = 1
+            } else {
+                intervalDays = max(1, stability * (1.35 + (10 - difficulty) * 0.06))
+            }
+            return ReviewScheduleState(
+                dueDate: now.addingTimeInterval(intervalDays * 86_400),
+                intervalDays: intervalDays,
+                stability: stability,
+                difficulty: difficulty,
+                repetitions: repetitions
+            )
+
+        case .easy:
+            difficulty = max(1, difficulty - 0.45)
+            stability = max(1.5, stability + (12 - difficulty) * 0.6 + Double(repetitions) * 0.35)
+            repetitions += 1
+            let intervalDays: Double
+            if repetitions <= 1 {
+                intervalDays = 3
+            } else {
+                intervalDays = max(2, stability * (2.0 + (10 - difficulty) * 0.08))
+            }
+            return ReviewScheduleState(
+                dueDate: now.addingTimeInterval(intervalDays * 86_400),
+                intervalDays: intervalDays,
+                stability: stability,
+                difficulty: difficulty,
+                repetitions: repetitions
+            )
+        }
+    }
+
+    private func sanitizedOptions(from options: [String]) -> [String] {
+        options.filter { option in
+            !((option.hasPrefix("Option ") || option.hasPrefix("option ")) && option.count < 10 && option.last?.isNumber == true)
         }
     }
     
@@ -744,20 +986,21 @@ struct DailyMixView: View {
         withAnimation {
             phase = .complete
         }
+        completionConfettiCounter += 1
     }
     
     // MARK: - Reward calculations
     
     private func calculateMaxXP() -> Int {
         let base = XPRewards.dailyMixBase
-        let questions = 5 * XPRewards.dailyMixQuestionCorrect
-        let flashcards = 5 * XPRewards.dailyMixFlashcard
+        let questions = mixQuestions.count * XPRewards.dailyMixQuestionCorrect
+        let flashcards = mixFlashcards.count * XPRewards.dailyMixFlashcard
         let multiplier = XPRewards.streakMultiplier(for: profile.currentStreak)
         return Int(Double(base + questions + flashcards) * multiplier)
     }
     
     private func calculateMaxCoins() -> Int {
-        return CoinRewards.dailyMixBase + (5 * CoinRewards.dailyMixQuestionCorrect) + (5 * CoinRewards.dailyMixFlashcard)
+        return CoinRewards.dailyMixBase + (mixQuestions.count * CoinRewards.dailyMixQuestionCorrect) + (mixFlashcards.count * CoinRewards.dailyMixFlashcard)
     }
     
     private func calculateEarnedXP() -> Int {
@@ -826,13 +1069,18 @@ private struct DailyMixFlashcardView: View {
     var themeColor: Color = ThemeManager.shared.primaryColor
     
     @State private var isFlipped = false
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         VStack(spacing: 16) {
             ZStack {
                 RoundedRectangle(cornerRadius: 20)
                     .fill(Color(UIColor.systemBackground))
-                    .shadow(radius: 5)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(colorScheme == .dark ? Color.white.opacity(0.18) : Color.black.opacity(0.08), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.08), radius: 5)
                 
                 VStack {
                     if isFlipped {
@@ -878,6 +1126,7 @@ private struct DailyMixFlashcardView: View {
                         .background(themeColor)
                         .cornerRadius(20)
                 }
+                    .buttonStyle(PressScaleButtonStyle())
             } else if isFlipped && isMastered {
                 Label("Mastered!", systemImage: "checkmark.seal.fill")
                     .font(.subheadline.bold())

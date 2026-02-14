@@ -413,7 +413,12 @@ struct QuizView: View {
         HapticsManager.shared.playTap()
         selectedAnswer = option
         isAnswerVisible = true
-        if option == questions[currentQuestionIndex].answer {
+        let isCorrect = option == questions[currentQuestionIndex].answer
+        gamificationManager.recordQuestionResult(
+            questionID: questions[currentQuestionIndex].id,
+            wasCorrect: isCorrect
+        )
+        if isCorrect {
             score += 1
         }
     }
@@ -453,6 +458,10 @@ struct QuizView: View {
     
     private func submitAnswer(correct: Bool) {
         HapticsManager.shared.playTap()
+        gamificationManager.recordQuestionResult(
+            questionID: questions[currentQuestionIndex].id,
+            wasCorrect: correct
+        )
         if correct {
             score += 1
         }

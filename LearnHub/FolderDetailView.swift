@@ -97,8 +97,7 @@ struct FolderDetailView: View {
                                 }
                             }
                             .padding()
-                            .background(Color(uiColor: .secondarySystemGroupedBackground))
-                            .cornerRadius(16)
+                            .glassCard(cornerRadius: 16, strokeOpacity: 0.22)
                             .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
                         }
                         .listRowSeparator(.hidden)
@@ -199,6 +198,7 @@ struct FolderDetailView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
+                .buttonStyle(PressScaleButtonStyle())
             }
         }
         .sheet(isPresented: $isShowingFolderRenameSheet) {

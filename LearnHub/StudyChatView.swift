@@ -1,5 +1,8 @@
 import SwiftUI
 import SwiftData
+import Shimmer
+import ConfettiSwiftUI
+import SwiftUIIntrospect
 
 // MARK: - Study Chat View (Tutor)
 
@@ -25,6 +28,7 @@ struct StudyChatView: View {
     @State private var showImageSourceDialog = false
     @State private var showApiKeyAlert = false
     @State private var messageImages: [UUID: UIImage] = [:]
+    @State private var tutorConfettiCounter = 0
     
     // For smooth typing indicator
     @State private var typingDots = ""
@@ -40,7 +44,15 @@ struct StudyChatView: View {
             VStack(spacing: 0) {
                 // Persistent header actions
                 HStack {
-                    Spacer()
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Tutor")
+                            .font(.title3.bold())
+                        Text(studySet.title)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 12)
                     Button {
                         showClearConfirmation = true
                     } label: {
@@ -51,7 +63,7 @@ struct StudyChatView: View {
                         .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(Color(.systemBackground))
+                        .background(Color(.secondarySystemGroupedBackground))
                         .overlay(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .stroke(Color.accentColor.opacity(0.4), lineWidth: 1)
@@ -60,10 +72,18 @@ struct StudyChatView: View {
                         .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 2)
                     }
                     .disabled(sortedMessages.isEmpty)
+                    .buttonStyle(PressScaleButtonStyle())
                     .accessibilityLabel("Clear Chat")
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
+                .background(
+                    LinearGradient(
+                        colors: [Color.accentColor.opacity(0.09), Color.clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
                 
                 // Chat messages
                 ScrollViewReader { proxy in
@@ -73,6 +93,11 @@ struct StudyChatView: View {
                             if sortedMessages.isEmpty && !isLoading {
                                 WelcomeMessageView(studySetTitle: studySet.title)
                                     .id("welcome")
+                            }
+
+                            if sortedMessages.isEmpty && isLoading {
+                                TutorLoadingScreenView()
+                                    .id("initial-loading")
                             }
                             
                             ForEach(sortedMessages) { message in
@@ -87,6 +112,7 @@ struct StudyChatView: View {
                                     }
                                 )
                                 .id(message.id)
+                                .transition(.move(edge: message.isUser ? .trailing : .leading).combined(with: .opacity))
                             }
                             
                             // Typing indicator
@@ -109,6 +135,10 @@ struct StudyChatView: View {
                         if loading {
                             scrollToBottom(proxy: proxy)
                         }
+                    }
+                    .introspect(.scrollView, on: .iOS(.v17, .v18)) { scrollView in
+                        scrollView.keyboardDismissMode = .interactive
+                        scrollView.delaysContentTouches = false
                     }
                 }
                 
@@ -243,6 +273,8 @@ struct StudyChatView: View {
                 .transition(.scale.combined(with: .opacity))
             }
         }
+        .confettiCannon(counter: $tutorConfettiCounter)
+        .animation(.spring(response: 0.3, dampingFraction: 0.82), value: sortedMessages.count)
         .alert("Groq API Key Required", isPresented: $showApiKeyAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -455,6 +487,7 @@ struct StudyChatView: View {
         }
         
         HapticsManager.shared.success()
+        tutorConfettiCounter += 1
     }
     
     private func loadQuickPrompts() {
@@ -564,9 +597,18 @@ private struct WelcomeMessageView: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "brain.head.profile")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
+            ZStack {
+                Circle()
+                    .fill(Color.accentColor.opacity(0.14))
+                    .frame(width: 84, height: 84)
+
+                CelebrationLottieView(animationName: "celebration", play: true)
+                    .frame(width: 66, height: 66)
+
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
             
             Text("Study Tutor")
                 .font(.title2.bold())
@@ -577,8 +619,27 @@ private struct WelcomeMessageView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
         }
+        .padding(.vertical, 20)
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
+    }
+}
+
+private struct TutorLoadingScreenView: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            ForEach(0..<4, id: \.self) { index in
+                HStack {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color(.secondarySystemGroupedBackground))
+                        .frame(width: index.isMultiple(of: 2) ? 240 : 190, height: 56)
+                    Spacer(minLength: 50)
+                }
+            }
+        }
+        .padding(.horizontal, 6)
+        .padding(.top, 10)
+        .shimmering()
     }
 }
 
@@ -628,7 +689,12 @@ private struct ChatBubbleView: View {
                         ? Color.accentColor
                         : Color(.secondarySystemGroupedBackground)
                 )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(message.isUser ? Color.white.opacity(0.2) : Color.primary.opacity(0.08), lineWidth: 1)
+                )
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .shadow(color: .black.opacity(message.isUser ? 0.16 : 0.06), radius: 6, y: 2)
                 .contextMenu {
                     if !message.isUser {
                         Button {
@@ -1607,6 +1673,7 @@ private struct TypingIndicatorView: View {
             .padding(.vertical, 12)
             .background(Color(.secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .shimmering(active: true)
             .onAppear {
                 startAnimation()
             }
@@ -1657,6 +1724,7 @@ private struct QuickPromptsBar: View {
             .padding(.vertical, 8)
         }
         .background(Color(.systemGroupedBackground))
+        .overlay(Divider(), alignment: .top)
     }
 }
 
@@ -1700,6 +1768,7 @@ private struct ImageSourcePopup: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
+                .buttonStyle(PressScaleButtonStyle())
                 
                 Button(action: onChoosePhoto) {
                     HStack {
@@ -1713,13 +1782,18 @@ private struct ImageSourcePopup: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
+                .buttonStyle(PressScaleButtonStyle())
             }
         }
         .padding(20)
         .frame(maxWidth: 360)
         .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: Color.black.opacity(0.18), radius: 18, y: 6)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.accentColor.opacity(0.22), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.16), radius: 18, y: 6)
     }
 }
 
@@ -1765,6 +1839,7 @@ private struct ConfirmPopup: View {
                         .background(Color(.secondarySystemGroupedBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
+                .buttonStyle(PressScaleButtonStyle())
                 
                 Button(role: primaryRole) {
                     onPrimary()
@@ -1777,13 +1852,18 @@ private struct ConfirmPopup: View {
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
+                .buttonStyle(PressScaleButtonStyle())
             }
         }
         .padding(20)
         .frame(maxWidth: 360)
         .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: Color.black.opacity(0.18), radius: 18, y: 6)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.accentColor.opacity(0.2), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.16), radius: 18, y: 6)
     }
 }
 
@@ -1826,6 +1906,7 @@ private struct ChatInputBar: View {
                 }
             }
             .disabled(isLoading)
+            .buttonStyle(PressScaleButtonStyle())
             .accessibilityLabel("Add image")
             .accessibilityHint("Take a photo or select an image to analyze")
             
@@ -1854,10 +1935,12 @@ private struct ChatInputBar: View {
                     .foregroundStyle(canSend ? Color.accentColor : Color(.tertiaryLabel))
             }
             .disabled(!canSend)
+            .buttonStyle(PressScaleButtonStyle())
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
-        .background(Color(.systemGroupedBackground))
+        .background(.ultraThinMaterial)
+        .overlay(Divider(), alignment: .top)
     }
 }
 

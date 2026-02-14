@@ -2,6 +2,8 @@ import SwiftUI
 import UIKit
 import SwiftData
 import VisionKit
+import Shimmer
+import SwiftUIIntrospect
 
 struct InputView: View {
     @Environment(\.modelContext) private var modelContext
@@ -91,6 +93,10 @@ struct InputView: View {
                 actionSection
             }
             .scrollDismissesKeyboard(.interactively)
+            .introspect(.scrollView, on: .iOS(.v17, .v18)) { scrollView in
+                scrollView.keyboardDismissMode = .interactive
+                scrollView.delaysContentTouches = false
+            }
             .navigationTitle("New Study Set")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -429,6 +435,7 @@ struct InputView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .buttonStyle(PressScaleButtonStyle())
                     .accessibilityLabel("Scan documents")
                     .accessibilityHint("Open camera scanner to capture pages")
 
@@ -466,6 +473,7 @@ struct InputView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .buttonStyle(PressScaleButtonStyle())
                     .accessibilityLabel("Upload document")
                     .accessibilityHint("Choose a file to import its text")
                 }
@@ -634,7 +642,9 @@ struct InputView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 5)
                 .bold()
+                .shimmering(active: isGenerating)
             }
+            .buttonStyle(PressScaleButtonStyle())
             .disabled(!canGenerate || isGenerating)
             .listRowBackground(
                 (!canGenerate || isGenerating) ? Color.gray : Color.accentColor

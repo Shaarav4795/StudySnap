@@ -405,7 +405,7 @@ actor AIService {
 
     enum RelativeDifficulty: String, CaseIterable, Identifiable {
         case easier = "Easier"
-        case same = "Same Difficulty"
+        case same = "Same"
         case harder = "Harder"
         
         var id: String { self.rawValue }

@@ -59,6 +59,7 @@ struct ProfileView: View {
                 }) {
                     Image(systemName: "questionmark.circle")
                 }
+                .buttonStyle(PressScaleButtonStyle())
             }
         }
         .sheet(isPresented: $showEditUsername) {
@@ -147,8 +148,7 @@ struct ProfileView: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .cornerRadius(20)
+        .glassCard(cornerRadius: 20, strokeOpacity: 0.24)
         .guideTarget(.profileHeader)
     }
     
@@ -190,8 +190,7 @@ struct ProfileView: View {
             }
         }
         .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .glassCard(cornerRadius: 16, strokeOpacity: 0.22)
     }
     
     // MARK: - Stats grid
@@ -281,8 +280,7 @@ struct ProfileView: View {
             .frame(maxWidth: .infinity)
         }
         .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .cornerRadius(16)
+        .glassCard(cornerRadius: 16, strokeOpacity: 0.22)
     }
     
     // MARK: - Edit-username sheet
@@ -386,8 +384,7 @@ struct StatCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
-        .cornerRadius(12)
+        .glassCard(cornerRadius: 12, strokeOpacity: 0.2)
     }
 }
 

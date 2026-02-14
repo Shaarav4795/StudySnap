@@ -2,6 +2,7 @@
 
 import SwiftUI
 import SwiftData
+import ConfettiSwiftUI
 
 // MARK: - App tab configuration
 enum AppTab: Int, CaseIterable {
@@ -60,6 +61,7 @@ struct ContentView: View {
     @State private var isFoldersExpanded = true
     @State private var isStudySetsExpanded = true
     @State private var selectedTab: AppTab = .home
+    @State private var levelUpConfettiCounter = 0
     
     private var profile: UserProfile {
         if let existing = profiles.first {
@@ -170,6 +172,12 @@ struct ContentView: View {
         }
         .animation(.spring(response: 0.25, dampingFraction: 0.8), value: (gamificationManager.showAchievementUnlocked && !isSearching))
         .animation(.spring(response: 0.25, dampingFraction: 0.8), value: (gamificationManager.showLevelUp && !isSearching))
+        .confettiCannon(counter: $levelUpConfettiCounter)
+        .onChange(of: gamificationManager.showLevelUp) { _, isShowing in
+            if isShowing {
+                levelUpConfettiCounter += 1
+            }
+        }
         .task {
             guard hasRequestedNotifications == false else { return }
             hasRequestedNotifications = true
@@ -549,18 +557,18 @@ struct ContentView: View {
                         .padding(.horizontal, 24)
                         .transition(.scale.combined(with: .opacity))
                     }
+                    .ignoresSafeArea()
                 }
             }
             .searchable(text: $searchText, isPresented: $isSearching, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search study sets")
             .animation(.linear(duration: 0.04), value: isSearching)
-            .navigationTitle("LearnHub")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: StudySet.self) { set in
                 StudySetDetailView(studySet: set)
                     .toolbar(.hidden, for: .tabBar)
             }
             .navigationDestination(for: StudyFolder.self) { folder in
                 FolderDetailView(folder: folder)
-                    .toolbar(.hidden, for: .tabBar)
             }
             .sheet(isPresented: $isShowingCreateFolderSheet) {
                 CreateFolderView(folderToEdit: folderToEdit)
@@ -571,6 +579,13 @@ struct ContentView: View {
                 }
             }
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("LearnHub")
+                        .font(.title2.bold())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Menu {
                         Button {
@@ -605,6 +620,7 @@ struct ContentView: View {
                         .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
+                    .buttonStyle(PressScaleButtonStyle())
                     .guideTarget(.homeCreate)
                 }
             }
@@ -753,15 +769,21 @@ struct ContentView: View {
     // MARK: - Daily Mix launcher
     
     private var hasDailyMixContent: Bool {
-        let totalQuestions = studySets.reduce(0) { $0 + $1.questions.count }
-        let totalFlashcards = studySets.reduce(0) { $0 + $1.flashcards.count }
+        let allQuestions = studySets.flatMap(\.questions)
+        let allFlashcards = studySets.flatMap(\.flashcards)
+
+        let dueOrNewQuestionCount = allQuestions.filter { $0.isDueForReview || $0.isNewForReview }.count
+        let dueOrNewFlashcardCount = allFlashcards.filter { $0.isDueForReview || $0.isNewForReview }.count
+
+        let canBackfillQuestions = allQuestions.count >= 5
+        let canBackfillFlashcards = allFlashcards.count >= 5
         
         // Hide if the user already completed Daily Mix today.
         if gamificationManager.hasDailyMixCompletedToday(profile: profile) {
             return false
         }
         
-        return totalQuestions > 15 && totalFlashcards > 15
+        return (dueOrNewQuestionCount > 0 || canBackfillQuestions) && (dueOrNewFlashcardCount > 0 || canBackfillFlashcards)
     }
     
     private var dailyMixCard: some View {
@@ -815,8 +837,10 @@ struct ContentView: View {
                 .buttonStyle(.plain)
                 .padding(.horizontal)
                 .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
+        .animation(.spring(response: 0.3, dampingFraction: 0.82), value: hasDailyMixContent)
     }
     
     // MARK: - Gamification summary header
@@ -892,6 +916,7 @@ struct ContentView: View {
         .cornerRadius(16)
         .padding(.horizontal)
         .padding(.top, 8)
+        .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
     private func deleteItems(offsets: IndexSet) {
@@ -1022,6 +1047,7 @@ private struct StudySetSourcePopup: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
+                .buttonStyle(PressScaleButtonStyle())
                 
                 Button(action: onSelectTopic) {
                     HStack(alignment: .top, spacing: 12) {
@@ -1043,13 +1069,18 @@ private struct StudySetSourcePopup: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
+                .buttonStyle(PressScaleButtonStyle())
             }
         }
         .padding(20)
         .frame(maxWidth: 420)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: Color.black.opacity(0.18), radius: 18, y: 6)
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.accentColor.opacity(0.22), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.1), radius: 14, y: 6)
     }
 }
 
